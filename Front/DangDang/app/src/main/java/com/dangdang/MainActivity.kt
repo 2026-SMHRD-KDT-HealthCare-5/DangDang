@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.AppRoute
 import com.dangdang.di.SessionManager
 import com.dangdang.ui.navhost.AppNavHost
 import com.dangdang.ui.theme.DangDangTheme
@@ -41,7 +42,7 @@ class MainActivity : ComponentActivity() {
                 LaunchedEffect(Unit) {
                     sessionManager.logoutEvent.collect {
                         // 로그인 스크린으로 이동하며 백스택을 모두 비움
-                        navController.navigate("Login") {
+                        navController.navigate(AppRoute.Login.route) {
                             popUpTo(navController.graph.startDestinationId) {
                                 inclusive = true
                             }
