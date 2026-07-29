@@ -1,12 +1,33 @@
 package com.dangdang.common.utils
 
 import com.dangdang.R
+import com.dangdang.common.utils.MainRoute.Community
+import com.dangdang.common.utils.MainRoute.DangDang
+import com.dangdang.common.utils.MainRoute.Home
+import com.dangdang.common.utils.MainRoute.MyPage
+import com.dangdang.common.utils.MainRoute.Walk
 
 sealed class AppRoute(
     val route: String
 ) {
-    data object Intro : AppRoute("intro")
     data object Login : AppRoute("login")
+    data object SignUp : AppRoute("signUp")
+    data object Main : AppRoute("main")
+}
+
+sealed class MyPageRoute(
+    val route: String
+){
+    data object MyInfoUpdate : MyPageRoute("myInfoUpdate")
+
+    companion object {
+        val values: List<MyPageRoute>
+            get() = listOf(
+                MyInfoUpdate
+            )
+        val stringValues: List<String>
+            get() = values.map { it.route }
+    }
 }
 
 sealed class MainRoute(
@@ -47,8 +68,9 @@ sealed class MainRoute(
     )
 
     companion object {
-        val values = listOf(
-            Home, DangDang, Walk, Community, MyPage
-        )
+        val values: List<MainRoute>
+            get() = listOf(
+                Home, DangDang, Walk, Community, MyPage
+            )
     }
 }

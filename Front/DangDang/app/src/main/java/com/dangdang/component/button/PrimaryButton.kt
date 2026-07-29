@@ -62,11 +62,9 @@ fun PrimaryButton(
                 shape = RoundedCornerShape(12.dp)
             )
             .padding(12.dp)
-            .then(
-                componentWidthModifier(
-                    fixWidth = fixWidth,
-                    sizeType = sizeType
-                )
+            .componentWidthModifier(
+                fixWidth = fixWidth,
+                sizeType = sizeType
             )
             .clickable(
                 enabled = enabled,

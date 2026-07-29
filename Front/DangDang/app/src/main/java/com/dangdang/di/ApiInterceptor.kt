@@ -55,7 +55,9 @@ class ApiInterceptor(
 
                 // 갱신 실패 또는 리프레시 토큰 없음: 로그인 화면으로
                 response.close()
-                handleLogout()
+                runBlocking {
+                    handleLogout()
+                }
                 return response
             }
         }
@@ -73,7 +75,7 @@ class ApiInterceptor(
         }
     }
 
-    private fun handleLogout() {
+    private suspend fun handleLogout() {
         sessionManager.handleLogout()
     }
 }
