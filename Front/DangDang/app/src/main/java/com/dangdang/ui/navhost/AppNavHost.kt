@@ -2,8 +2,10 @@ package com.dangdang.ui.navhost
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.AppRoute
 import com.dangdang.ui.screens.first.LoginScreen
@@ -27,23 +29,38 @@ fun AppNavHost(
                 onLoginSuccess = { isSignUp ->
                     if(isSignUp){
                         //회원가입 화면으로 이동
-                        navController.navigate(AppRoute.SignUp.route)
+                        navController.navigate("${AppRoute.SignUp.route}?isSocial=true")
                     }else{
                         //메인화면으로 이동
                         navController.navigate(AppRoute.Main.route) {
                             popUpTo(navController.graph.startDestinationId) {
                                 inclusive = true
                             }
+                            launchSingleTop = true
                         }
                     }
+                },
+                onSignupMove = {
+                    navController.navigate(AppRoute.SignUp.route)
                 }
             )
         }
 
         //회원가입화면
-        composable(AppRoute.SignUp.route) {
+        composable(
+            route = "${AppRoute.SignUp.route}?isSocial={isSocial}",
+            arguments = listOf(
+                navArgument("isSocial") {
+                    type = NavType.StringType
+                    defaultValue = "false"
+                }
+            )
+        ) { backStackEntry ->
+            val isSocial = backStackEntry.arguments?.getString("isSocial")
             SignUpScreen(
-
+                navController = navController,
+                isUpdate = false,
+                isEmailDisable = isSocial == "true"
             )
         }
 

@@ -39,6 +39,7 @@ import com.dangdang.common.utils.regular
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
+import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.White
 
@@ -111,11 +112,39 @@ fun TextFieldPreview(
             maxLength = 50,
             sizeType = LayoutSize.FillMaxSize
         )
+
+        TextField(
+            isEnabled = false,
+            title = "타이틀",
+            isMaxLengthView = true,
+            isRequired = true,
+            leftIcon = {
+                Icon(
+                    painter = painterResource(R.mipmap.kakao_login),
+                    contentDescription = "left icon",
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            rightIcon = {
+                Icon(
+                    painter = painterResource(R.mipmap.kakao_login),
+                    contentDescription = "left icon",
+                    modifier = Modifier.size(24.dp)
+                )
+            },
+            isBorder = true,
+            value = "일이삼사오육칠팔구십일이삼사오육칠팔구십일이삼사오육칠팔구십",
+            onValueChange = {},
+            placeholderText = "이메일 주소를 입력해주세요",
+            maxLength = 50,
+            sizeType = LayoutSize.FillMaxSize
+        )
     }
 }
 
 @Composable
 fun TextField(
+    isEnabled: Boolean = true,
     title: String? = null,
     isMaxLengthView: Boolean = true,
     isRequired: Boolean = true,
@@ -143,6 +172,7 @@ fun TextField(
         }
 
         BasicTextField(
+            enabled = isEnabled,
             value = value,
             onValueChange = { newValue ->
                 onValueChange(newValue.take(maxLength))
@@ -169,7 +199,7 @@ fun TextField(
             decorationBox = { innerTextField ->
                 Row(
                     modifier = Modifier
-                        .background(White, shape = RoundedCornerShape(12.dp))
+                        .background(if(isEnabled) White else DarkGray, shape = RoundedCornerShape(12.dp))
                         .border(1.dp, if(isBorder) Gray else White, shape = RoundedCornerShape(12.dp))
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -182,7 +212,7 @@ fun TextField(
                             Text(
                                 text = placeholderText,
                                 style = AppTypography.labelLarge.regular,
-                                color = Gray
+                                color = if(isEnabled) Gray else White
                             )
                         }
                         innerTextField()

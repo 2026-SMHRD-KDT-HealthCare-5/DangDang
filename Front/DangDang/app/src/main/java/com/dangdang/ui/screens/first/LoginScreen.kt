@@ -1,6 +1,7 @@
 package com.dangdang.ui.screens.first
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -53,13 +54,15 @@ fun LoginScreenPreview(
         onEmailLoginClick = {},
         onGoogleLoginClick = {},
         onKakaoLoginClick = {},
+        onSignupMove = {}
     )
 }
 
 @Composable
 fun LoginScreen(
     loginViewModel: LoginViewModel = hiltViewModel(),
-    onLoginSuccess: (isSignUp: Boolean) -> Unit
+    onLoginSuccess: (isSignUp: Boolean) -> Unit,
+    onSignupMove: () -> Unit
 ) {
     val context = LocalContext.current
     var emailValue by remember { mutableStateOf("") }
@@ -87,7 +90,8 @@ fun LoginScreen(
         },
         onKakaoLoginClick = {
 
-        }
+        },
+        onSignupMove = onSignupMove
     )
 }
 
@@ -99,7 +103,8 @@ fun LoginScreenContent(
     onPasswordChange: (String)-> Unit,
     onEmailLoginClick: ()-> Unit,
     onGoogleLoginClick: ()-> Unit,
-    onKakaoLoginClick: ()-> Unit
+    onKakaoLoginClick: ()-> Unit,
+    onSignupMove: ()-> Unit
 ){
     Column(
         modifier = Modifier
@@ -169,6 +174,10 @@ fun LoginScreenContent(
                 text = "회원가입하기",
                 style = AppTypography.labelLarge.bold,
                 color = Navy,
+                modifier = Modifier
+                    .clickable(
+                        onClick = onSignupMove
+                    )
             )
         }
     }

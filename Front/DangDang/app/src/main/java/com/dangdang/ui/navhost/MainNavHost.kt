@@ -72,7 +72,9 @@ fun MainNavHost(
             //회원정보 수정
             composable(MyPageRoute.MyInfoUpdate.route) {
                 SignUpScreen(
-
+                    navController = navController,
+                    isUpdate = true,
+                    isEmailDisable = true
                 )
             }
         }
