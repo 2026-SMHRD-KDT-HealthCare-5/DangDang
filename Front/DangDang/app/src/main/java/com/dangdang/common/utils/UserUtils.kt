@@ -5,15 +5,6 @@ import com.dangdang.data.enums.Gender
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.UserActivityLevelModel
 
-//당뇨 유형 리스트
-val DiabetesTypeList = listOf(
-    "당뇨 아님(예방 목적)",
-    "제1형 당뇨",
-    "제2형 당뇨",
-    "임신성 당뇨",
-    "당뇨 전단계(공복혈당장애)"
-)
-
 //평소 활동량 리스트
 val activityLevelList = listOf(
     UserActivityLevelModel(
@@ -48,7 +39,6 @@ val SignUpDefault = SignUpForm(
     birthday = "",
     height = "",
     weight = "",
-    diabetesType = DiabetesTypeList[0],
     hemoglobin = "",
     isHemoglobinRecentResultUnknown = false,
     goalGlucose = "",

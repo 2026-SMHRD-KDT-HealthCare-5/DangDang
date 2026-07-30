@@ -6,6 +6,7 @@ import com.dangdang.Application.Companion.API_BASE_URL
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.api.UserApiService
 import com.dangdang.data.repository.UserRepository
+import com.dangdang.data.repository.WalkRepository
 import dagger.Lazy
 import dagger.Module
 import dagger.Provides
@@ -66,5 +67,11 @@ object NetworkModule {
     @Singleton
     fun provideUserRepository(userApiService: UserApiService): UserRepository{
         return UserRepository(userApiService)
+    }
+
+    @Provides
+    @Singleton
+    fun providerWalkRepository(): WalkRepository{
+        return WalkRepository()
     }
 }

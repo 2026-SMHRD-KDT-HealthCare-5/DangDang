@@ -19,6 +19,7 @@ import androidx.navigation.NavHostController
 import com.dangdang.data.enums.LayoutSize
 import androidx.core.net.toUri
 import com.dangdang.Application.Companion.InquiryEmail
+import java.text.DecimalFormat
 
 //화면마다 공통으로 사용하는 modifier
 fun Modifier.screen() = this
@@ -57,6 +58,12 @@ val TextStyle.medium: TextStyle
 
 val TextStyle.bold: TextStyle
     get() = copy(fontWeight = FontWeight.Bold)
+
+fun addComma(number: Int): String {
+    val formatter = DecimalFormat("#,###")
+    val formattedNumber = formatter.format(number)
+    return formattedNumber
+}
 
 fun navigateBottomTab(
     navController: NavHostController,

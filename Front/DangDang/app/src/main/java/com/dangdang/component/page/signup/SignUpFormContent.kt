@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.dangdang.common.utils.DiabetesTypeList
 import com.dangdang.common.utils.activityLevelList
 import com.dangdang.component.text.selector.Selector
 import com.dangdang.component.text.textfield.TextField
@@ -36,7 +35,6 @@ fun SignUpFormContentPreview(
             birthday = "",
             height = "",
             weight = "",
-            diabetesType = "제2형 당뇨",
             hemoglobin = "",
             isHemoglobinRecentResultUnknown = false,
             goalGlucose = "",
@@ -187,18 +185,6 @@ fun SignUpFormContent(
             maxLength = 3,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
-        )
-
-        Selector(
-            title = "당뇨 유형",
-            items = DiabetesTypeList,
-            selectedItem = signUpForm.diabetesType,
-            itemText = { it },
-            onSelected = {
-                onFormChange(
-                    signUpForm.copy(diabetesType = it)
-                )
-            }
         )
 
         HemoglobinTextField(

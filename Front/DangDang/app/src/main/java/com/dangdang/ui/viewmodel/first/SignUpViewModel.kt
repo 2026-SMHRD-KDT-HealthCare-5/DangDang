@@ -3,7 +3,6 @@ package com.dangdang.ui.viewmodel.first
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.AppPrefs
-import com.dangdang.common.utils.DiabetesTypeList
 import com.dangdang.common.utils.SignUpDefault
 import com.dangdang.common.utils.activityLevelList
 import com.dangdang.data.enums.Gender

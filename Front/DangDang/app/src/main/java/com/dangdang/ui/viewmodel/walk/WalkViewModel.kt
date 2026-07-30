@@ -4,17 +4,42 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.dangdang.data.repository.WalkRepository
+import com.dangdang.di.StepCounterManager
 import com.dangdang.di.StepCounterService
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class WalkViewModel @Inject constructor(
-
+    private val walkRepository: WalkRepository
 ): ViewModel(){
 
+    init {
+        if(!StepCounterManager.isWalking.value){
+            getWalkStatus()
+        }
+    }
+
+    //현황 불러오기
+    fun getWalkStatus(){
+        viewModelScope.launch {
+            val response = walkRepository.getWalkStatus()
+            if(response.isSuccessful){
+                val walkStatus = response.body()
+
+                StepCounterManager.updateWalkTarget(walkStatus?.walkTargetDistance?:0f)
+                StepCounterManager.updateStepCount(walkStatus?.currentWalkCount?:0)
+            }
+        }
+    }
+
+
     fun startStepCounting(
-        context: Context
+        context: Context,
+        currentStepCount: Int
     ) {
 
         val intent =
@@ -25,6 +50,7 @@ class WalkViewModel @Inject constructor(
                 action =
                     StepCounterService.ACTION_START
             }
+        intent.putExtra("currentStep", currentStepCount)
 
         ContextCompat.startForegroundService(
             context,

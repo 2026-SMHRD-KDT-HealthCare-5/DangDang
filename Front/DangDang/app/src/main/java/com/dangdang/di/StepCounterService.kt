@@ -6,6 +6,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
@@ -13,6 +14,12 @@ import android.hardware.SensorManager
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.time.Duration.Companion.milliseconds
 
 class StepCounterService : Service(), SensorEventListener {
 
@@ -24,6 +31,11 @@ class StepCounterService : Service(), SensorEventListener {
      * 걷기 시작 시점의 기기 누적 걸음 수
      */
     private var startStepCount = -1f
+    private var baseStepCount = 0
+
+    private var timerJob: Job? = null
+
+    private var elapsedSecond = 0
 
     @SuppressLint("ForegroundServiceType")
     override fun onCreate() {
@@ -50,11 +62,12 @@ class StepCounterService : Service(), SensorEventListener {
         flags: Int,
         startId: Int
     ): Int {
+        val currentStep = intent?.getIntExtra("currentStep", 0)
 
         when (intent?.action) {
 
             ACTION_START -> {
-                startStepCounting()
+                startStepCounting(currentStep?: 0)
             }
 
             ACTION_STOP -> {
@@ -65,12 +78,14 @@ class StepCounterService : Service(), SensorEventListener {
         return START_NOT_STICKY
     }
 
-    private fun startStepCounting() {
+    private fun startStepCounting(currentStepCount: Int) {
 
         val sensor = stepSensor ?: run {
             stopSelf()
             return
         }
+
+        baseStepCount = currentStepCount
 
         /**
          * 기존 값 초기화
@@ -85,6 +100,14 @@ class StepCounterService : Service(), SensorEventListener {
             sensor,
             SensorManager.SENSOR_DELAY_NORMAL
         )
+
+        elapsedSecond = 0
+
+        StepCounterManager.resetStepTime()
+
+        StepCounterManager.updateWalkingState(true)
+
+        startTimer()
     }
 
     override fun onSensorChanged(
@@ -111,8 +134,6 @@ class StepCounterService : Service(), SensorEventListener {
                 currentStepCount
 
             StepCounterManager.updateStepCount(0)
-
-            return
         }
 
         /**
@@ -121,12 +142,10 @@ class StepCounterService : Service(), SensorEventListener {
          * 현재 누적값 - 시작 누적값
          */
         val currentWalkingStepCount =
-            (currentStepCount - startStepCount)
-                .toInt()
-                .coerceAtLeast(0)
+            (currentStepCount - startStepCount).toInt()
 
         StepCounterManager.updateStepCount(
-            currentWalkingStepCount
+            baseStepCount + currentWalkingStepCount
         )
 
         updateNotification(
@@ -135,15 +154,12 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun stopStepCounting() {
-
-        /**
-         * 센서 리스너 해제
-         */
         sensorManager.unregisterListener(this)
 
-        /**
-         * 서비스 종료
-         */
+        timerJob?.cancel()
+
+        StepCounterManager.updateWalkingState(false)
+
         stopSelf()
     }
 
@@ -155,10 +171,29 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     override fun onDestroy() {
+        timerJob?.cancel()
 
         sensorManager.unregisterListener(this)
 
+        StepCounterManager.updateWalkingState(false)
+
         super.onDestroy()
+    }
+
+    private fun startTimer() {
+        timerJob?.cancel()
+
+        timerJob = CoroutineScope(Dispatchers.Default).launch {
+            while (true) {
+                delay(1000.milliseconds)
+
+                elapsedSecond++
+
+                StepCounterManager.updateStepTime(
+                    elapsedSecond
+                )
+            }
+        }
     }
 
     override fun onBind(

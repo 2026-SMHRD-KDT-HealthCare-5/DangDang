@@ -116,7 +116,6 @@ class UserRepository @Inject constructor(
             birthday = "1997.05.16",
             height = "170",
             weight = "70",
-            diabetesType = "제2형 당뇨",
             hemoglobin = "50",
             isHemoglobinRecentResultUnknown = false,
             goalGlucose = "180",
