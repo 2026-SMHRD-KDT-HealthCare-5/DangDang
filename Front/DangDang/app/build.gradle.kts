@@ -97,6 +97,9 @@ dependencies {
 
     implementation(libs.play.services.location)
 
+    //카카오 로그인
+    implementation(libs.v2.user)
+
     //chart
     implementation(libs.compose)
     implementation(libs.compose.m3)

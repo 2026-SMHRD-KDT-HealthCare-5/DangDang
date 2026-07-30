@@ -27,6 +27,7 @@ fun SignUpFormContentPreview(
     SignUpFormContent(
         isEmailDisable = false,
         signUpForm = SignUpForm(
+            isSocial = false,
             nickname = "",
             email = "",
             password = "",
@@ -94,6 +95,7 @@ fun SignUpFormContent(
         )
         //비밀번호 텍스트필드
         TextField(
+            isEnabled = !signUpForm.isSocial,
             title = "비밀번호",
             isMaxLengthView = false,
             isRequired = false,
@@ -111,6 +113,7 @@ fun SignUpFormContent(
         )
         //비밀번호 확인 텍스트필드
         TextField(
+            isEnabled = !signUpForm.isSocial,
             title = "비밀번호 확인",
             isMaxLengthView = false,
             isRequired = false,

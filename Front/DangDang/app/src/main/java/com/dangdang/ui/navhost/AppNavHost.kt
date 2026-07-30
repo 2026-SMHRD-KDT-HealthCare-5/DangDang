@@ -61,6 +61,7 @@ fun AppNavHost(
             SignUpScreen(
                 navController = navController,
                 isUpdate = false,
+                isSocial = isSocial == "true",
                 isEmailDisable = isSocial == "true"
             )
         }

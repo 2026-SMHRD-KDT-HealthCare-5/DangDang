@@ -47,6 +47,23 @@
             android:name=".di.StepCounterService"
             android:exported="false"
             android:foregroundServiceType="health" />
+
+        <activity
+            android:name="com.kakao.sdk.auth.AuthCodeHandlerActivity"
+            android:launchMode="singleTask"
+            android:exported="true"
+            tools:ignore="Instantiatable">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <data
+                    android:host="oauth"
+                    android:scheme="kakao14afeda3add41ff4b5a764e0853081f8" />
+            </intent-filter>
+        </activity>
     </application>
 
 </manifest>

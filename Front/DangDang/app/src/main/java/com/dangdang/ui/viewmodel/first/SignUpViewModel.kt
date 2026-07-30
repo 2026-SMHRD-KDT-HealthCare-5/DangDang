@@ -29,9 +29,9 @@ class SignUpViewModel @Inject constructor(
     val isUserInfoInputComplete: StateFlow<Boolean> = _isUserInfoInputComplete.asStateFlow()
 
     //유저정보 가져오기
-    fun getUserInfoDetail(isUpdate: Boolean){
+    fun getUserInfoDetail(isUpdate: Boolean, isSocial: Boolean?){
         viewModelScope.launch {
-            if(isUpdate){
+            if(isUpdate || isSocial == true){
                 val response = userRepository.getUserInfoDetail()
                 if(response.isSuccessful){
                     val responseBody = response.body()
@@ -57,9 +57,13 @@ class SignUpViewModel @Inject constructor(
         val userInfoDetail = _userInfoDetail.value ?: return false
         return userInfoDetail.nickname.isNotEmpty()
                 && userInfoDetail.email.isNotEmpty()
-                && userInfoDetail.password.isNotEmpty()
-                && userInfoDetail.passwordCheck.isNotEmpty()
-                && userInfoDetail.password == userInfoDetail.passwordCheck
+                && (userInfoDetail.isSocial
+                    ||(
+                        userInfoDetail.password.isNotEmpty()
+                        && userInfoDetail.passwordCheck.isNotEmpty()
+                        && userInfoDetail.password == userInfoDetail.passwordCheck
+                    )
+                )
                 && userInfoDetail.birthday.isNotEmpty()
                 && userInfoDetail.height.isNotEmpty()
                 && userInfoDetail.weight.isNotEmpty()

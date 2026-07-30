@@ -12,6 +12,7 @@ import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.repository.UserRepository
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import com.kakao.sdk.user.UserApiClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -100,6 +101,59 @@ class LoginViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             null
+        }
+    }
+
+    //카카오 로그인
+    fun kakaoLogin(context: Context, onLoginSuccess: (isSignUp: Boolean) -> Unit){
+        getKakaoLoginToken(
+            context = context,
+            onLoginSuccess = { token ->
+                viewModelScope.launch {
+                    val response = userRepository.kakaoLogin(token)
+
+                    if(response.isSuccessful){
+                        val responseBody = response.body()
+                        appPrefs.setAccessToken(responseBody?.accessToken?:"")
+                        appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
+
+                        val isSignUp = responseBody?.user?.isSignUp
+
+                        appPrefs.setAutoLogin(isSignUp != true)
+
+                        onLoginSuccess(isSignUp == true)
+                    }else{
+                        Toast.makeText(
+                            context,
+                            "로그인에 실패했습니다.",
+                            Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        )
+    }
+
+    fun getKakaoLoginToken(context: Context, onLoginSuccess: (token: String) -> Unit){
+        if (UserApiClient.instance.isKakaoTalkLoginAvailable(context)) {
+            // 카카오톡이 설치되어 있는 경우
+            UserApiClient.instance.loginWithKakaoTalk(context) { token, error ->
+                if (error != null) {
+                    // 로그인 실패 처리
+                } else if (token != null) {
+                    // 로그인 성공
+                    onLoginSuccess(token.accessToken)
+                }
+            }
+        } else {
+            // 카카오톡이 없는 경우 카카오계정(웹)으로 로그인
+            UserApiClient.instance.loginWithKakaoAccount(context) { token, error ->
+                if (error != null) {
+                    // 로그인 실패 처리
+                } else if (token != null) {
+                    // 로그인 성공
+                    onLoginSuccess(token.accessToken)
+                }
+            }
         }
     }
 }

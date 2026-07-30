@@ -5,6 +5,7 @@ import com.dangdang.data.enums.Gender
 
 @Keep
 data class SignUpForm(
+    var isSocial: Boolean,
     var nickname: String,
     var email: String,
     //비밀번호

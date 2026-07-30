@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import com.dangdang.common.utils.AppPrefs
+import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
@@ -35,6 +36,9 @@ class SessionManager(
         } catch (e: Exception) {
             e.printStackTrace()
         }
+
+        //카카오 로그인 초기화
+        UserApiClient.instance.logout {}
 
         _logoutEvent.tryEmit(Unit) // 로그아웃 이벤트 발생
     }

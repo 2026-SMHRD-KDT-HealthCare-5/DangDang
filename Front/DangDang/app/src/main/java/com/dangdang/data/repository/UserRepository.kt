@@ -68,6 +68,26 @@ class UserRepository @Inject constructor(
         return Response.success(response)
     }
 
+    //카카오 로그인 api 부르기
+    suspend fun kakaoLogin(token: String): Response<TokenResponse> {
+        val response = TokenResponse(
+            accessToken = "AccessToken",
+            refreshToken = "RefreshToken",
+            user = User(
+                id = "1",
+                isSignUp = true,
+                nickname = "닉네임",
+                profileImageUrl = ExamplePictureUrl,
+                email = "email@gmail.com",
+                sinceDays = 120,
+                createdDt = "2026-07-28",
+                updatedDt = "2026-07-28",
+            )
+        )
+
+        return Response.success(response)
+    }
+
     //유저정보 가져오기 api 부르기
     suspend fun getUserInfo(): Response<User> {
         val data = User(
@@ -87,6 +107,7 @@ class UserRepository @Inject constructor(
     //유저 회원정보수정 정보 가져오기 api 부르기
     suspend fun getUserInfoDetail(): Response<SignUpForm> {
         val data = SignUpForm(
+            isSocial = true,
             nickname = "닉네임8",
             email = "email@gmail.com",
             password = "",

@@ -39,6 +39,7 @@ val activityLevelList = listOf(
 )
 
 val SignUpDefault = SignUpForm(
+    isSocial = false,
     nickname = "",
     email = "",
     password = "",

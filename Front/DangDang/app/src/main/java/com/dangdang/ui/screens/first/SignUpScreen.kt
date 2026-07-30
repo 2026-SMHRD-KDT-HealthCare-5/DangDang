@@ -61,6 +61,7 @@ fun SignUpScreen(
     signUpViewModel: SignUpViewModel = hiltViewModel(),
     navController: NavController,
     isUpdate: Boolean,
+    isSocial: Boolean? = null,
     isEmailDisable: Boolean
 ){
     val userInfoDetail by
@@ -70,7 +71,7 @@ fun SignUpScreen(
         signUpViewModel.isUserInfoInputComplete.collectAsState()
 
     LaunchedEffect(Unit) {
-        signUpViewModel.getUserInfoDetail(isUpdate)
+        signUpViewModel.getUserInfoDetail(isUpdate, isSocial)
     }
 
     SignUpScreenContent(

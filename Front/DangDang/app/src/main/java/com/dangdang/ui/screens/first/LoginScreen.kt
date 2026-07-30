@@ -96,7 +96,12 @@ fun LoginScreen(
             )
         },
         onKakaoLoginClick = {
-
+            loginViewModel.kakaoLogin(
+                context = context,
+                onLoginSuccess = { isSignUp ->
+                    onLoginSuccess(isSignUp)
+                }
+            )
         },
         onSignupMove = onSignupMove
     )

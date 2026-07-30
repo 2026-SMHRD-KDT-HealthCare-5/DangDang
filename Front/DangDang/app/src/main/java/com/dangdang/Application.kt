@@ -1,6 +1,7 @@
 package com.dangdang
 
 import android.app.Application
+import com.kakao.sdk.common.KakaoSdk
 import com.kakao.vectormap.KakaoMapSdk
 import dagger.hilt.android.HiltAndroidApp
 
@@ -25,5 +26,6 @@ class Application : Application(){
         super.onCreate()
         // 카카오지도 초기화
         KakaoMapSdk.init(this, KakaoSdkKey)
+        KakaoSdk.init(this, KakaoSdkKey)
     }
 }

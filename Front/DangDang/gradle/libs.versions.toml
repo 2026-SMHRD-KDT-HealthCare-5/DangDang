@@ -22,6 +22,7 @@ ksp = "2.0.21-1.0.25"
 material3 = "1.4.0"
 playServicesLocation = "21.4.0"
 v2Maps = "2.14.0"
+v2User = "2.24.0"
 wearToolingPreview = "1.0.0"
 googleid = "1.2.0"
 
@@ -60,6 +61,7 @@ play-services-location = { module = "com.google.android.gms:play-services-locati
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "converterGson" }
 v2-maps = { module = "com.kakao.maps.open:android", version.ref = "v2Maps" }
 googleid = { group = "com.google.android.libraries.identity.googleid", name = "googleid", version.ref = "googleid" }
+v2-user = { module = "com.kakao.sdk:v2-user", version.ref = "v2User" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
