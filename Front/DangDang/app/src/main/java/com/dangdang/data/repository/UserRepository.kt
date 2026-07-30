@@ -6,12 +6,48 @@ import com.dangdang.data.enums.Gender
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.TokenResponse
 import com.dangdang.data.model.user.User
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.ResponseBody
+import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 import javax.inject.Inject
 
 class UserRepository @Inject constructor(
     private val userApiService: UserApiService
 ){
+    //이메일 로그인 api 부르기
+    suspend fun emailLogin(email: String, password: String): Response<TokenResponse>{
+        if(email == "email@gmail.com" && password == "1234567"){
+            val response = TokenResponse(
+                accessToken = "AccessToken",
+                refreshToken = "RefreshToken",
+                user = User(
+                    id = "1",
+                    isSignUp = false,
+                    nickname = "닉네임",
+                    profileImageUrl = ExamplePictureUrl,
+                    email = "email@gmail.com",
+                    sinceDays = 120,
+                    createdDt = "2026-07-28",
+                    updatedDt = "2026-07-28",
+                )
+            )
+
+            return Response.success(response)
+        }else{
+            val errorJson = """
+                {
+                    "message": "Not Authorized"
+                }
+            """.trimIndent()
+
+            return Response.error(
+                401,
+                errorJson.toResponseBody("application/json".toMediaType())
+            )
+        }
+    }
+
     //구글 로그인 api 부르기
     suspend fun googleLogin(idToken: String): Response<TokenResponse> {
         val response = TokenResponse(

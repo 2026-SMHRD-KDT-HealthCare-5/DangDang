@@ -21,7 +21,29 @@ class LoginViewModel @Inject constructor(
     private val appPrefs: AppPrefs,
     private val userRepository: UserRepository
 ) : ViewModel() {
+    //이메일 로그인
+    fun emailLogin(context: Context, onLoginSuccess: () -> Unit, email: String, password: String){
+        viewModelScope.launch {
+            val response = userRepository.emailLogin(email, password)
 
+            if(response.isSuccessful){
+                val responseBody = response.body()
+                appPrefs.setAccessToken(responseBody?.accessToken?:"")
+                appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
+
+                appPrefs.setAutoLogin(true)
+
+                onLoginSuccess()
+            }else{
+                Toast.makeText(
+                    context,
+                    "아이디 또는 비밀번호를 확인해주세요.",
+                    Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    //구글 로그인
     fun googleLogin(context: Context, onLoginSuccess: (isSignUp: Boolean) -> Unit){
         viewModelScope.launch {
             val idToken = getGoogleIdToken(context)?: ""

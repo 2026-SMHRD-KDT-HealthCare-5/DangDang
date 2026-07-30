@@ -78,7 +78,14 @@ fun LoginScreen(
             passwordValue = it
         },
         onEmailLoginClick = {
-
+            loginViewModel.emailLogin(
+                context = context,
+                onLoginSuccess = {
+                    onLoginSuccess(false)
+                },
+                email = emailValue,
+                password = passwordValue
+            )
         },
         onGoogleLoginClick = {
             loginViewModel.googleLogin(
