@@ -9,6 +9,7 @@ import androidx.navigation.navArgument
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.AppRoute
 import com.dangdang.ui.screens.first.LoginScreen
+import com.dangdang.ui.screens.first.SignUpCompleteScreen
 import com.dangdang.ui.screens.first.SignUpScreen
 import com.dangdang.ui.screens.main.MainScreen
 
@@ -33,7 +34,7 @@ fun AppNavHost(
                     }else{
                         //메인화면으로 이동
                         navController.navigate(AppRoute.Main.route) {
-                            popUpTo(navController.graph.startDestinationId) {
+                            popUpTo(0) {
                                 inclusive = true
                             }
                             launchSingleTop = true
@@ -61,6 +62,21 @@ fun AppNavHost(
                 navController = navController,
                 isUpdate = false,
                 isEmailDisable = isSocial == "true"
+            )
+        }
+
+        //회원가입 완료화면
+        composable(AppRoute.SignUpComplete.route) {
+            SignUpCompleteScreen(
+                onHomeMove = {
+                    //메인화면으로 이동
+                    navController.navigate(AppRoute.Main.route) {
+                        popUpTo(0) {
+                            inclusive = true
+                        }
+                        launchSingleTop = true
+                    }
+                }
             )
         }
 

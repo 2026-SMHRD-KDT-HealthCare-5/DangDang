@@ -12,6 +12,7 @@ sealed class AppRoute(
 ) {
     data object Login : AppRoute("login")
     data object SignUp : AppRoute("signUp")
+    data object SignUpComplete : AppRoute("signUpComplete")
     data object Main : AppRoute("main")
 }
 

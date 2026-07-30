@@ -87,9 +87,9 @@ fun SignUpScreen(
                         //마이페이지 화면으로 이동
                         navController.popBackStack()
                     }else{
-                        //메인화면으로 이동
-                        navController.navigate(AppRoute.Main.route) {
-                            popUpTo(navController.graph.startDestinationId) {
+                        //회원가입 완료로 이동
+                        navController.navigate(AppRoute.SignUpComplete.route) {
+                            popUpTo(0) {
                                 inclusive = true
                             }
                             launchSingleTop = true
