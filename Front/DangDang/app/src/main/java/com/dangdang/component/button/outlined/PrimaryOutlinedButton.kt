@@ -80,6 +80,8 @@ fun PrimaryOutlinedButtonPreview(
 fun PrimaryOutlinedButton(
     text: String,
     color: Color = Navy,
+    isBorder: Boolean = true,
+    backgroundColor: Color = White,
     leftIcon: @Composable () -> Unit = {},
     rightIcon: @Composable () -> Unit = {},
     enabled: Boolean = true,
@@ -91,13 +93,15 @@ fun PrimaryOutlinedButton(
     Row(
         modifier = Modifier
             .background(
-                color = if(selected) SkyBlueOpacity30 else if(enabled) White else Color.Gray,
+                color = if(selected) SkyBlueOpacity30 else if(enabled) backgroundColor else Color.Gray,
                 shape = RoundedCornerShape(12.dp)
             )
-            .border(
-                width = 1.dp,
-                color = color,
-                shape = RoundedCornerShape(12.dp)
+            .then(
+                if(isBorder) Modifier.border(
+                    width = 1.dp,
+                    color = color,
+                    shape = RoundedCornerShape(12.dp)
+                ) else Modifier
             )
             .clickable(
                 enabled = enabled,

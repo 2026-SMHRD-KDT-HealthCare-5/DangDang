@@ -6,12 +6,10 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
-import android.content.pm.ServiceInfo
 import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
-import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import kotlinx.coroutines.CoroutineScope
@@ -36,6 +34,11 @@ class StepCounterService : Service(), SensorEventListener {
     private var timerJob: Job? = null
 
     private var elapsedSecond = 0
+
+    //1분 전과 1분 후의 걸음수가 동일할 경우 카운트되고 1보라도 움직였으면 초기화
+    private var walkStoppedMinute = 0
+    //1분전 걸음 수
+    private var walkStepsOneMinAgo = 0
 
     @SuppressLint("ForegroundServiceType")
     override fun onCreate() {
@@ -192,6 +195,37 @@ class StepCounterService : Service(), SensorEventListener {
                 StepCounterManager.updateStepTime(
                     elapsedSecond
                 )
+
+                if(elapsedSecond % 60 == 0){
+                    //1분전 걸음수와 현재 걸음수가 동일할 경우 멈춘 분수를 카운트함
+                    if(walkStepsOneMinAgo == StepCounterManager.walkStatus.value.currentWalkCount){
+                        walkStoppedMinute ++
+                    }else{
+                        //동일하지 않다면 초기화
+                        walkStoppedMinute = 0
+                    }
+
+                    //1분전 걸음수를 업데이트
+                    walkStepsOneMinAgo = StepCounterManager.walkStatus.value.currentWalkCount
+
+                    //10분 멈춰있으면 움직이라고 알람 띄우기
+                    if(walkStoppedMinute == 10){
+                        val notificationManager =
+                            getSystemService(
+                                NOTIFICATION_SERVICE
+                            ) as NotificationManager
+
+                        notificationManager.notify(
+                            MOVE_NOTIFICATION_ID,
+                            createMoveNotification()
+                        )
+                    }
+
+                    //30분 멈춰있으면 자동정지
+                    if(walkStoppedMinute == 30){
+                        stopStepCounting()
+                    }
+                }
             }
         }
     }
@@ -218,6 +252,23 @@ class StepCounterService : Service(), SensorEventListener {
                 android.R.drawable.ic_menu_mylocation
             )
             .setOngoing(true)
+            .build()
+    }
+
+    private fun createMoveNotification(
+
+    ): Notification {
+        return NotificationCompat.Builder(
+            this,
+            CHANNEL_ID
+        )
+            .setContentTitle("걷기 안내")
+            .setContentText(
+                "10분 동안 걷기를 중지했습니다. 움직여주세요!"
+            )
+            .setSmallIcon(
+                android.R.drawable.ic_menu_mylocation
+            )
             .build()
     }
 
@@ -268,5 +319,8 @@ class StepCounterService : Service(), SensorEventListener {
 
         private const val NOTIFICATION_ID =
             1001
+
+        private const val MOVE_NOTIFICATION_ID =
+            1002
     }
 }

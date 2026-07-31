@@ -19,6 +19,11 @@ import androidx.navigation.NavHostController
 import com.dangdang.data.enums.LayoutSize
 import androidx.core.net.toUri
 import com.dangdang.Application.Companion.InquiryEmail
+import com.dangdang.ui.theme.DarkGreen
+import com.dangdang.ui.theme.HotPink
+import com.dangdang.ui.theme.Orange
+import com.dangdang.ui.theme.PrimaryBlue
+import com.dangdang.ui.theme.PrimaryPurple
 import java.text.DecimalFormat
 
 //화면마다 공통으로 사용하는 modifier
@@ -90,3 +95,11 @@ fun sendMail(context: Context){
 
     context.startActivity(intent)
 }
+
+val GuageColorList = listOf(
+    PrimaryBlue,
+    DarkGreen,
+    Orange,
+    PrimaryPurple,
+    HotPink
+)
