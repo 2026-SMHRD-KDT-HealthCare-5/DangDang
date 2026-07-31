@@ -16,6 +16,7 @@ val White = Color(0xFFFFFFFF)
 
 val Navy = Color(0xFF073FAC)
 val PrimaryBlue = Color(0xFF197CFF)
+val PrimaryBlueOpacity30 = Color(0x4D197CFF)
 val SkyBlue = Color(0xFF87CEFA)
 val SkyBlueOpacity30 = Color(0x4D87CEFA)
 
@@ -25,8 +26,10 @@ val GrayOpacity30 = Color(0x4DA9A9A9)
 val DarkGray = Color(0xFF797979)
 
 val KakaoYellow = Color(0xFFFEE500)
+val KakaoYellowOpacity50 = Color(0x80FEE500)
 
 val Red = Color(0xFFFF0000)
+val LightRedOpacity30 = Color(0x4DFF4500)
 val HotPink = Color(0xFFED0086)
 
 val DarkGreen = Color(0xFF00A000)

@@ -24,6 +24,7 @@ import com.dangdang.ui.theme.HotPink
 import com.dangdang.ui.theme.Orange
 import com.dangdang.ui.theme.PrimaryBlue
 import com.dangdang.ui.theme.PrimaryPurple
+import com.dangdang.ui.theme.notoSansKR
 import java.text.DecimalFormat
 
 //화면마다 공통으로 사용하는 modifier
@@ -56,13 +57,22 @@ fun Modifier.componentWidthModifier(
     )
 
 val TextStyle.regular: TextStyle
-    get() = copy(fontWeight = FontWeight.Normal)
+    get() = copy(
+        fontFamily = notoSansKR,
+        fontWeight = FontWeight.Normal
+    )
 
 val TextStyle.medium: TextStyle
-    get() = copy(fontWeight = FontWeight.Medium)
+    get() = copy(
+        fontFamily = notoSansKR,
+        fontWeight = FontWeight.Medium
+    )
 
 val TextStyle.bold: TextStyle
-    get() = copy(fontWeight = FontWeight.Bold)
+    get() = copy(
+        fontFamily = notoSansKR,
+        fontWeight = FontWeight.Bold
+    )
 
 fun addComma(number: Int): String {
     val formatter = DecimalFormat("#,###")

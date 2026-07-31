@@ -18,7 +18,6 @@ object AppTypography {
     )
 
     val bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
         fontSize = 16.sp,
         lineHeight = 24.sp
     )
