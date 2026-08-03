@@ -2,11 +2,15 @@ package com.dangdang.ui.screens.navigation
 
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.navigation.NavController
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.community.TeamInfoModel
@@ -28,8 +32,25 @@ fun CommunityScreenPreview(
 @Composable
 fun CommunityScreen(
     communityViewModel: CommunityViewModel = hiltViewModel(),
-    onTeamMakeMove: () -> Unit
+    onTeamMakeMove: () -> Unit,
+    navController: NavController,
 ){
+    val savedStateHandle =
+        navController.currentBackStackEntry?.savedStateHandle
+
+    val isMakeTeamSuccess by savedStateHandle
+        ?.getStateFlow("isMakeTeamSuccess", false)
+        ?.collectAsState()
+        ?: remember { mutableStateOf(false) }
+
+    LaunchedEffect(isMakeTeamSuccess) {
+        if (isMakeTeamSuccess) {
+            communityViewModel.getUserTeamInfo()
+
+            savedStateHandle?.remove<Boolean>("isMakeTeamSuccess")
+        }
+    }
+
     val teamInfo by
         communityViewModel.teamInfo.collectAsState()
 

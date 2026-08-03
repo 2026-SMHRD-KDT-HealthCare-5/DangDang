@@ -1,6 +1,7 @@
 [versions]
 agp = "9.2.1"
 coilCompose = "2.7.0"
+coilComposeVersion = "3.5.0"
 compose = "3.2.3"
 composeMaterial = "1.6.2"
 connectClient = "1.1.0"
@@ -37,6 +38,7 @@ androidx-navigation-compose = { module = "androidx.navigation:navigation-compose
 androidx-wear-tooling-preview = { module = "androidx.wear:wear-tooling-preview", version.ref = "wearToolingPreview" }
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coilCompose" }
 coil-gif = { module = "io.coil-kt:coil-gif", version.ref = "coilCompose" }
+coil3-coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coilComposeVersion" }
 compose = { module = "com.patrykandpatrick.vico:compose", version.ref = "compose" }
 compose-m3 = { module = "com.patrykandpatrick.vico:compose-m3", version.ref = "compose" }
 converter-gson = { module = "com.squareup.retrofit2:converter-gson", version.ref = "converterGson" }

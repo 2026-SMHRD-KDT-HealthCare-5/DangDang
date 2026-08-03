@@ -106,4 +106,7 @@ dependencies {
 
     //lifecycle runtime compose
     implementation(libs.androidx.lifecycle.runtime.compose)
+
+    //이미지 미리보기 시
+    implementation(libs.coil3.coil.compose)
 }

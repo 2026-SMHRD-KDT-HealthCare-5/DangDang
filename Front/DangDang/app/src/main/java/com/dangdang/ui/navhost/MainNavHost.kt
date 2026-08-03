@@ -53,7 +53,8 @@ fun MainNavHost(
                 CommunityScreen(
                     onTeamMakeMove = {
                         navController.navigate(CommunityRoute.TeamMake.route)
-                    }
+                    },
+                    navController = navController
                 )
             }
 

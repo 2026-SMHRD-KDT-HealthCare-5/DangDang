@@ -1,7 +1,12 @@
 package com.dangdang.data.repository
 
+import android.content.Context
 import com.dangdang.Application.Companion.ExamplePictureUrl
+import com.dangdang.common.utils.toMultipart
+import com.dangdang.common.utils.toRequestBody
+import com.dangdang.common.utils.uriToFile
 import com.dangdang.data.model.community.TeamInfoModel
+import com.dangdang.data.model.community.TeamMakeForm
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.community.TeamSearchInfoModel
 import com.dangdang.data.model.user.TokenResponse
@@ -133,6 +138,18 @@ class CommunityRepository @Inject constructor(
 
     //팀 가입하기
     suspend fun joinTeam(teamId: Long): Response<String>{
+        return Response.success("success")
+    }
+
+    //팀 만들기
+    suspend fun makeTeam(context: Context, teamMakeForm: TeamMakeForm): Response<String>{
+        val imagePart = teamMakeForm.uri?.let {
+            context.uriToFile(it).toMultipart()
+        }
+        val namePart = teamMakeForm.name.toRequestBody()
+        val introductionPart = teamMakeForm.introduction.toRequestBody()
+        val targetDistancePart = teamMakeForm.targetDistance.toRequestBody()
+
         return Response.success("success")
     }
 }

@@ -144,6 +144,7 @@ fun TextFieldPreview(
 
 @Composable
 fun TextField(
+    modifier: Modifier = Modifier,
     isEnabled: Boolean = true,
     title: String? = null,
     isMaxLengthView: Boolean = true,
@@ -183,7 +184,7 @@ fun TextField(
                 imeAction = ImeAction.Done
             ),
             singleLine = true,
-            modifier = Modifier
+            modifier = modifier
                 .componentWidthModifier(
                     fixWidth = fixWidth,
                     sizeType = sizeType
