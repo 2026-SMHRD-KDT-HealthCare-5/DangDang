@@ -1,9 +1,6 @@
 package com.dangdang.ui.screens.navigation
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -11,14 +8,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dangdang.common.utils.mainScreen
-import com.dangdang.common.utils.regular
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.ui.screens.navigation.community.CommunityTeamMainScreen
-import com.dangdang.ui.screens.navigation.community.CommunityTeamSearchScreen
-import com.dangdang.ui.theme.AppTypography
-import com.dangdang.ui.theme.Black
-import com.dangdang.ui.theme.Navy
+import com.dangdang.ui.screens.navigation.community.teamsearch.CommunityTeamSearchScreen
 import com.dangdang.ui.viewmodel.community.CommunityViewModel
 
 @Preview
@@ -28,12 +21,14 @@ fun CommunityScreenPreview(
 ){
     CommunityScreenContent(
         teamInfo = null,
+        onTeamMakeMove = {}
     )
 }
 
 @Composable
 fun CommunityScreen(
-    communityViewModel: CommunityViewModel = hiltViewModel()
+    communityViewModel: CommunityViewModel = hiltViewModel(),
+    onTeamMakeMove: () -> Unit
 ){
     val teamInfo by
         communityViewModel.teamInfo.collectAsState()
@@ -42,6 +37,7 @@ fun CommunityScreen(
         CommunityScreenContent(
             communityViewModel = communityViewModel,
             teamInfo = teamInfo.data,
+            onTeamMakeMove = onTeamMakeMove
         )
     }else{
         Box(
@@ -55,6 +51,7 @@ fun CommunityScreen(
 fun CommunityScreenContent(
     communityViewModel: CommunityViewModel? = null,
     teamInfo: TeamInfoModel?,
+    onTeamMakeMove: () -> Unit
 ){
     Box(
         modifier = Modifier
@@ -67,7 +64,10 @@ fun CommunityScreenContent(
             )
         }else{
             //팀 정보가 없을 경우 팀 검색 화면
-            CommunityTeamSearchScreen()
+            CommunityTeamSearchScreen(
+                communityViewModel = communityViewModel,
+                onTeamMakeMove = onTeamMakeMove
+            )
         }
     }
 }

@@ -5,6 +5,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.CommunityRoute
 import com.dangdang.common.utils.MainRoute
 import com.dangdang.common.utils.MyPageRoute
 import com.dangdang.common.utils.navigateBottomTab
@@ -14,6 +15,7 @@ import com.dangdang.ui.screens.navigation.DangDangScreen
 import com.dangdang.ui.screens.navigation.HomeScreen
 import com.dangdang.ui.screens.navigation.MyPageScreen
 import com.dangdang.ui.screens.navigation.WalkScreen
+import com.dangdang.ui.screens.navigation.community.teammake.CommunityTeamMakeScreen
 
 @Composable
 fun MainNavHost(
@@ -49,7 +51,9 @@ fun MainNavHost(
             //커뮤니티
             composable(MainRoute.Community.route) {
                 CommunityScreen(
-
+                    onTeamMakeMove = {
+                        navController.navigate(CommunityRoute.TeamMake.route)
+                    }
                 )
             }
 
@@ -75,6 +79,13 @@ fun MainNavHost(
                     navController = navController,
                     isUpdate = true,
                     isEmailDisable = true
+                )
+            }
+
+            //팀 만들기
+            composable(CommunityRoute.TeamMake.route) {
+                CommunityTeamMakeScreen(
+                    navController = navController
                 )
             }
         }

@@ -3,6 +3,7 @@ package com.dangdang.data.repository
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
+import com.dangdang.data.model.community.TeamSearchInfoModel
 import com.dangdang.data.model.user.TokenResponse
 import com.dangdang.data.model.user.User
 import retrofit2.Response
@@ -69,6 +70,69 @@ class CommunityRepository @Inject constructor(
 
     //팀 나가기
     suspend fun outTeam(): Response<String>{
+        return Response.success("success")
+    }
+
+    //팀 리스트 가져오기
+    suspend fun getTeamList(): Response<List<TeamSearchInfoModel>>{
+        val response = listOf(
+            TeamSearchInfoModel(
+                id = 1,
+                profileImageUrl = ExamplePictureUrl,
+                name = "건강한 습관 만들기",
+                currentMemberCount = 4,
+                maxMemberCount = 5,
+                currentDistance = 30.2f,
+                targetDistance = 150f,
+                introduction = "하루 7천보 이상 함께 걸어요!"
+            ),
+            TeamSearchInfoModel(
+                id = 2,
+                profileImageUrl = ExamplePictureUrl,
+                name = "매일 만보 걷기",
+                currentMemberCount = 3,
+                maxMemberCount = 5,
+                currentDistance = 60.2f,
+                targetDistance = 150f,
+                introduction = "만보 걷기 습관을 만들어요!"
+            ),
+            TeamSearchInfoModel(
+                id = 3,
+                profileImageUrl = ExamplePictureUrl,
+                name = "아침 걷기 챌린지",
+                currentMemberCount = 2,
+                maxMemberCount = 5,
+                currentDistance = 40.2f,
+                targetDistance = 150f,
+                introduction = "아침에 함께 걸어요!"
+            ),
+            TeamSearchInfoModel(
+                id = 4,
+                profileImageUrl = ExamplePictureUrl,
+                name = "건강한 습관 만들기",
+                currentMemberCount = 1,
+                maxMemberCount = 5,
+                currentDistance = 10.2f,
+                targetDistance = 150f,
+                introduction = "하루 7천보 이상 함께 걸어요!"
+            ),
+            TeamSearchInfoModel(
+                id = 5,
+                profileImageUrl = ExamplePictureUrl,
+                name = "주말 러닝 & 걷기",
+                currentMemberCount = 1,
+                maxMemberCount = 5,
+                currentDistance = 50.2f,
+                targetDistance = 150f,
+                introduction = "주말에 함께 러닝과 걷기!"
+            )
+        )
+
+        return Response.success(response)
+    }
+
+    //팀 가입하기
+    suspend fun joinTeam(teamId: Long): Response<String>{
         return Response.success("success")
     }
 }

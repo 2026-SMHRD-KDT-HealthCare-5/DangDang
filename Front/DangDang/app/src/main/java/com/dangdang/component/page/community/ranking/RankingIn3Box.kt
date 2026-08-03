@@ -61,15 +61,21 @@ fun RankingIn3BoxPreview(){
 fun RankingIn3Box(
     teamMemberChallengeStatusList: List<TeamMemberChallengeStatusModel>
 ) {
-    //3위까지만 들어가있도록 쪼갠다.
-    var mixedTeamMemberChallengeStatusList =
-        teamMemberChallengeStatusList.slice(0..2)
     //2위, 1위, 3위 순서대로 나오게 섞는다.
-    mixedTeamMemberChallengeStatusList = listOf(
-        mixedTeamMemberChallengeStatusList[1],
-        mixedTeamMemberChallengeStatusList[0],
-        mixedTeamMemberChallengeStatusList[2]
-    )
+    val mixedTeamMemberChallengeStatusList =
+        listOf(
+            if(teamMemberChallengeStatusList.size >= 2){
+                teamMemberChallengeStatusList[1]
+            }else{
+                null
+            },
+            teamMemberChallengeStatusList[0],
+            if(teamMemberChallengeStatusList.size >= 3){
+                teamMemberChallengeStatusList[2]
+            }else{
+                null
+            }
+        )
 
     Row(
         modifier = Modifier
@@ -80,9 +86,11 @@ fun RankingIn3Box(
             .padding(horizontal = 42.dp)
     ) {
         mixedTeamMemberChallengeStatusList.forEachIndexed { index, item ->
-            RankingIn3Item(
-                teamMemberChallengeStatus = item
-            )
+            if(item != null){
+                RankingIn3Item(
+                    teamMemberChallengeStatus = item
+                )
+            }
 
             if(index < mixedTeamMemberChallengeStatusList.size - 1){
                 Spacer(Modifier.weight(1f))

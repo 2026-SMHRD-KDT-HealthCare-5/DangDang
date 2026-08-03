@@ -15,6 +15,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.CommunityRoute
 import com.dangdang.common.utils.MainRoute
 import com.dangdang.common.utils.MyPageRoute
 import com.dangdang.common.utils.navigateBottomTab
@@ -50,7 +51,14 @@ fun MainScreen(
             )
         ){
             MainRoute.MyPage
-        }else{
+        }else if(
+            CommunityRoute.stringValues.contains(
+                navBackStackEntry?.destination?.route?:""
+            )
+        ){
+            MainRoute.Community
+        }
+        else{
             MainRoute.Home
         }
 

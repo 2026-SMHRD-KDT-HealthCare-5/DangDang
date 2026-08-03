@@ -6,6 +6,7 @@ import com.dangdang.common.utils.MainRoute.DangDang
 import com.dangdang.common.utils.MainRoute.Home
 import com.dangdang.common.utils.MainRoute.MyPage
 import com.dangdang.common.utils.MainRoute.Walk
+import com.dangdang.common.utils.MyPageRoute.MyInfoUpdate
 
 sealed class AppRoute(
     val route: String
@@ -25,6 +26,21 @@ sealed class MyPageRoute(
         val values: List<MyPageRoute>
             get() = listOf(
                 MyInfoUpdate
+            )
+        val stringValues: List<String>
+            get() = values.map { it.route }
+    }
+}
+
+sealed class CommunityRoute(
+    val route: String
+){
+    data object TeamMake : CommunityRoute("teamMake")
+
+    companion object {
+        val values: List<CommunityRoute>
+            get() = listOf(
+                TeamMake
             )
         val stringValues: List<String>
             get() = values.map { it.route }
