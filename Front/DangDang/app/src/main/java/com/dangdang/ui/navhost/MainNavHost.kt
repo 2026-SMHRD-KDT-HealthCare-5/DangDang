@@ -30,7 +30,18 @@ fun MainNavHost(
             //홈
             composable(MainRoute.Home.route) {
                 HomeScreen(
-
+                    onFoodInputClick = {
+                        navigateBottomTab(
+                            navController = navController,
+                            route = MainRoute.DangDang.route
+                        )
+                    },
+                    onTeamChallengeMoreClick = {
+                        navigateBottomTab(
+                            navController = navController,
+                            route = MainRoute.Community.route
+                        )
+                    }
                 )
             }
 

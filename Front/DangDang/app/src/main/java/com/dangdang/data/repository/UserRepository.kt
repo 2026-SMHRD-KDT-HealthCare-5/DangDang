@@ -3,6 +3,8 @@ package com.dangdang.data.repository
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.data.api.UserApiService
 import com.dangdang.data.enums.Gender
+import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
+import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.TokenResponse
 import com.dangdang.data.model.user.User
@@ -142,6 +144,51 @@ class UserRepository @Inject constructor(
             )
         )
 
+        return Response.success(response)
+    }
+
+    //주간 혈당 관리 현황 api 부르기
+    suspend fun getWeeklyGlucoseCheckList(): Response<List<WeeklyGlucoseCheckModel>>{
+        val response = listOf(
+            WeeklyGlucoseCheckModel(
+                dayOfWeek = "월",
+                isGlucoseManagement = false
+            ),
+            WeeklyGlucoseCheckModel(
+                dayOfWeek = "화",
+                isGlucoseManagement = true
+            ),
+            WeeklyGlucoseCheckModel(
+                dayOfWeek = "수",
+                isGlucoseManagement = false
+            ),
+            WeeklyGlucoseCheckModel(
+                dayOfWeek = "목",
+                isGlucoseManagement = false
+            ),
+            WeeklyGlucoseCheckModel(
+                dayOfWeek = "금",
+                isGlucoseManagement = false
+            ),
+            WeeklyGlucoseCheckModel(
+                dayOfWeek = "토",
+                isGlucoseManagement = false
+            ),
+            WeeklyGlucoseCheckModel(
+                dayOfWeek = "일",
+                isGlucoseManagement = false
+            )
+        )
+
+        return Response.success(response)
+    }
+
+    //식후 혈당 추이 부르기
+    suspend fun getAfterMealGlucoseStatus(): Response<AfterMealGlucoseStatusModel>{
+        val response = AfterMealGlucoseStatusModel(
+            goal = 180f,
+            afterMealGlucoseStatus = listOf(155f, 148f, 168f, 158f, 178f, 152f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f)
+        )
         return Response.success(response)
     }
 }
