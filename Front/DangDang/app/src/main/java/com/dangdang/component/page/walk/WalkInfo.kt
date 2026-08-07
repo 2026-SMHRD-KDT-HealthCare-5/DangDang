@@ -37,6 +37,7 @@ fun WalkInfoPreview(){
 fun WalkInfo(
     walkStatus: WalkStatus,
     stepTime: Int,
+    routePoints: List<Pair<Double, Double>> = emptyList()
 ) {
     Column(
         modifier = Modifier
@@ -47,7 +48,9 @@ fun WalkInfo(
                 shape = RoundedCornerShape(12.dp)
             )
     ) {
-        KakaoMap()
+        KakaoMap(
+            routePoints = routePoints
+        )
         WalkTargetBox(
             walkTarget = walkStatus.walkTargetDistance,
             currentWalk = walkStatus.currentWalkDistance

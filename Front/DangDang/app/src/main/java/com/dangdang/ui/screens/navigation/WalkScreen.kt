@@ -8,6 +8,7 @@ import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -47,6 +48,7 @@ fun WalkScreenPreview(
         ),
         stepTime = 100,
         isWalking = false,
+        routePoints = emptyList(),
         onWalkButtonClick = {}
     )
 }
@@ -65,6 +67,9 @@ fun WalkScreen(
     val isWalking by
         StepCounterManager.isWalking.collectAsState()
 
+    val routePoints by
+        StepCounterManager.routePoints.collectAsState()
+
     val permissionLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -81,6 +86,7 @@ fun WalkScreen(
         walkStatus = walkStatus,
         stepTime = stepTime,
         isWalking = isWalking,
+        routePoints = routePoints,
         onWalkButtonClick = {
             if(isWalking){
                 walkViewModel.stopStepCounting(
@@ -109,6 +115,7 @@ fun WalkScreenContent(
     walkStatus: WalkStatus,
     stepTime: Int,
     isWalking: Boolean,
+    routePoints: List<Pair<Double, Double>> = emptyList(),
     onWalkButtonClick: () -> Unit
 ){
     val scrollState = rememberScrollState()
@@ -132,7 +139,8 @@ fun WalkScreenContent(
         ) {
             WalkInfo(
                 walkStatus = walkStatus,
-                stepTime = stepTime
+                stepTime = stepTime,
+                routePoints = routePoints
             )
 
             WalkButton(

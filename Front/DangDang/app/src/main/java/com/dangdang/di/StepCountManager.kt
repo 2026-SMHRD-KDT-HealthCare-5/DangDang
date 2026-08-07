@@ -27,8 +27,16 @@ object StepCounterManager {
     val isWalking: StateFlow<Boolean> =
         _isWalking.asStateFlow()
 
+    // 궤적 포인트 (Kakao Map LatLng 대신 Pair로 관리, UI에서 LatLng로 변환 가능)
+    private val _routePoints = MutableStateFlow<List<Pair<Double, Double>>>(emptyList())
+    val routePoints: StateFlow<List<Pair<Double, Double>>> = _routePoints.asStateFlow()
+
     fun updateWalkingState(isWalking: Boolean) {
         _isWalking.value = isWalking
+        if (!isWalking) {
+            // 종료 시 궤적은 메모리에서 버림
+            _routePoints.value = emptyList()
+        }
     }
 
     fun updateWalkTarget(walkTargetDistance: Float){
@@ -40,9 +48,18 @@ object StepCounterManager {
     fun updateStepCount(stepCount: Int) {
         _walkStatus.value = _walkStatus.value.copy(
             currentWalkCount = stepCount,
-            currentWalkDistance = stepCount * 0.0007f,
             currentWalkKcal = (stepCount * 0.04f).toInt(),
         )
+    }
+
+    fun updateWalkDistance(distance: Float) {
+        _walkStatus.value = _walkStatus.value.copy(
+            currentWalkDistance = distance
+        )
+    }
+
+    fun addRoutePoint(lat: Double, lng: Double) {
+        _routePoints.value = _routePoints.value + Pair(lat, lng)
     }
 
     fun updateStepTime(stepTime: Int){

@@ -48,6 +48,7 @@ import com.dangdang.data.enums.LayoutSize
 import com.dangdang.data.model.community.TeamMakeForm
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
+import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.viewmodel.community.CommunityTeamMakeViewModel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -304,7 +305,14 @@ fun CommunityTeamMakeScreenContent(
                         )
                     )
                 },
-                placeholderText = "km 단위로 숫자만 입력해주세요",
+                placeholderText = "100",
+                rightIcon = {
+                    Text(
+                        text = "km",
+                        style = AppTypography.labelLarge.regular,
+                        color = Gray
+                    )
+                },
                 maxLength = 20,
                 sizeType = LayoutSize.FillMaxSize,
                 keyboardType = KeyboardType.Number,

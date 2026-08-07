@@ -39,7 +39,8 @@ class WalkViewModel @Inject constructor(
 
     fun startStepCounting(
         context: Context,
-        currentStepCount: Int
+        currentStepCount: Int,
+        missionNo: Int = 1
     ) {
 
         val intent =
@@ -51,6 +52,7 @@ class WalkViewModel @Inject constructor(
                     StepCounterService.ACTION_START
             }
         intent.putExtra("currentStep", currentStepCount)
+        intent.putExtra("missionNo", missionNo)
 
         ContextCompat.startForegroundService(
             context,

@@ -10,317 +10,305 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.location.Location
 import android.os.IBinder
+import android.os.Looper
+import android.util.Log
 import androidx.core.app.NotificationCompat
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.google.android.gms.location.*
+import kotlinx.coroutines.*
+import java.util.Locale
 import kotlin.time.Duration.Companion.milliseconds
 
 class StepCounterService : Service(), SensorEventListener {
 
     private lateinit var sensorManager: SensorManager
-
     private var stepSensor: Sensor? = null
 
-    /**
-     * 걷기 시작 시점의 기기 누적 걸음 수
-     */
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+    private lateinit var locationCallback: LocationCallback
+
+    private var missionNo: Int = -1
     private var startStepCount = -1f
     private var baseStepCount = 0
+    private var totalDistance = 0f
+    private var lastLocation: Location? = null
 
     private var timerJob: Job? = null
-
     private var elapsedSecond = 0
-
-    //1분 전과 1분 후의 걸음수가 동일할 경우 카운트되고 1보라도 움직였으면 초기화
-    private var walkStoppedMinute = 0
-    //1분전 걸음 수
-    private var walkStepsOneMinAgo = 0
+    private var lastMeaningfulMovementTime = 0L
+    private var lastActiveStepCount = 0
+    private var isGoalReachedNotified = false
 
     @SuppressLint("ForegroundServiceType")
     override fun onCreate() {
         super.onCreate()
 
-        sensorManager =
-            getSystemService(SENSOR_SERVICE) as SensorManager
+        sensorManager = getSystemService(SENSOR_SERVICE) as SensorManager
+        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_COUNTER)
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
-        stepSensor =
-            sensorManager.getDefaultSensor(
-                Sensor.TYPE_STEP_COUNTER
-            )
-
+        createLocationCallback()
         createNotificationChannel()
 
         startForeground(
             NOTIFICATION_ID,
-            createNotification(0)
+            createNotification(0, 0f)
         )
     }
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int
-    ): Int {
-        val currentStep = intent?.getIntExtra("currentStep", 0)
+    private fun createLocationCallback() {
+        locationCallback = object : LocationCallback() {
+            //좌표가 변할 경우의 콜백
+            override fun onLocationResult(locationResult: LocationResult) {
+                for (location in locationResult.locations) {
+                    processLocation(location)
+                }
+            }
+        }
+    }
+
+    private fun processLocation(location: Location) {
+        // 필터링: accuracy 50m 초과 무시
+        if (location.accuracy > 50) return
+
+        val lastLoc = lastLocation
+        if (lastLoc != null) {
+            val distance = lastLoc.distanceTo(location)
+            val timeDelta = (location.time - lastLoc.time) / 1000.0 // seconds
+            val speed = if (timeDelta > 0) (distance / timeDelta) * 3.6 else 0.0 // km/h
+
+            // 활동 감지: 5m 이상 이동 시 타이머 리셋
+            if (distance >= 5.0) {
+                lastMeaningfulMovementTime = System.currentTimeMillis()
+                lastActiveStepCount = StepCounterManager.walkStatus.value.currentWalkCount
+            }
+
+            // 필터링: 이동거리 3m 미만 무시(궤적용), 속도 범위 벗어남 무시
+            if (distance < 3 || speed < 0.5 || speed > 15.0) return
+
+            totalDistance += distance
+            // m 단위를 km 단위로 변환하여 매니저에 업데이트
+            StepCounterManager.updateWalkDistance(totalDistance / 1000f)
+            StepCounterManager.addRoutePoint(location.latitude, location.longitude)
+            
+            // 마지막 유의미한 이동 시각 갱신
+            lastMeaningfulMovementTime = System.currentTimeMillis()
+        } else {
+            // 첫 좌표
+            lastMeaningfulMovementTime = System.currentTimeMillis()
+            StepCounterManager.addRoutePoint(location.latitude, location.longitude)
+        }
+        lastLocation = location
+    }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val currentStep = intent?.getIntExtra("currentStep", 0) ?: 0
+        missionNo = intent?.getIntExtra("missionNo", -1) ?: -1
 
         when (intent?.action) {
-
-            ACTION_START -> {
-                startStepCounting(currentStep?: 0)
-            }
-
-            ACTION_STOP -> {
-                stopStepCounting()
-            }
+            ACTION_START -> startStepCounting(currentStep)
+            ACTION_STOP -> stopStepCounting()
         }
 
         return START_NOT_STICKY
     }
 
     private fun startStepCounting(currentStepCount: Int) {
-
         val sensor = stepSensor ?: run {
             stopSelf()
             return
         }
 
         baseStepCount = currentStepCount
-
-        /**
-         * 기존 값 초기화
-         */
         startStepCount = -1f
+        totalDistance = 0f
+        lastLocation = null
+        lastMeaningfulMovementTime = System.currentTimeMillis()
+        lastActiveStepCount = currentStepCount
+        isGoalReachedNotified = false
 
-        /**
-         * 센서 등록
-         */
-        sensorManager.registerListener(
-            this,
-            sensor,
-            SensorManager.SENSOR_DELAY_NORMAL
-        )
-
+        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+        startLocationUpdates()
+        
         elapsedSecond = 0
-
         StepCounterManager.resetStepTime()
-
         StepCounterManager.updateWalkingState(true)
+        StepCounterManager.updateWalkDistance(0f)
 
         startTimer()
     }
 
-    override fun onSensorChanged(
-        event: SensorEvent?
-    ) {
-        if (event == null) return
+    @SuppressLint("MissingPermission")
+    private fun startLocationUpdates() {
+        val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
+            .setMinUpdateIntervalMillis(2000)
+            .build()
+        
+        fusedLocationClient.requestLocationUpdates(
+            locationRequest,
+            locationCallback,
+            Looper.getMainLooper()
+        )
+    }
 
-        if (event.sensor.type != Sensor.TYPE_STEP_COUNTER) {
-            return
-        }
+    override fun onSensorChanged(event: SensorEvent?) {
+        if (event == null || event.sensor.type != Sensor.TYPE_STEP_COUNTER) return
 
-        val currentStepCount =
-            event.values[0]
-
-        /**
-         * 첫 번째 센서 값
-         *
-         * 예:
-         * 걷기 시작 당시 기기 누적 걸음 수 = 10,000
-         */
+        val currentStepCount = event.values[0]
         if (startStepCount == -1f) {
-
-            startStepCount =
-                currentStepCount
-
+            startStepCount = currentStepCount
             StepCounterManager.updateStepCount(0)
         }
 
-        /**
-         * 이번 걷기에서 걸은 걸음 수
-         *
-         * 현재 누적값 - 시작 누적값
-         */
-        val currentWalkingStepCount =
-            (currentStepCount - startStepCount).toInt()
+        val currentWalkingStepCount = (currentStepCount - startStepCount).toInt()
+        val totalStepCount = baseStepCount + currentWalkingStepCount
+        StepCounterManager.updateStepCount(totalStepCount)
 
-        StepCounterManager.updateStepCount(
-            baseStepCount + currentWalkingStepCount
-        )
+        // 활동 감지: 10걸음 이상 증가 시 타이머 리셋
+        if (totalStepCount - lastActiveStepCount >= 10) {
+            lastMeaningfulMovementTime = System.currentTimeMillis()
+            lastActiveStepCount = totalStepCount
+        }
 
-        updateNotification(
-            currentWalkingStepCount
-        )
+        updateNotification(totalStepCount, totalDistance)
     }
 
     private fun stopStepCounting() {
-        sensorManager.unregisterListener(this)
-
-        timerJob?.cancel()
-
-        StepCounterManager.updateWalkingState(false)
-
-        stopSelf()
+        CoroutineScope(Dispatchers.IO).launch {
+            endWalkMission(missionNo)
+            withContext(Dispatchers.Main) {
+                sensorManager.unregisterListener(this@StepCounterService)
+                fusedLocationClient.removeLocationUpdates(locationCallback)
+                timerJob?.cancel()
+                StepCounterManager.updateWalkingState(false)
+                stopSelf()
+            }
+        }
     }
 
-    override fun onAccuracyChanged(
-        sensor: Sensor?,
-        accuracy: Int
-    ) {
-        // 사용하지 않음
-    }
+    override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
 
     override fun onDestroy() {
         timerJob?.cancel()
-
         sensorManager.unregisterListener(this)
-
+        fusedLocationClient.removeLocationUpdates(locationCallback)
         StepCounterManager.updateWalkingState(false)
-
         super.onDestroy()
     }
 
     private fun startTimer() {
         timerJob?.cancel()
-
         timerJob = CoroutineScope(Dispatchers.Default).launch {
             while (true) {
                 delay(1000.milliseconds)
-
                 elapsedSecond++
+                StepCounterManager.updateStepTime(elapsedSecond)
 
-                StepCounterManager.updateStepTime(
-                    elapsedSecond
-                )
+                // 10초 주기 서버 폴링
+                if (elapsedSecond % 10 == 0) {
+                    trackWalkMission(missionNo, lastLocation)
+                }
 
-                if(elapsedSecond % 60 == 0){
-                    //1분전 걸음수와 현재 걸음수가 동일할 경우 멈춘 분수를 카운트함
-                    if(walkStepsOneMinAgo == StepCounterManager.walkStatus.value.currentWalkCount){
-                        walkStoppedMinute ++
-                    }else{
-                        //동일하지 않다면 초기화
-                        walkStoppedMinute = 0
-                    }
+                // 미동작 감지 (자체 타이머)
+                val inactiveMillis = System.currentTimeMillis() - lastMeaningfulMovementTime
+                
+                // 10분 경과 -> 로컬 알림
+                if (inactiveMillis >= 10 * 60 * 1000L && inactiveMillis < 10 * 60 * 1000L + 1000L) {
+                    showInactivityNotification("계속 걷고 계신가요?")
+                }
 
-                    //1분전 걸음수를 업데이트
-                    walkStepsOneMinAgo = StepCounterManager.walkStatus.value.currentWalkCount
-
-                    //10분 멈춰있으면 움직이라고 알람 띄우기
-                    if(walkStoppedMinute == 10){
-                        val notificationManager =
-                            getSystemService(
-                                NOTIFICATION_SERVICE
-                            ) as NotificationManager
-
-                        notificationManager.notify(
-                            MOVE_NOTIFICATION_ID,
-                            createMoveNotification()
-                        )
-                    }
-
-                    //30분 멈춰있으면 자동정지
-                    if(walkStoppedMinute == 30){
+                // 30분 경과 -> 세션 만료 서버 호출
+                if (inactiveMillis >= 30 * 60 * 1000L) {
+                    expireWalkMission(missionNo)
+                    withContext(Dispatchers.Main) {
                         stopStepCounting()
                     }
+                    break
                 }
             }
         }
     }
 
-    override fun onBind(
-        intent: Intent?
-    ): IBinder? {
-        return null
+    // --- Mock API Calls ---
+
+    private fun trackWalkMission(no: Int, location: Location?) {
+        if (no == -1 || location == null) return
+        
+        Log.d("WalkService", "Tracking mission $no at ${location.latitude}, ${location.longitude}")
+        // POST /api/walk-missions/{no}/track
+        // Mock Response handling
+        val goalReached = false // from server response
+        if (goalReached && !isGoalReachedNotified) {
+            isGoalReachedNotified = true
+            showGoalReachedNotification()
+        }
     }
 
-    private fun createNotification(
-        stepCount: Int
-    ): Notification {
+    private suspend fun expireWalkMission(no: Int) {
+        if (no == -1) return
+        Log.d("WalkService", "Expiring mission $no due to inactivity")
+        // POST /walk-missions/{no}/expire (reason: inactive)
+    }
 
-        return NotificationCompat.Builder(
-            this,
-            CHANNEL_ID
-        )
+    private suspend fun endWalkMission(no: Int) {
+        if (no == -1) return
+        Log.d("WalkService", "Ending mission $no")
+        // POST /walk-missions/{no}/end
+    }
+
+    // --- Notifications ---
+
+    private fun createNotification(stepCount: Int, distance: Float): Notification {
+        return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("걷기 측정 중")
-            .setContentText(
-                "현재 걸음 수: ${stepCount}걸음"
-            )
-            .setSmallIcon(
-                android.R.drawable.ic_menu_mylocation
-            )
+            .setContentText("발걸음: ${stepCount}보 | 거리: ${String.format(Locale.getDefault(), "%.2f", distance / 1000f)}km")
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setOngoing(true)
             .build()
     }
 
-    private fun createMoveNotification(
-
-    ): Notification {
-        return NotificationCompat.Builder(
-            this,
-            CHANNEL_ID
-        )
-            .setContentTitle("걷기 안내")
-            .setContentText(
-                "10분 동안 걷기를 중지했습니다. 움직여주세요!"
-            )
-            .setSmallIcon(
-                android.R.drawable.ic_menu_mylocation
-            )
-            .build()
+    private fun updateNotification(stepCount: Int, distance: Float) {
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(NOTIFICATION_ID, createNotification(stepCount, distance))
     }
 
-    private fun updateNotification(
-        stepCount: Int
-    ) {
+    private fun showInactivityNotification(message: String) {
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("걷기 안내")
+            .setContentText(message)
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setAutoCancel(true)
+            .build()
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(MOVE_NOTIFICATION_ID, notification)
+    }
 
-        val notificationManager =
-            getSystemService(
-                NOTIFICATION_SERVICE
-            ) as NotificationManager
-
-        notificationManager.notify(
-            NOTIFICATION_ID,
-            createNotification(stepCount)
-        )
+    private fun showGoalReachedNotification() {
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("목표 달성!")
+            .setContentText("축하합니다! 걷기 목표를 달성하셨습니다.")
+            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setAutoCancel(true)
+            .build()
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(GOAL_NOTIFICATION_ID, notification)
     }
 
     private fun createNotificationChannel() {
-
-        val channel =
-            NotificationChannel(
-                CHANNEL_ID,
-                "걷기 측정",
-                NotificationManager.IMPORTANCE_LOW
-            )
-
-        val notificationManager =
-            getSystemService(
-                NOTIFICATION_SERVICE
-            ) as NotificationManager
-
-        notificationManager.createNotificationChannel(
-            channel
-        )
+        val channel = NotificationChannel(CHANNEL_ID, "걷기 측정", NotificationManager.IMPORTANCE_LOW)
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
     }
 
+    override fun onBind(intent: Intent?): IBinder? = null
+
     companion object {
-
-        const val ACTION_START =
-            "ACTION_START_STEP_COUNTING"
-
-        const val ACTION_STOP =
-            "ACTION_STOP_STEP_COUNTING"
-
-        private const val CHANNEL_ID =
-            "step_counter_channel"
-
-        private const val NOTIFICATION_ID =
-            1001
-
-        private const val MOVE_NOTIFICATION_ID =
-            1002
+        const val ACTION_START = "ACTION_START_STEP_COUNTING"
+        const val ACTION_STOP = "ACTION_STOP_STEP_COUNTING"
+        private const val CHANNEL_ID = "step_counter_channel"
+        private const val NOTIFICATION_ID = 1001
+        private const val MOVE_NOTIFICATION_ID = 1002
+        private const val GOAL_NOTIFICATION_ID = 1003
     }
 }
