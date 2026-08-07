@@ -3,6 +3,7 @@ package com.dangdang.di
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
 import com.dangdang.Application.Companion.API_BASE_URL
+import com.dangdang.BuildConfig
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.api.UserApiService
 import com.dangdang.data.repository.CommunityRepository
@@ -31,7 +32,8 @@ object NetworkModule {
         sessionManager: SessionManager
     ): OkHttpClient {
         val httpLoggingInterceptor = HttpLoggingInterceptor()
-        httpLoggingInterceptor.level = HttpLoggingInterceptor.Level.BODY
+        httpLoggingInterceptor.level = if (BuildConfig.DEBUG) HttpLoggingInterceptor.Level.BODY
+            else HttpLoggingInterceptor.Level.NONE
 
         return OkHttpClient.Builder()
             .addInterceptor(ApiInterceptor(userApiService, sessionManager))

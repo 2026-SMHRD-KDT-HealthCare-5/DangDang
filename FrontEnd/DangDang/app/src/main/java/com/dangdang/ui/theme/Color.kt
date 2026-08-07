@@ -21,6 +21,7 @@ val PrimaryBlueOpacity30 = Color(0x4D197CFF)
 val SkyBlue = Color(0xFF87CEFA)
 val SkyBlueOpacity30 = Color(0x4D87CEFA)
 val SapphireBlue = Color(0xFF93B5FF)
+val LightBlue = Color(0xFFF5F9FE)
 
 
 val LightGray = Color(0xFFD9D9D9)
