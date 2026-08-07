@@ -3,6 +3,8 @@ package com.dangdang.common.utils
 import android.content.Context
 import androidx.core.content.edit
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +23,9 @@ class AppPrefs @Inject constructor(
 
     //리프레시 토큰
     private val refreshTokenKey = "refreshToken"
+
+    //알림설정
+    private val notificationKey = "notification"
 
     //로그아웃
     fun logout(){
@@ -56,5 +61,22 @@ class AppPrefs @Inject constructor(
 
     fun setRefreshToken(refreshToken: String){
         prefs.edit { putString(refreshTokenKey, refreshToken) }
+    }
+
+    //알림설정
+    fun isNotification(): Boolean{
+        return prefs.getBoolean(notificationKey, false)
+    }
+
+    private val _notificationFlow =
+        MutableStateFlow(prefs.getBoolean(notificationKey, false))
+
+    val notificationFlow: StateFlow<Boolean> = _notificationFlow
+
+    fun setNotification(notification: Boolean) {
+        prefs.edit {
+            putBoolean(notificationKey, notification)
+        }
+        _notificationFlow.value = notification
     }
 }

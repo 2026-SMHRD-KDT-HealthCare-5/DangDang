@@ -17,8 +17,12 @@ object AppTypography {
         lineHeight = 28.sp
     )
 
+    val titleMedium = TextStyle(
+        fontSize = 18.sp,
+        lineHeight = 26.sp
+    )
+
     val bodyLarge = TextStyle(
-        fontFamily = FontFamily.Default,
         fontSize = 16.sp,
         lineHeight = 24.sp
     )

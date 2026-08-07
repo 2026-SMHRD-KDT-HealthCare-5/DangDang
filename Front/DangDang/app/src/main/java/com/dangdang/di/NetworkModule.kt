@@ -5,6 +5,9 @@ import androidx.health.connect.client.HealthConnectClient
 import com.dangdang.Application.Companion.API_BASE_URL
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.api.UserApiService
+import com.dangdang.data.repository.CommunityRepository
+import com.dangdang.data.repository.UserRepository
+import com.dangdang.data.repository.WalkRepository
 import dagger.Lazy
 import dagger.Module
 import dagger.Provides
@@ -48,13 +51,34 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideSessionManager(appPrefs: AppPrefs): SessionManager {
-        return SessionManager(appPrefs)
+    fun provideSessionManager(
+        @ApplicationContext context: Context,
+        appPrefs: AppPrefs
+    ): SessionManager {
+        return SessionManager(context, appPrefs)
     }
 
     @Provides
     @Singleton
     fun provideUserApiService(retrofit: Retrofit): UserApiService {
         return retrofit.create(UserApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideUserRepository(userApiService: UserApiService): UserRepository{
+        return UserRepository(userApiService)
+    }
+
+    @Provides
+    @Singleton
+    fun providerWalkRepository(): WalkRepository{
+        return WalkRepository()
+    }
+
+    @Provides
+    @Singleton
+    fun providerCommunityRepository(): CommunityRepository{
+        return CommunityRepository()
     }
 }

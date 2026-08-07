@@ -55,6 +55,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.material3)
+    implementation(libs.googleid)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -96,10 +97,16 @@ dependencies {
 
     implementation(libs.play.services.location)
 
+    //카카오 로그인
+    implementation(libs.v2.user)
+
     //chart
     implementation(libs.compose)
     implementation(libs.compose.m3)
 
     //lifecycle runtime compose
     implementation(libs.androidx.lifecycle.runtime.compose)
+
+    //이미지 미리보기 시
+    implementation(libs.coil3.coil.compose)
 }
