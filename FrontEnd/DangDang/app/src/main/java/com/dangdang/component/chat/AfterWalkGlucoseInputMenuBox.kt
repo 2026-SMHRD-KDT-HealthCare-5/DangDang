@@ -25,7 +25,8 @@ import com.dangdang.ui.theme.White
 fun AfterWalkGlucoseInputMenuBoxPreview() {
     AfterWalkGlucoseInputMenuBox(
         afterWalkGlucoseValue = "",
-        onAfterWalkGlucoseValueChange = {}
+        onAfterWalkGlucoseValueChange = {},
+        onGlucoseInputCompleteClick = {}
     )
 }
 
@@ -33,6 +34,7 @@ fun AfterWalkGlucoseInputMenuBoxPreview() {
 fun AfterWalkGlucoseInputMenuBox(
     afterWalkGlucoseValue: String,
     onAfterWalkGlucoseValueChange: (String) -> Unit,
+    onGlucoseInputCompleteClick: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -59,6 +61,13 @@ fun AfterWalkGlucoseInputMenuBox(
             placeholderText = "예) 165",
             maxLength = 5,
             sizeType = LayoutSize.FillMaxSize
+        )
+
+        PrimaryButton(
+            text = "기록 저장하기",
+            enabled = afterWalkGlucoseValue.isNotEmpty(),
+            sizeType = LayoutSize.FillMaxSize,
+            onClick = onGlucoseInputCompleteClick
         )
     }
 }

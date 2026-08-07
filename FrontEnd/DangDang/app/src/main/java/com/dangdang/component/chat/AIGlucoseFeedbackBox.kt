@@ -1,0 +1,17 @@
+package com.dangdang.component.chat
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.tooling.preview.Preview
+
+@Preview
+@Composable
+fun AIGlucoseFeedbackBoxPreview() {
+    AIGlucoseFeedbackBox()
+}
+
+@Composable
+fun AIGlucoseFeedbackBox(
+
+) {
+
+}
