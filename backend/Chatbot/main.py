@@ -1,0 +1,558 @@
+"""
+당당이 챗봇 - 1단계 프로토타입 (Gemini API 버전)
+벡터DB 없이 고정 지식(fixed knowledge)을 시스템 프롬프트에 넣어
+Gemini API로 대화형 응답을 생성하는 최소 기능 버전.
+
+* GL(혈당부하지수) 계산은 이 서비스 범위에서 제외 — 걷기/식후 관리 조언 중심으로만 구성
+
+실행:
+    pip install fastapi uvicorn google-genai python-dotenv
+    export GEMINI_API_KEY=발급받은키
+    uvicorn main:app --reload
+"""
+
+import os
+from dotenv import load_dotenv
+from fastapi import FastAPI, UploadFile, File
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from google import genai
+from google.genai import types
+from nutrition_db.food_lookup import FoodDB
+from glucose_model import GlucosePredictor, DIAGNOSIS_GROUPS
+from rag.retrieve import search_knowledge
+
+load_dotenv()  # 같은 폴더의 .env 파일을 읽어서 환경변수로 등록
+
+app = FastAPI(title="당당이 챗봇 프로토타입 (1단계, Gemini)")
+client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
+
+# DB 스키마와 통일된 최종 영양성분 데이터 로드 (브랜드는 food_name에 병합되어 있음)
+food_db = FoodDB("nutrition_db/db_import/food_for_db.csv")
+
+# 콜드스타트 혈당 예측 모델 로드
+glucose_predictor = GlucosePredictor("final_risk_model.pkl")
+
+
+def log_token_usage(response, label: str = ""):
+    """Gemini 응답의 토큰 사용량을 터미널에 출력"""
+    usage = getattr(response, "usage_metadata", None)
+    if usage is None:
+        print(f"[토큰 사용량{f' - {label}' if label else ''}] 정보 없음")
+        return
+
+    prompt_tokens = usage.prompt_token_count or 0
+    output_tokens = usage.candidates_token_count or 0
+    total_tokens = usage.total_token_count or 0
+
+    print(
+        f"[토큰 사용량{f' - {label}' if label else ''}] "
+        f"입력: {prompt_tokens} / 출력: {output_tokens} / 합계: {total_tokens}"
+    )
+
+
+# ---------------------------------------------------------
+# 사용자별 대화 세션 (멀티턴 메모리)
+# 주의: 서버 메모리에만 저장되므로 서버 재시작하면 초기화됨.
+#       추후 DB/Redis 등으로 영속화 필요.
+# ---------------------------------------------------------
+chat_sessions: dict[str, "genai.chats.Chat"] = {}
+
+
+def get_or_create_chat_session(user_id: str, system_prompt: str):
+    if user_id not in chat_sessions:
+        chat_sessions[user_id] = client.chats.create(
+            model=MODEL_NAME,
+            config={
+                "system_instruction": system_prompt,
+                "temperature": 0.7,
+            },
+        )
+    return chat_sessions[user_id]
+
+# gemini-2.5-flash-lite는 신규 사용자에게 더 이상 제공되지 않음.
+# gemini-3.1-flash-lite로 대체 (저렴하면서 최신 모델)
+MODEL_NAME = "gemini-3.1-flash-lite"
+
+# ---------------------------------------------------------
+# 1. 고정 지식베이스 (2단계에서 이 부분이 벡터DB 검색으로 대체됨)
+#    GL 계산은 하지 않음 — 정성적인 식후 관리 지식만 포함
+# ---------------------------------------------------------
+FIXED_KNOWLEDGE = """
+[혈당관리 참고 지식]
+- 식후 혈당 상승은 보통 식사 후 30분~1시간 사이에 시작되어 1~2시간 내 정점에 도달
+- 식후 가벼운 걷기(15~30분)는 혈당 상승 폭을 낮추는 데 도움이 됨
+- 탄수화물 위주 식사는 단백질/지방을 곁들이면 혈당 상승 속도가 완만해짐
+- 흰쌀밥, 면류, 빵류처럼 정제 탄수화물 비중이 높은 식사일수록 식후 걷기가 더 도움이 됨
+- 2030세대는 당뇨 전단계 인지율이 낮아 조기 관리가 중요함
+"""
+
+# ---------------------------------------------------------
+# 2. 사용자 컨텍스트 (지금은 더미 데이터, 추후 DB 연동)
+# ---------------------------------------------------------
+def get_dummy_user_context(user_id: str) -> str:
+    return f"""
+[사용자 정보: {user_id}]
+- 최근 식사: 흰쌀밥 + 제육볶음
+- 오늘 걷기 기록: 아직 없음
+- 최근 3일 평균 걷기: 18분
+"""
+
+# ---------------------------------------------------------
+# 3. 당당이 페르소나 시스템 프롬프트
+# ---------------------------------------------------------
+SYSTEM_PROMPT_TEMPLATE = """너는 '당당이'라는 AI 건강비서야.
+'당당' 서비스의 혈당관리 헬스케어 챗봇으로, 사용자의 식후 혈당 관리를 돕는 역할이야.
+
+[말투/태도]
+- 친근하고 공감형 어투를 사용해 (반말은 하지 말고 다정한 존댓말)
+- 걱정을 유발하지 않고, 응원하듯 걷기를 유도해
+- 답변은 3~5문장 이내로 간결하게
+
+[답변 원칙]
+- 아래 참고 지식과 사용자 정보를 바탕으로 답변해
+- GL(혈당부하지수) 같은 수치를 계산하거나 단정적으로 제시하지 마 — 이 서비스는 GL을 계산하지 않음
+- 확실하지 않은 의학적 진단은 하지 말고, 필요시 전문의 상담을 권유해
+- 가능하면 답변 끝에 자연스럽게 걷기 미션을 한 줄 제안해
+
+{knowledge}
+{user_context}
+"""
+
+# ---------------------------------------------------------
+# 4. 요청/응답 스키마
+# ---------------------------------------------------------
+class ChatRequest(BaseModel):
+    user_id: str
+    message: str
+    diagnosis_group: str | None = None  # 넘어오면 해당 유저의 진단군으로 저장
+
+
+class ChatResponse(BaseModel):
+    reply: str
+
+
+# ---------------------------------------------------------
+# 사용자별 진단군 저장 (메모리, 서버 재시작 시 초기화 — 추후 DB로 영속화)
+# 진단군을 아직 모르면 기본값 "건강군"으로 처리
+# ---------------------------------------------------------
+user_diagnosis_groups: dict[str, str] = {}
+
+
+def get_diagnosis_group(user_id: str) -> str:
+    return user_diagnosis_groups.get(user_id, "건강군")
+
+
+def hba1c_to_diagnosis_group(hba1c: float) -> str:
+    """
+    대한당뇨병학회/ADA 기준 HbA1c → 진단군 변환
+
+    < 5.7%       : 건강군
+    5.7% ~ 6.4%  : 전당뇨
+    >= 6.5%      : 2형당뇨
+
+    주의: 이건 선별(screening) 목적의 참고 기준이지 의학적 확진이 아님.
+    실제 진단군은 사용자가 병원에서 진단받은 결과를 우선하는 게 맞고,
+    HbA1c는 진단명을 모르는 회원가입 시점의 "추정용 폴백"으로 쓰는 걸 추천.
+    """
+    if hba1c < 5.7:
+        return "건강군"
+    elif hba1c < 6.5:
+        return "전당뇨"
+    else:
+        return "2형당뇨"
+
+
+class SignupRequest(BaseModel):
+    user_id: str
+    hba1c: float
+
+
+@app.post("/signup-profile")
+def signup_profile(req: SignupRequest):
+    """회원가입 시 HbA1c만 받아서 진단군을 자동 계산 후 저장"""
+    diagnosis_group = hba1c_to_diagnosis_group(req.hba1c)
+    user_diagnosis_groups[req.user_id] = diagnosis_group
+
+    return JSONResponse(
+        content={
+            "user_id": req.user_id,
+            "hba1c": req.hba1c,
+            "diagnosis_group": diagnosis_group,
+        },
+        media_type="application/json; charset=utf-8",
+    )
+
+
+# ---------------------------------------------------------
+# 자연어 메시지에서 "음식 + 혈당 수치" 언급 추출
+# ---------------------------------------------------------
+MEAL_EXTRACTION_PROMPT = """사용자 메시지에서 "방금/오늘 먹은 음식"과 "현재 또는 식전 혈당 수치(mg/dL)"가
+함께 언급되었는지 확인해서 아래 JSON 형식으로만 답해. 설명 문장 없이 순수 JSON만 출력해.
+
+{
+  "has_meal_info": true 또는 false,
+  "food_name": "언급된 음식명 (간결하게, 없으면 null)",
+  "baseline": 혈당_숫자_또는_null
+}
+
+혈당 수치와 음식 둘 다 언급된 경우에만 has_meal_info를 true로 해.
+"""
+
+
+def extract_meal_info(message: str) -> dict:
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=message,
+        config={"system_instruction": MEAL_EXTRACTION_PROMPT, "temperature": 0.0},
+    )
+    log_token_usage(response, label="meal-extraction")
+    try:
+        return parse_gemini_json(response.text)
+    except Exception:
+        return {"has_meal_info": False, "food_name": None, "baseline": None}
+
+
+# ---------------------------------------------------------
+# 5. 챗봇 엔드포인트
+# ---------------------------------------------------------
+@app.post("/chat")
+def chat(req: ChatRequest):
+    if req.diagnosis_group:
+        user_diagnosis_groups[req.user_id] = req.diagnosis_group
+
+    user_context = get_dummy_user_context(req.user_id)
+    system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
+        knowledge=FIXED_KNOWLEDGE,
+        user_context=user_context,
+    )
+
+    chat_session = get_or_create_chat_session(req.user_id, system_prompt)
+
+    # 1) 메시지에 "음식 + 혈당 수치"가 함께 언급됐는지 먼저 확인
+    meal_info = extract_meal_info(req.message)
+
+    message_to_send = req.message
+    prediction_data = None  # 구조화된 예측 결과 (프론트엔드 카드 UI용, 있으면 채워짐)
+
+    if meal_info.get("has_meal_info") and meal_info.get("food_name") and meal_info.get("baseline") is not None:
+        prediction_result = run_glucose_prediction(
+            food_name=meal_info["food_name"],
+            baseline=float(meal_info["baseline"]),
+            diagnosis_group=get_diagnosis_group(req.user_id),
+        )
+
+        if "error" not in prediction_result:
+            prediction_data = prediction_result
+
+            estimate_note = (
+                " (이 음식은 정확한 DB 정보가 없어서 대략적으로 추정한 영양성분 기준이라는 것도 언급해줘.)"
+                if prediction_result["nutrition_source"] == "llm_estimated"
+                else ""
+            )
+
+            # 예측 결과를 당당이가 자연스러운 말투로, 하지만 핵심 수치(예상 혈당, 걷기 시간·거리)는
+            # 반드시 문장 안에 포함해서 답하도록 컨텍스트에 실어 보냄
+            message_to_send = (
+                f"{req.message}\n\n"
+                f"[내부 참고용 예측 결과 — 아래 수치를 반드시 답변 문장에 자연스럽게 포함해서 말해줘. "
+                f"예: '지금 {{baseline}}에서 약 {{상승분}} 올라서 {{peak}} 근처일 것 같아요. "
+                f"{{걷기시간}}분, 약 {{거리}}km 정도 걸어보세요'처럼 "
+                f"식전혈당/예상peak혈당/추천 걷기시간(분)/걷기거리(km)는 꼭 숫자로 알려줘.{estimate_note}]\n"
+                f"매칭된 음식: {prediction_result['matched_food']}\n"
+                f"영양성분 출처: {'DB 매칭' if prediction_result['nutrition_source'] == 'db_matched' else 'LLM 추정치'}\n"
+                f"식전 혈당: {prediction_result['prediction']['baseline']}\n"
+                f"예측 peak 혈당: {prediction_result['prediction']['predicted_peak']}\n"
+                f"상승분: {prediction_result['prediction']['predicted_rise']}\n"
+                f"추천 걷기 시간: {prediction_result['walking_mission']['walk_minutes']}분\n"
+                f"추천 걷기 거리: {prediction_result['walking_mission']['distance_km']}km\n"
+            )
+        else:
+            # DB 매칭 실패 등은 그냥 알려주고 일반 대화로 넘어감
+            message_to_send = (
+                f"{req.message}\n\n"
+                f"[참고: 예측 시도했으나 실패함 - {prediction_result['error']}. "
+                f"이 사실은 사용자에게 자연스럽게 알려주되 너무 기술적으로 말하지 마]"
+            )
+    else:
+        # 2) 음식/혈당 언급이 없는 일반 질문이면 RAG로 당뇨 지식베이스 검색
+        rag_results = search_knowledge(req.message, top_k=4)
+
+        if rag_results:
+            knowledge_snippets = "\n\n".join(
+                f"[출처: {r['title']}]\n{r['chunk_text']}" for r in rag_results
+            )
+            message_to_send = (
+                f"{req.message}\n\n"
+                f"[내부 참고 자료 — 아래 근거를 바탕으로 답변하되, 원문을 그대로 베끼지 말고 "
+                f"네 말투로 풀어서 설명해. 의학적 확진처럼 단정하지 말고, 필요하면 전문의 상담을 권유해. "
+                f"답변 끝에 어느 자료를 참고했는지 출처를 간단히 밝혀줘]\n"
+                f"{knowledge_snippets}"
+            )
+
+    response = chat_session.send_message(message_to_send)
+
+    log_token_usage(response, label="chat")
+
+    # PowerShell(Windows) 등 일부 클라이언트가 charset 없는 응답을
+    # 잘못 해석해 한글이 깨지는 문제 방지 위해 charset 명시
+    return JSONResponse(
+        content={"reply": response.text, "prediction_data": prediction_data},
+        media_type="application/json; charset=utf-8",
+    )
+
+
+@app.get("/")
+def health_check():
+    return JSONResponse(
+        content={"status": "ok", "service": "당당이 챗봇 프로토타입 (1단계, Gemini, RAG 연동)"},
+        media_type="application/json; charset=utf-8",
+    )
+
+
+# ---------------------------------------------------------
+# 6. 음식 사진 인식 + 영양성분 DB 매칭 엔드포인트
+# ---------------------------------------------------------
+FOOD_RECOGNITION_PROMPT = """이 사진 속 음식을 인식해서 아래 JSON 형식으로만 답해.
+설명 문장이나 마크다운 코드블록(```json) 없이, 순수 JSON 텍스트만 출력해.
+
+{
+  "food_name": "음식 이름 (한글, 검색하기 좋게 간결하게. 예: '황금올리브 치킨', '불고기 피자')",
+  "brand": "프랜차이즈/브랜드명이 보이면 적고, 안 보이면 null",
+  "confidence": "high | medium | low 중 하나 (인식 확신도)",
+  "estimated_serving_g": 예상 1인분 중량(그램, 숫자만),
+  "fallback_nutrition": {
+    "탄수화물": 100g당_추정_탄수화물_그램_숫자,
+    "단백질": 100g당_추정_단백질_그램_숫자,
+    "지방": 100g당_추정_지방_그램_숫자,
+    "식이섬유": 100g당_추정_식이섬유_그램_숫자
+  }
+}
+
+fallback_nutrition은 DB 매칭이 실패했을 때 쓸 추정값이니, 최대한 합리적으로 채워줘.
+사진에서 음식이 명확히 보이지 않으면 food_name을 "인식불가"로 설정해.
+"""
+
+
+def parse_gemini_json(text: str) -> dict:
+    """Gemini가 ```json 코드블록으로 감싸서 응답하는 경우까지 안전하게 파싱"""
+    import json
+    import re
+
+    cleaned = text.strip()
+    cleaned = re.sub(r"^```json\s*|\s*```$", "", cleaned, flags=re.MULTILINE).strip()
+    return json.loads(cleaned)
+
+
+@app.post("/identify-food")
+async def identify_food(image: UploadFile = File(...)):
+    image_bytes = await image.read()
+
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type=image.content_type),
+            FOOD_RECOGNITION_PROMPT,
+        ],
+    )
+
+    log_token_usage(response, label="identify-food")
+
+    try:
+        recognition = parse_gemini_json(response.text)
+    except Exception:
+        # JSON 파싱 실패 시 원문이라도 반환
+        return JSONResponse(
+            content={"error": "인식 결과 파싱 실패", "raw": response.text},
+            media_type="application/json; charset=utf-8",
+        )
+
+    food_name = recognition.get("food_name", "")
+    brand = recognition.get("brand")
+
+    if food_name == "인식불가":
+        return JSONResponse(
+            content={"recognition": recognition, "nutrition_source": None, "nutrition": None},
+            media_type="application/json; charset=utf-8",
+        )
+
+    # 식약처 DB에서 가장 유사한 항목 매칭 시도
+    db_match = food_db.get_best_match(food_name, brand=brand)
+
+    MATCH_SCORE_THRESHOLD = 70  # 이 점수 미만이면 신뢰 안 하고 LLM 추정값 사용
+
+    if db_match and db_match["유사도점수"] >= MATCH_SCORE_THRESHOLD:
+        nutrition_source = "db_matched"
+        nutrition = {
+            "탄수화물": db_match["탄수화물"],
+            "단백질": db_match["단백질"],
+            "지방": db_match["지방"],
+            "식이섬유": db_match["식이섬유"],
+            "기준": "100g당",
+            "matched_food_name": db_match["식품명"],  # 브랜드가 있으면 "브랜드_음식명" 형태로 포함되어 있음
+            "match_score": db_match["유사도점수"],
+        }
+    else:
+        nutrition_source = "llm_estimated"
+        nutrition = recognition.get("fallback_nutrition", {})
+        nutrition["기준"] = "100g당 (LLM 추정)"
+
+    return JSONResponse(
+        content={
+            "recognition": recognition,
+            "nutrition_source": nutrition_source,
+            "nutrition": nutrition,
+        },
+        media_type="application/json; charset=utf-8",
+    )
+
+
+# ---------------------------------------------------------
+# 7. 혈당 예측 + 걷기 미션 엔드포인트
+# ---------------------------------------------------------
+class PredictRequest(BaseModel):
+    food_name: str
+    brand: str | None = None
+    serving_g: float = 100  # 실제 섭취량(g). DB는 100g 기준이라 이 값으로 스케일링
+    baseline: float  # 식전 혈당 (mg/dL)
+    diagnosis_group: str  # "건강군" | "전당뇨" | "2형당뇨"
+
+
+def calc_walking_mission(ppg: float) -> dict:
+    """
+    예측 peak 혈당(PPG, mg/dL) 기준 3구간 걷기 시간 공식
+
+    PPG ≤ 140          : T = 10 (항상 최소 10분)
+    140 < PPG < 200     : T = 10 + (PPG - 140) / 60 * 20   (10~30분)
+    PPG ≥ 200           : T = 30 + min((PPG - 200) / 50, 1) * 15   (30~45분 상한)
+    """
+    if ppg <= 140:
+        minutes = 10
+    elif ppg < 200:
+        minutes = 10 + (ppg - 140) / 60 * 20
+    else:
+        minutes = 30 + min((ppg - 200) / 50, 1) * 15
+
+    minutes = round(minutes)
+    distance_km = round(minutes * 0.06, 2)  # 분당 약 60m 도보 가정
+    calories = round(minutes * 4)  # 분당 약 4kcal 소모 가정
+
+    return {"walk_minutes": minutes, "distance_km": distance_km, "calories": calories}
+
+
+NUTRITION_ESTIMATION_PROMPT = """다음 음식의 100g당 영양성분을 추정해서 아래 JSON 형식으로만 답해.
+설명 문장 없이 순수 JSON만 출력해.
+
+{
+  "탄수화물": 100g당_탄수화물_그램_숫자,
+  "단백질": 100g당_단백질_그램_숫자,
+  "지방": 100g당_지방_그램_숫자,
+  "식이섬유": 100g당_식이섬유_그램_숫자
+}
+
+일반적으로 알려진 조리법과 재료를 기준으로 최대한 합리적인 값을 추정해.
+"""
+
+
+def estimate_nutrition_via_llm(food_name: str) -> dict:
+    """DB 매칭 실패 시 텍스트 음식명만으로 Gemini에게 영양성분(100g당)을 추정시킴"""
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=food_name,
+        config={"system_instruction": NUTRITION_ESTIMATION_PROMPT, "temperature": 0.3},
+    )
+    log_token_usage(response, label="nutrition-estimation")
+    try:
+        return parse_gemini_json(response.text)
+    except Exception:
+        return {}
+
+
+def run_glucose_prediction(
+    food_name: str,
+    baseline: float,
+    diagnosis_group: str,
+    brand: str | None = None,
+    serving_g: float = 100,
+) -> dict:
+    """/predict-glucose와 /chat(자연어 파서)이 공용으로 쓰는 예측 로직"""
+    if diagnosis_group not in DIAGNOSIS_GROUPS:
+        return {"error": f"diagnosis_group은 {DIAGNOSIS_GROUPS} 중 하나여야 합니다."}
+
+    db_match = food_db.get_best_match(food_name, brand=brand)
+    MATCH_SCORE_THRESHOLD = 70
+
+    if db_match and db_match["유사도점수"] >= MATCH_SCORE_THRESHOLD:
+        nutrition_source = "db_matched"
+        matched_name = db_match["식품명"]
+        per_100g = {
+            "탄수화물": db_match["탄수화물"],
+            "단백질": db_match["단백질"],
+            "지방": db_match["지방"],
+            "식이섬유": db_match["식이섬유"],
+        }
+    else:
+        # DB에 없으면 Gemini로 영양성분 추정 (사진 인식 때와 동일한 폴백 전략)
+        estimated = estimate_nutrition_via_llm(food_name)
+        required_keys = ["탄수화물", "단백질", "지방", "식이섬유"]
+        if not estimated or not all(k in estimated for k in required_keys):
+            return {"error": f"'{food_name}'에 해당하는 음식을 DB에서도, LLM 추정으로도 찾지 못했습니다."}
+
+        nutrition_source = "llm_estimated"
+        matched_name = food_name
+        per_100g = estimated
+
+    scale = serving_g / 100.0
+    carb = per_100g["탄수화물"] * scale
+    protein = per_100g["단백질"] * scale
+    fat = per_100g["지방"] * scale
+    fiber = per_100g["식이섬유"] * scale
+
+    prediction = glucose_predictor.predict_peak(
+        carb=carb, protein=protein, fat=fat, fiber=fiber,
+        baseline=baseline, diagnosis_group=diagnosis_group,
+    )
+
+    mission = calc_walking_mission(prediction["predicted_peak"])
+
+    message = (
+        f"지금 {prediction['baseline']}에서 약 {prediction['predicted_rise']} 정도 올라서 "
+        f"{prediction['predicted_peak']} 근처일 것 같아요. "
+        f"{mission['walk_minutes']}분(약 {mission['distance_km']}km) 정도 걸으면 도움이 될 거예요!"
+    )
+    if nutrition_source == "llm_estimated":
+        message += " (다만 이 음식은 정확한 영양정보가 없어서 대략적으로 추정한 값이에요.)"
+    if prediction["low_confidence"]:
+        message += " (또한 지금 식전 혈당이 학습 데이터 범위보다 높아서, 이 예측은 참고용으로만 봐주세요.)"
+
+    return {
+        "matched_food": matched_name,
+        "nutrition_source": nutrition_source,  # "db_matched" | "llm_estimated"
+        "serving_g": serving_g,
+        "nutrition_used": {
+            "탄수화물": round(carb, 1),
+            "단백질": round(protein, 1),
+            "지방": round(fat, 1),
+            "식이섬유": round(fiber, 1),
+        },
+        "prediction": prediction,
+        "walking_mission": mission,
+        "message": message,
+    }
+
+
+@app.post("/predict-glucose")
+def predict_glucose(req: PredictRequest):
+    result = run_glucose_prediction(
+        food_name=req.food_name,
+        baseline=req.baseline,
+        diagnosis_group=req.diagnosis_group,
+        brand=req.brand,
+        serving_g=req.serving_g,
+    )
+
+    status_code = 200
+    if "error" in result:
+        status_code = 400 if "diagnosis_group" in result["error"] else 404
+
+    return JSONResponse(content=result, status_code=status_code, media_type="application/json; charset=utf-8")

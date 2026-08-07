@@ -1,0 +1,21 @@
+# === Backend ===
+.env
+__pycache__/
+*.pyc
+
+# 엑셀 임시 잠금파일
+~$*
+zNex~$*
+
+# 모델 파일 (GitHub 100MB 제한)
+*.pkl
+
+# === FrontEnd (Android) ===
+*.iml
+.gradle/
+local.properties
+.idea/
+build/
+captures/
+.externalNativeBuild/
+.cxx/
