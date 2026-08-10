@@ -5,6 +5,11 @@ import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.SignUpDefault
 import com.dangdang.common.utils.activityLevelList
+import com.dangdang.common.utils.isValidBirthDate
+import com.dangdang.common.utils.isValidHbA1c
+import com.dangdang.common.utils.isValidHeight
+import com.dangdang.common.utils.isValidPostPrandialGlucose
+import com.dangdang.common.utils.isValidWeight
 import com.dangdang.data.enums.Gender
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.User
@@ -63,11 +68,29 @@ class SignUpViewModel @Inject constructor(
                         && userInfoDetail.password == userInfoDetail.passwordCheck
                     )
                 )
-                && userInfoDetail.birthday.isNotEmpty()
-                && userInfoDetail.height.isNotEmpty()
-                && userInfoDetail.weight.isNotEmpty()
-                && (userInfoDetail.hemoglobin.isNotEmpty() || userInfoDetail.isHemoglobinRecentResultUnknown)
-                && userInfoDetail.goalGlucose.isNotEmpty()
+                && (
+                    userInfoDetail.birthday.isNotEmpty() &&
+                            isValidBirthDate(userInfoDetail.birthday)
+                )
+                && (
+                    userInfoDetail.height.isNotEmpty() &&
+                            isValidHeight(userInfoDetail.height)
+                )
+                && (
+                    userInfoDetail.weight.isNotEmpty() &&
+                            isValidWeight(userInfoDetail.weight)
+                )
+                && (
+                    (
+                            userInfoDetail.hemoglobin.isNotEmpty() &&
+                                    isValidHbA1c(userInfoDetail.hemoglobin)
+                    )
+                            || userInfoDetail.isHemoglobinRecentResultUnknown
+                )
+                && (
+                    userInfoDetail.goalGlucose.isNotEmpty() &&
+                            isValidPostPrandialGlucose(userInfoDetail.goalGlucose)
+                )
     }
 
     //회원가입 or 회원정보 수정 완료
