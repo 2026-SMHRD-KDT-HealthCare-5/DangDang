@@ -15,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -26,6 +27,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.regular
 import com.dangdang.component.button.WalkButton
+import com.dangdang.component.dialog.WalkMissionCompleteDialog
 import com.dangdang.component.map.KakaoMap
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.walk.WalkInfo
@@ -41,21 +43,26 @@ fun WalkScreenPreview(
 ){
     WalkScreenContent(
         walkStatus = WalkStatus(
+            missionNo = 1,
             walkTargetDistance = 2.6f,
-            currentWalkDistance = 0.85f,
-            currentWalkCount = 10,
-            currentWalkKcal = 20
+            currentWalkDistance = 0f,
+            currentWalkCount = 0,
+            currentWalkKcal = 0
         ),
         stepTime = 100,
         isWalking = false,
         routePoints = emptyList(),
-        onWalkButtonClick = {}
+        onWalkButtonClick = {},
+        isWalkEndDialog = false,
+        onSendGlucoseClick = {}
     )
 }
 
 @Composable
 fun WalkScreen(
-    walkViewModel: WalkViewModel = hiltViewModel()
+    walkViewModel: WalkViewModel = hiltViewModel(),
+    isStart: Boolean,
+    onSendGlucoseClick: () -> Unit
 ){
     val context = LocalContext.current
 
@@ -70,6 +77,12 @@ fun WalkScreen(
     val routePoints by
         StepCounterManager.routePoints.collectAsState()
 
+    val isEndWalk by
+        StepCounterManager.isEndWalk.collectAsState()
+
+    val isWalkEndDialog by
+        StepCounterManager.isWalkEndDialog.collectAsState()
+
     val permissionLauncher =
         rememberLauncherForActivityResult(
             ActivityResultContracts.RequestPermission()
@@ -82,6 +95,33 @@ fun WalkScreen(
             }
         }
 
+    fun startStepCounting(){
+        if (Build.VERSION.SDK_INT >=
+            Build.VERSION_CODES.Q
+        ) {
+            permissionLauncher.launch(
+                Manifest.permission.ACTIVITY_RECOGNITION
+            )
+        } else {
+            walkViewModel.startStepCounting(
+                context,
+                walkStatus.currentWalkCount
+            )
+        }
+    }
+
+    LaunchedEffect(isStart) {
+        if(isStart&&!isWalking){
+            startStepCounting()
+        }
+    }
+
+    LaunchedEffect(isEndWalk) {
+        if(isEndWalk && walkStatus.walkTargetDistance > 0.0f){
+            walkViewModel.endWalkMission(walkStatus.missionNo)
+        }
+    }
+
     WalkScreenContent(
         walkStatus = walkStatus,
         stepTime = stepTime,
@@ -93,20 +133,11 @@ fun WalkScreen(
                     context = context
                 )
             }else{
-                if (Build.VERSION.SDK_INT >=
-                    Build.VERSION_CODES.Q
-                ) {
-                    permissionLauncher.launch(
-                        Manifest.permission.ACTIVITY_RECOGNITION
-                    )
-                } else {
-                    walkViewModel.startStepCounting(
-                        context,
-                        walkStatus.currentWalkCount
-                    )
-                }
+                startStepCounting()
             }
-        }
+        },
+        isWalkEndDialog = isWalkEndDialog,
+        onSendGlucoseClick = onSendGlucoseClick
     )
 }
 
@@ -116,7 +147,9 @@ fun WalkScreenContent(
     stepTime: Int,
     isWalking: Boolean,
     routePoints: List<Pair<Double, Double>> = emptyList(),
-    onWalkButtonClick: () -> Unit
+    onWalkButtonClick: () -> Unit,
+    isWalkEndDialog: Boolean,
+    onSendGlucoseClick: () -> Unit
 ){
     val scrollState = rememberScrollState()
     Column(
@@ -148,5 +181,14 @@ fun WalkScreenContent(
                 onClick = onWalkButtonClick
             )
         }
+    }
+    
+    if(isWalkEndDialog){
+        WalkMissionCompleteDialog(
+            onDismiss = {
+                StepCounterManager.closeWalkEndDialog()
+            },
+            onButtonClick = onSendGlucoseClick
+        )
     }
 }
