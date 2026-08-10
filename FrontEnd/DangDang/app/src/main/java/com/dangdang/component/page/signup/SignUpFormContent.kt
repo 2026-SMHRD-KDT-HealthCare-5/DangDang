@@ -164,7 +164,7 @@ fun SignUpFormContent(
                     signUpForm.copy(height = it)
                 )
             },
-            placeholderText = "키를 숫자로 입력해주세요",
+            placeholderText = "키를 숫자로 입력해주세요(50~500)",
             maxLength = 3,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
@@ -181,7 +181,7 @@ fun SignUpFormContent(
                     signUpForm.copy(weight = it)
                 )
             },
-            placeholderText = "몸무게를 숫자로 입력해주세요",
+            placeholderText = "몸무게를 숫자로 입력해주세요(20~300)",
             maxLength = 3,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
