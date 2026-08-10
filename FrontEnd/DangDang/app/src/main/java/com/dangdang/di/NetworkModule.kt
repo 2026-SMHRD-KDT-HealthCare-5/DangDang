@@ -7,6 +7,7 @@ import com.dangdang.BuildConfig
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.api.UserApiService
 import com.dangdang.data.repository.CommunityRepository
+import com.dangdang.data.repository.DangDangRepository
 import com.dangdang.data.repository.UserRepository
 import com.dangdang.data.repository.WalkRepository
 import dagger.Lazy
@@ -82,5 +83,11 @@ object NetworkModule {
     @Singleton
     fun providerCommunityRepository(): CommunityRepository{
         return CommunityRepository()
+    }
+
+    @Provides
+    @Singleton
+    fun providerDangDangRepository(): DangDangRepository {
+        return DangDangRepository()
     }
 }

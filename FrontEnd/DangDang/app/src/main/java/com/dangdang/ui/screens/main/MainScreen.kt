@@ -16,6 +16,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.CommunityRoute
+import com.dangdang.common.utils.DangDangRoute
 import com.dangdang.common.utils.MainRoute
 import com.dangdang.common.utils.MyPageRoute
 import com.dangdang.common.utils.navigateBottomTab
@@ -57,6 +58,24 @@ fun MainScreen(
             )
         ){
             MainRoute.Community
+        }else if(
+            DangDangRoute.stringValues.contains(
+                navBackStackEntry?.destination?.route?:""
+            )
+        ){
+            MainRoute.DangDang
+        }else if(
+            navBackStackEntry?.destination?.route?.contains(
+                MainRoute.Walk.route
+            ) == true
+        ){
+            MainRoute.Walk
+        }else if(
+            navBackStackEntry?.destination?.route?.contains(
+                MainRoute.DangDang.route
+            ) == true
+        ) {
+            MainRoute.DangDang
         }
         else{
             MainRoute.Home

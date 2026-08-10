@@ -253,8 +253,7 @@ class StepCounterService : Service(), SensorEventListener {
 
     private suspend fun endWalkMission(no: Int) {
         if (no == -1) return
-        Log.d("WalkService", "Ending mission $no")
-        // POST /walk-missions/{no}/end
+        StepCounterManager.endWalkMission(no)
     }
 
     // --- Notifications ---

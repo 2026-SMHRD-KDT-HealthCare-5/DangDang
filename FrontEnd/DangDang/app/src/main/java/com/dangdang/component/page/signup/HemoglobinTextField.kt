@@ -57,7 +57,7 @@ fun HemoglobinTextField(
             isBorder = true,
             value = value,
             onValueChange = onValueChange,
-            placeholderText = "% 단위로 숫자만 입력해주세요",
+            placeholderText = "% 단위로 숫자만 입력해주세요(3~20)",
             maxLength = 4,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number

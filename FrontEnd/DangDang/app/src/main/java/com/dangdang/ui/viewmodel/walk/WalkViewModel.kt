@@ -61,7 +61,8 @@ class WalkViewModel @Inject constructor(
     }
 
     fun stopStepCounting(
-        context: Context
+        context: Context,
+        missionNo: Int = 1
     ) {
 
         val intent =
@@ -73,9 +74,16 @@ class WalkViewModel @Inject constructor(
                 action =
                     StepCounterService.ACTION_STOP
             }
+        intent.putExtra("missionNo", missionNo)
 
         context.startService(
             intent
         )
+    }
+
+    fun endWalkMission(missionNo: Int){
+        viewModelScope.launch {
+            walkRepository.endWalkMission(missionNo)
+        }
     }
 }

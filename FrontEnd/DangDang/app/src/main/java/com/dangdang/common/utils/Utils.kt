@@ -33,6 +33,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.text.DecimalFormat
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.ResolverStyle
 import java.util.Locale
 
 //화면마다 공통으로 사용하는 modifier
@@ -159,6 +161,46 @@ fun Context.createImageUri(): Uri {
         "$packageName.provider",
         file
     )
+}
+
+//생년월일 유효성 확인
+fun isValidBirthDate(dateStr: String): Boolean {
+    if (dateStr.length != 10) return false
+
+    return try {
+        val formatter = DateTimeFormatter.ofPattern("uuuu.MM.dd")
+            .withResolverStyle(ResolverStyle.STRICT)
+
+        val parsedDate = LocalDate.parse(dateStr, formatter)
+
+        !parsedDate.isAfter(LocalDate.now())
+    } catch (e: Exception) {
+        false
+    }
+}
+
+//키 유효성 확인
+fun isValidHeight(input: String): Boolean {
+    val value = input.toIntOrNull() ?: return false
+    return value in 50..500
+}
+
+//몸무게 유효성 확인
+fun isValidWeight(input: String): Boolean {
+    val value = input.toIntOrNull() ?: return false
+    return value in 20..300
+}
+
+//당화혈색소 유효성 확인
+fun isValidHbA1c(input: String): Boolean {
+    val value = input.toIntOrNull() ?: return false
+    return value in 3..20
+}
+
+// 식후 2시간 목표 혈당 유효성 확인
+fun isValidPostPrandialGlucose(input: String): Boolean {
+    val value = input.toIntOrNull() ?: return false
+    return value in 50..500
 }
 
 val GuageColorList = listOf(

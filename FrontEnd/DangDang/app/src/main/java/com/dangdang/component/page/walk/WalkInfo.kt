@@ -24,6 +24,7 @@ import com.dangdang.ui.theme.Gray
 fun WalkInfoPreview(){
     WalkInfo(
         walkStatus = WalkStatus(
+            missionNo = 1,
             walkTargetDistance = 2.6f,
             currentWalkDistance = 0.85f,
             currentWalkCount = 10,

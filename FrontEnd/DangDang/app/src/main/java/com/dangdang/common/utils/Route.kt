@@ -32,6 +32,21 @@ sealed class MyPageRoute(
     }
 }
 
+sealed class DangDangRoute(
+    val route: String
+){
+    data object FoodInputDirectly : DangDangRoute("foodInputDirectly")
+
+    companion object {
+        val values: List<DangDangRoute>
+            get() = listOf(
+                FoodInputDirectly
+            )
+        val stringValues: List<String>
+            get() = values.map { it.route }
+    }
+}
+
 sealed class CommunityRoute(
     val route: String
 ){

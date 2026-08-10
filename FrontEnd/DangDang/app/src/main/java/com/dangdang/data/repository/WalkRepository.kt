@@ -14,12 +14,18 @@ class WalkRepository @Inject constructor(
     //현황 불러오기
     suspend fun getWalkStatus(): Response<WalkStatus> {
         val response = WalkStatus(
+            missionNo = 1,
             walkTargetDistance = 2.6f,
-            currentWalkDistance = 0.85f,
-            currentWalkCount = 10,
-            currentWalkKcal = 20
+            currentWalkDistance = 0f,
+            currentWalkCount = 0,
+            currentWalkKcal = 0
         )
 
         return Response.success(response)
+    }
+
+    //걷기 미션 종료
+    suspend fun endWalkMission(missionNo: Int): Response<String>{
+        return Response.success("success")
     }
 }

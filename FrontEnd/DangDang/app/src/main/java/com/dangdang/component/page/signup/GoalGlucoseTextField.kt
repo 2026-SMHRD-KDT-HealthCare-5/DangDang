@@ -48,7 +48,7 @@ fun GoalGlucoseTextField(
             isBorder = true,
             value = value,
             onValueChange = onValueChange,
-            placeholderText = "mg/dL 단위로 숫자만 입력해주세요",
+            placeholderText = "mg/dL 단위로 숫자만 입력해주세요(50~500)",
             maxLength = 3,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
