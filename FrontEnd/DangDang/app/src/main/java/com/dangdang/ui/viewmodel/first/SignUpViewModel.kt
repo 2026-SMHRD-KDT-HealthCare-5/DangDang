@@ -6,8 +6,10 @@ import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.SignUpDefault
 import com.dangdang.common.utils.activityLevelList
 import com.dangdang.common.utils.isValidBirthDate
+import com.dangdang.common.utils.isValidEmail
 import com.dangdang.common.utils.isValidHbA1c
 import com.dangdang.common.utils.isValidHeight
+import com.dangdang.common.utils.isValidPassword
 import com.dangdang.common.utils.isValidPostPrandialGlucose
 import com.dangdang.common.utils.isValidWeight
 import com.dangdang.data.enums.Gender
@@ -60,10 +62,14 @@ class SignUpViewModel @Inject constructor(
     fun isUserInfoInputComplete(): Boolean{
         val userInfoDetail = _userInfoDetail.value ?: return false
         return userInfoDetail.nickname.isNotEmpty()
-                && userInfoDetail.email.isNotEmpty()
+                && (
+                    userInfoDetail.email.isNotEmpty()
+                    && isValidEmail(userInfoDetail.email)
+                )
                 && (userInfoDetail.isSocial
                     ||(
                         userInfoDetail.password.isNotEmpty()
+                        && isValidPassword(userInfoDetail.password)
                         && userInfoDetail.passwordCheck.isNotEmpty()
                         && userInfoDetail.password == userInfoDetail.passwordCheck
                     )

@@ -118,7 +118,7 @@ class UserRepository @Inject constructor(
             birthday = "1997.05.16",
             height = "170",
             weight = "70",
-            hemoglobin = "50",
+            hemoglobin = "12",
             isHemoglobinRecentResultUnknown = false,
             goalGlucose = "180",
             activityLevel = "주 1 ~2회"
