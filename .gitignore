@@ -19,3 +19,13 @@ build/
 captures/
 .externalNativeBuild/
 .cxx/
+
+# 저작권 있는 논문 원문 (당당이 챗봇 RAG용)
+backend/Chatbot/rag/papers/
+backend/Chatbot/rag/papers_combined.txt
+backend/Chatbot/rag/ocr_cache/
+backend/Chatbot/rag/.paper_cache_name
+
+# 개인 작업 문서 (Claude 세션용, 팀 공유 불필요)
+backend/Chatbot/CLAUDE.md
+backend/Chatbot/README.md

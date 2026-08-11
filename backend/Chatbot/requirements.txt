@@ -5,7 +5,3 @@ python-dotenv
 pydantic
 python-multipart
 rapidfuzz
-psycopg2-binary
-pgvector
-pdfplumber
-requests

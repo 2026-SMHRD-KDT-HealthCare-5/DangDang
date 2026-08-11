@@ -20,18 +20,29 @@ from google import genai
 from google.genai import types
 from nutrition_db.food_lookup import FoodDB
 from glucose_model import GlucosePredictor, DIAGNOSIS_GROUPS
-from rag.retrieve import search_knowledge
+from rag.paper_qa import create_paper_cache, answer_with_paper_cache, answer_without_cache, load_combined_text
 
 load_dotenv()  # 같은 폴더의 .env 파일을 읽어서 환경변수로 등록
 
 app = FastAPI(title="당당이 챗봇 프로토타입 (1단계, Gemini)")
 client = genai.Client(api_key=os.environ.get("GEMINI_API_KEY"))
 
+# gemini-2.5-flash-lite는 신규 사용자에게 더 이상 제공되지 않음.
+# gemini-3.1-flash-lite로 대체 (저렴하면서 최신 모델)
+MODEL_NAME = "gemini-3.1-flash-lite"
+
 # DB 스키마와 통일된 최종 영양성분 데이터 로드 (브랜드는 food_name에 병합되어 있음)
 food_db = FoodDB("nutrition_db/db_import/food_for_db.csv")
 
 # 콜드스타트 혈당 예측 모델 로드
 glucose_predictor = GlucosePredictor("final_risk_model.pkl")
+
+# 논문들을 텍스트로 추출해서 하나로 합친 파일을 로드 (없으면 자동 생성 시도)
+combined_papers_text = load_combined_text()
+
+# 합쳐진 텍스트를 컨텍스트 캐시로 등록 (매 질문마다 논문 재처리 안 해도 되게)
+# 실패하면 paper_cache가 None이 되고, 그때는 매번 텍스트 전체를 프롬프트에 넣는 방식으로 폴백됨
+paper_cache = create_paper_cache(client, MODEL_NAME)
 
 
 def log_token_usage(response, label: str = ""):
@@ -69,10 +80,6 @@ def get_or_create_chat_session(user_id: str, system_prompt: str):
             },
         )
     return chat_sessions[user_id]
-
-# gemini-2.5-flash-lite는 신규 사용자에게 더 이상 제공되지 않음.
-# gemini-3.1-flash-lite로 대체 (저렴하면서 최신 모델)
-MODEL_NAME = "gemini-3.1-flash-lite"
 
 # ---------------------------------------------------------
 # 1. 고정 지식베이스 (2단계에서 이 부분이 벡터DB 검색으로 대체됨)
@@ -114,6 +121,8 @@ SYSTEM_PROMPT_TEMPLATE = """너는 '당당이'라는 AI 건강비서야.
 - GL(혈당부하지수) 같은 수치를 계산하거나 단정적으로 제시하지 마 — 이 서비스는 GL을 계산하지 않음
 - 확실하지 않은 의학적 진단은 하지 말고, 필요시 전문의 상담을 권유해
 - 가능하면 답변 끝에 자연스럽게 걷기 미션을 한 줄 제안해
+- 인슐린 용량이나 복용 중인 약의 종류·용량에 대해서는 절대 조언하지 마. 이런 질문이 나오면
+  "이 부분은 담당 의사·약사와 상담해주세요"라고 안내하고, 구체적인 수치나 판단은 절대 제시하지 마
 
 {knowledge}
 {user_context}
@@ -214,10 +223,117 @@ def extract_meal_info(message: str) -> dict:
 
 
 # ---------------------------------------------------------
-# 5. 챗봇 엔드포인트
+# 약물/인슐린 용량 관련 질문 차단 (안전상 절대 답변하지 않음)
+# LLM 판단에 맡기지 않고 키워드로 확실하게 걸러서 고정 문구로 응답
 # ---------------------------------------------------------
+MEDICATION_SAFETY_MESSAGE = (
+    "죄송하지만 인슐린 용량이나 복용 중인 약의 종류·용량에 대해서는 "
+    "제가 안내해드릴 수 없어요. 이런 부분은 반드시 담당 의사·약사와 "
+    "상담해서 결정하셔야 하는 부분이에요. 다른 궁금하신 점은 편하게 물어봐주세요!"
+)
+
+# "인슐린"이 언급되면 무조건 차단 (단위/용량 조정은 특히 위험도가 높음)
+INSULIN_KEYWORDS = ["인슐린", "insulin"]
+
+# 국내에서 흔히 쓰이는 인슐린/당뇨약 브랜드명·성분명 (영문 표기, 흔한 오타 포함).
+# 이 자체가 언급되면 "용량" 같은 단어가 없어도 약물 관련 질문일 가능성이 높아 차단 대상에 포함.
+DRUG_BRAND_KEYWORDS = [
+    # 인슐린 제제 (한글 + 영문 + 흔한 오타)
+    "휴마로그", "후마로그", "humalog",
+    "휴물린", "후물린", "humulin",
+    "노보래피드", "novorapid",
+    "노보믹스", "novomix",
+    "란투스", "lantus",
+    "레버미어", "levemir",
+    "트레시바", "tresiba",
+    "애피드라", "아피드라", "apidra",
+    "인슐라틴",
+    "투제오", "toujeo",
+    # 경구용 혈당강하제 (한글 + 영문)
+    "메트포르민", "metformin",
+    "다이아벡스", "글루코파지", "glucophage",
+    "자디앙", "jardiance",
+    "포시가", "forxiga",
+    "슈글렛",
+    "트라젠타", "trajenta",
+    "자누비아", "januvia",
+    "아마릴", "amaryl",
+    "글리메피리드", "glimepiride",
+    "다파글리플로진", "dapagliflozin",
+    "엠파글리플로진", "empagliflozin",
+    "시타글립틴", "sitagliptin",
+    "리벨서스", "rybelsus",
+    "오젬픽", "ozempic",
+    "마운자로", "mounjaro",
+    # 동반질환 약 (당뇨약과 상호작용/병용 질문도 같은 리스크군)
+    "혈압약", "고지혈증약", "콜레스테롤약",
+]
+
+# 약 종류/용량/복용법을 직접 가리키는 키워드 (이것만으로도 바로 차단)
+MEDICATION_DOSAGE_KEYWORDS = [
+    "용량", "복용량", "복용법",
+    "몇 알", "몇알", "몇 정", "몇정", "몇 개",
+    "몇 mg", "몇mg", "mg", "밀리그램",
+    "몇 단위", "몇단위", "단위",  # 인슐린 단위(U/IU) 관련 질문 포괄
+    "iu", "cc",
+    "약 종류", "무슨 약", "어떤 약", "약 이름",
+    "경구제", "주사제",
+    # 과다 복용 표현은 "약"이라는 단어 없이도 그 자체로 의미가 명확해서 바로 차단
+    "두 배로 먹", "두배로 먹", "곱절로 먹",
+]
+
+# 복용량 조정/실수를 나타내는 동사 어간. "약"이나 약물명과 문장 어디서든
+# 같이 등장하면 차단 (반드시 붙어있지 않아도 됨 — "약 좀 줄이고" 같은 경우 대비).
+# 한국어는 "줄이다/늘리다/바꾸다" 같은 모음 어간 동사가 'ㄹ까/ㄹ게' 등과 결합하면
+# "줄일까요", "늘릴게요"처럼 축약되어 원래 어간이 그대로 안 남기 때문에
+# 축약된 형태도 같이 넣어둠.
+DOSAGE_ADJUSTMENT_STEMS = [
+    "줄이", "줄일",   # 줄이고/줄이면 vs 줄일까요/줄일게요
+    "늘리", "늘릴",   # 늘리고/늘리면 vs 늘릴까요/늘릴게요
+    "바꾸", "바꿀",   # 바꾸고/바꾸면 vs 바꿀까요/바꿀게요
+    "끊",             # 끊고/끊으면/끊을까요 (자음 어간이라 축약 없음)
+    "깜빡", "빼먹",    # 복용 실수(누락)
+]
+
+# 멀티턴에서 "이 약", "그 약"처럼 간접적으로 가리키는 경우도 최대한 커버
+INDIRECT_DRUG_REFERENCE = ["이 약", "그 약", "저 약"]
+
+
+def is_medication_dosage_question(message: str) -> bool:
+    text = message.lower()  # 영문 브랜드명/단위 대소문자 무시하고 매칭
+
+    if any(kw.lower() in text for kw in INSULIN_KEYWORDS):
+        return True
+    if any(kw.lower() in text for kw in DRUG_BRAND_KEYWORDS):
+        return True
+    if any(kw.lower() in text for kw in MEDICATION_DOSAGE_KEYWORDS):
+        return True
+    if any(kw in message for kw in INDIRECT_DRUG_REFERENCE):
+        return True
+
+    # "약"이라는 단어(또는 인슐린/브랜드명)와 조정 동사가 문장 안에 같이 있으면 차단
+    # (반드시 붙어 있을 필요 없음: "약 좀 줄이고 싶은데" 같은 경우도 잡기 위함)
+    has_drug_mention = (
+        "약" in message
+        or any(kw.lower() in text for kw in INSULIN_KEYWORDS)
+        or any(kw.lower() in text for kw in DRUG_BRAND_KEYWORDS)
+    )
+    has_adjustment_verb = any(stem in message for stem in DOSAGE_ADJUSTMENT_STEMS)
+    if has_drug_mention and has_adjustment_verb:
+        return True
+
+    return False
+
+
 @app.post("/chat")
 def chat(req: ChatRequest):
+    # 인슐린/약물 용량 관련 질문은 Gemini 호출 전에 키워드로 먼저 차단
+    if is_medication_dosage_question(req.message):
+        return JSONResponse(
+            content={"reply": MEDICATION_SAFETY_MESSAGE, "prediction_data": None},
+            media_type="application/json; charset=utf-8",
+        )
+
     if req.diagnosis_group:
         user_diagnosis_groups[req.user_id] = req.diagnosis_group
 
@@ -258,7 +374,9 @@ def chat(req: ChatRequest):
                 f"[내부 참고용 예측 결과 — 아래 수치를 반드시 답변 문장에 자연스럽게 포함해서 말해줘. "
                 f"예: '지금 {{baseline}}에서 약 {{상승분}} 올라서 {{peak}} 근처일 것 같아요. "
                 f"{{걷기시간}}분, 약 {{거리}}km 정도 걸어보세요'처럼 "
-                f"식전혈당/예상peak혈당/추천 걷기시간(분)/걷기거리(km)는 꼭 숫자로 알려줘.{estimate_note}]\n"
+                f"식전혈당/예상peak혈당/추천 걷기시간(분)/걷기거리(km)는 꼭 숫자로 알려줘.{estimate_note} "
+                f"이 수치는 학습된 예측 모델이 직접 계산한 값이니, 이전 대화에서 첨부됐던 논문이나 "
+                f"다른 참고자료를 이번 답변에는 인용하지 마 (이번 답변은 논문 근거가 아님)]\n"
                 f"매칭된 음식: {prediction_result['matched_food']}\n"
                 f"영양성분 출처: {'DB 매칭' if prediction_result['nutrition_source'] == 'db_matched' else 'LLM 추정치'}\n"
                 f"식전 혈당: {prediction_result['prediction']['baseline']}\n"
@@ -275,19 +393,24 @@ def chat(req: ChatRequest):
                 f"이 사실은 사용자에게 자연스럽게 알려주되 너무 기술적으로 말하지 마]"
             )
     else:
-        # 2) 음식/혈당 언급이 없는 일반 질문이면 RAG로 당뇨 지식베이스 검색
-        rag_results = search_knowledge(req.message, top_k=4)
+        # 2) 음식/혈당 언급이 없는 일반 질문 -> 논문 텍스트 컨텍스트로 답변
+        if paper_cache:
+            # 캐시가 있으면 논문을 매번 다시 안 보내고 캐시만 참조 (훨씬 빠름)
+            response = answer_with_paper_cache(client, MODEL_NAME, req.message, paper_cache)
+            log_token_usage(response, label="chat-paper-cached")
 
-        if rag_results:
-            knowledge_snippets = "\n\n".join(
-                f"[출처: {r['title']}]\n{r['chunk_text']}" for r in rag_results
+            return JSONResponse(
+                content={"reply": response.text, "prediction_data": None},
+                media_type="application/json; charset=utf-8",
             )
-            message_to_send = (
-                f"{req.message}\n\n"
-                f"[내부 참고 자료 — 아래 근거를 바탕으로 답변하되, 원문을 그대로 베끼지 말고 "
-                f"네 말투로 풀어서 설명해. 의학적 확진처럼 단정하지 말고, 필요하면 전문의 상담을 권유해. "
-                f"답변 끝에 어느 자료를 참고했는지 출처를 간단히 밝혀줘]\n"
-                f"{knowledge_snippets}"
+        elif combined_papers_text:
+            # 캐시 생성이 실패했을 때의 폴백 (느리지만 동작은 함)
+            response = answer_without_cache(client, MODEL_NAME, req.message, combined_papers_text)
+            log_token_usage(response, label="chat-paper-nocache")
+
+            return JSONResponse(
+                content={"reply": response.text, "prediction_data": None},
+                media_type="application/json; charset=utf-8",
             )
 
     response = chat_session.send_message(message_to_send)
