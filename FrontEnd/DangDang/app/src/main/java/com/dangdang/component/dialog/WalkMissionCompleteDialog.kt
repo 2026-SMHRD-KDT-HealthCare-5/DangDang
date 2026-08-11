@@ -77,7 +77,7 @@ private fun WalkMissionCompleteDialogContent(
                 .padding(10.dp)
         ) {
             Image(
-                painter = painterResource(R.mipmap.dangdang_signupcomplete),
+                painter = painterResource(R.drawable.dangdang_signupcomplete),
                 contentDescription = "당당이",
                 modifier = Modifier.size(120.dp)
             )

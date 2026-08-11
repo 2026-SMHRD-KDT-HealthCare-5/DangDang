@@ -152,7 +152,7 @@ fun SignUpScreenContent(
                 }
 
                 Image(
-                    painter = painterResource(R.mipmap.dangdang),
+                    painter = painterResource(R.drawable.dangdang),
                     contentDescription = "당당이",
                     modifier = Modifier
                         .width(50.dp)

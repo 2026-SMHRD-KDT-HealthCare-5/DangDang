@@ -37,14 +37,14 @@ fun RadioSelectBoxPreview() {
         RadioSelectBox(
             checked = true,
             onCheckedChange = {},
-            titleIconResourceId = R.mipmap.password_visible,
+            titleIconResourceId = R.drawable.password_visible,
             title = "거의 안함",
             description = "운동을 거의 하지 않아요"
         )
         RadioSelectBox(
             checked = false,
             onCheckedChange = {},
-            titleIconResourceId = R.mipmap.password_visible,
+            titleIconResourceId = R.drawable.password_visible,
             title = "거의 안함",
             description = "운동을 거의 하지 않아요"
         )

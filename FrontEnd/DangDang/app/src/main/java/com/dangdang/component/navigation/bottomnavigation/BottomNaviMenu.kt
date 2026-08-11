@@ -31,8 +31,8 @@ fun BottomNaviMenuPreview(
         BottomNaviMenu(
             isSelected = false,
             name = "홈",
-            enableIcon = R.mipmap.home_blue,
-            disableIcon = R.mipmap.home_black
+            enableIcon = R.drawable.home_blue,
+            disableIcon = R.drawable.home_black
         )
 
         Spacer(Modifier.width(10.dp))
@@ -40,8 +40,8 @@ fun BottomNaviMenuPreview(
         BottomNaviMenu(
             isSelected = true,
             name = "홈",
-            enableIcon = R.mipmap.home_blue,
-            disableIcon = R.mipmap.home_black
+            enableIcon = R.drawable.home_blue,
+            disableIcon = R.drawable.home_black
         )
     }
 }

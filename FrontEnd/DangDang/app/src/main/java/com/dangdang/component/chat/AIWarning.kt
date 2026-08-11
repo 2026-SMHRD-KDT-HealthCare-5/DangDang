@@ -50,7 +50,7 @@ fun AIWarning(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Image(
-            painter = painterResource(R.mipmap.notice_icon),
+            painter = painterResource(R.drawable.notice_icon),
             contentDescription = "warning icon",
             modifier = Modifier
                 .size(20.dp)

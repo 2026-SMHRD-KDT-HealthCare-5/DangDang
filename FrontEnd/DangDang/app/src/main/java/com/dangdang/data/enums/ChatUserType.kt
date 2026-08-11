@@ -19,13 +19,13 @@ enum class ChatUserType(
         speechBubbleTextColor = Black,
         isSpeechBubbleBorder = true,
         tailDirection = Direction.Left,
-        tailImageId = R.mipmap.gray_tail
+        tailImageId = R.drawable.gray_tail
     ),
     User(
         speechBubbleBackground = Navy,
         speechBubbleTextColor = White,
         isSpeechBubbleBorder = false,
         tailDirection = Direction.Right,
-        tailImageId = R.mipmap.navy_tail
+        tailImageId = R.drawable.navy_tail
     )
 }

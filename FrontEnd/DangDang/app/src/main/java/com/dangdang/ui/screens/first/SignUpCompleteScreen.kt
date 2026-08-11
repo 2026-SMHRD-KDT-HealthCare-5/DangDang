@@ -60,7 +60,7 @@ fun SignUpCompleteScreenContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(R.mipmap.dangdang_signupcomplete),
+                painter = painterResource(R.drawable.dangdang_signupcomplete),
                 contentDescription = "회원가입 완료 이미지",
                 modifier = Modifier
                     .size(120.dp)

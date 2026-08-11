@@ -95,7 +95,7 @@ fun TopNavigation(
 
             if(isBackButton){
                 Icon(
-                    painter = painterResource(R.mipmap.arrow_back),
+                    painter = painterResource(R.drawable.arrow_back),
                     contentDescription = "left icon",
                     modifier = Modifier
                         .size(24.dp)

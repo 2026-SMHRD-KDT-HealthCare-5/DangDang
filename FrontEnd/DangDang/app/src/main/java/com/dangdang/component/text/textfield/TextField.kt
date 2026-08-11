@@ -70,14 +70,14 @@ fun TextFieldPreview(
             isRequired = false,
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
             },
             rightIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -96,14 +96,14 @@ fun TextFieldPreview(
             isRequired = true,
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
             },
             rightIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -125,14 +125,14 @@ fun TextFieldPreview(
             isRequired = true,
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
             },
             rightIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -243,7 +243,7 @@ fun TextField(
             ) {
                 if(value.isNotEmpty() && isError && errorText != null){
                     Image(
-                        painter = painterResource(R.mipmap.wrong_round_red),
+                        painter = painterResource(R.drawable.wrong_round_red),
                         contentDescription = "error icon",
                         modifier = Modifier.size(16.dp)
                     )

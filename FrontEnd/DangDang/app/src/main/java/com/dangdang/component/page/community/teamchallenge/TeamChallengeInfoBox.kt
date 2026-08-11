@@ -82,8 +82,8 @@ fun TeamChallengeInfoBox(
                 modifier = Modifier
                     .size(70.dp)
                     .clip(CircleShape),
-                error = painterResource(id = R.mipmap.community_black),
-                placeholder = painterResource(id = R.mipmap.community_black),
+                error = painterResource(id = R.drawable.community_black),
+                placeholder = painterResource(id = R.drawable.community_black),
                 contentScale = ContentScale.Crop
             )
         }
@@ -104,7 +104,7 @@ fun TeamChallengeInfoBox(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Image(
-                    painter = painterResource(R.mipmap.community_blue_outline),
+                    painter = painterResource(R.drawable.community_blue_outline),
                     contentDescription = null,
                     modifier = Modifier
                         .size(15.dp)
