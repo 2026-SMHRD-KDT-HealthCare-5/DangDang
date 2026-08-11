@@ -13,8 +13,6 @@ data class ChatModel(
     val chatStageType: String,
     val isChatAble: Boolean,
     val isInputComplete: Boolean,
-    val goalGlucose: Int?,
-    val weeklyMissionCompleteCount: Int?,
     val analysisFoodInfo: AnalysisFoodModel?,
     val recommendWalkInfo: AIRecommendWalkModel?,
     val glucoseFeedbackInfo: GlucoseFeedbackModel?

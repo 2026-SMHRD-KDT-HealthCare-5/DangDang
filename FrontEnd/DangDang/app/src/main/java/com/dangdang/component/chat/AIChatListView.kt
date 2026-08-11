@@ -30,8 +30,6 @@ fun AIChatListViewPreview(){
                 chatType = "",
                 isChatAble = true,
                 isInputComplete = false,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 chatStageType = "",
                 analysisFoodInfo = null,
                 recommendWalkInfo = null,

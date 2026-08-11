@@ -7,4 +7,5 @@ import com.dangdang.data.model.walk.WalkStatus
 data class GlucoseFeedbackTemplateModel(
     val title: String,
     val value: (glucoseFeedbackModel: GlucoseFeedbackModel) -> Any,
+    val unit: String
 )

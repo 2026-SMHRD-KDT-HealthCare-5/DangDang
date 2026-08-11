@@ -7,5 +7,6 @@ data class GlucoseFeedbackModel(
     val beginGlucose: Int,
     val aiPredictAfterGlucose: Int,
     val realAfterGlucose: Int,
-    val decreaseGlucose: Int
+    val targetDistance: Float,
+    val walkDistance: Float
 )
