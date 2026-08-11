@@ -1,4 +1,4 @@
-package com.dangdang.di
+package com.dangdang.data.manager
 
 import com.dangdang.data.model.walk.WalkStatus
 import kotlinx.coroutines.flow.MutableStateFlow

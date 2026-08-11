@@ -1,19 +1,19 @@
 package com.dangdang.di
 
 import android.content.Context
-import androidx.health.connect.client.HealthConnectClient
 import com.dangdang.Application.Companion.API_BASE_URL
 import com.dangdang.BuildConfig
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.RefreshRetrofit
 import com.dangdang.data.api.RefreshApiService
 import com.dangdang.data.api.UserApiService
+import com.dangdang.data.manager.SessionManager
 import com.dangdang.data.network.ApiAuthenticator
+import com.dangdang.data.network.ApiInterceptor
 import com.dangdang.data.repository.CommunityRepository
 import com.dangdang.data.repository.DangDangRepository
 import com.dangdang.data.repository.UserRepository
 import com.dangdang.data.repository.WalkRepository
-import dagger.Lazy
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn

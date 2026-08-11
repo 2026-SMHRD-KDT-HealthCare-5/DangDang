@@ -82,7 +82,7 @@ fun MyPageMenu(
             ListButton(
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.bell),
+                        painter = painterResource(R.drawable.bell),
                         contentDescription = "left icon",
                         modifier = Modifier
                             .size(24.dp)
@@ -109,7 +109,7 @@ fun MyPageMenu(
             ListButton(
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.faq_black),
+                        painter = painterResource(R.drawable.faq_black),
                         contentDescription = "left icon",
                         modifier = Modifier
                             .size(24.dp)
@@ -117,7 +117,7 @@ fun MyPageMenu(
                 },
                 rightIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.right),
+                        painter = painterResource(R.drawable.right),
                         contentDescription = "right icon",
                         modifier = Modifier
                             .size(24.dp)
@@ -141,7 +141,7 @@ fun MyPageMenu(
             ListButton(
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.chat_black),
+                        painter = painterResource(R.drawable.chat_black),
                         contentDescription = "left icon",
                         modifier = Modifier
                             .size(24.dp)
@@ -149,7 +149,7 @@ fun MyPageMenu(
                 },
                 rightIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.right),
+                        painter = painterResource(R.drawable.right),
                         contentDescription = "right icon",
                         modifier = Modifier
                             .size(24.dp)
@@ -173,7 +173,7 @@ fun MyPageMenu(
             ListButton(
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.logout),
+                        painter = painterResource(R.drawable.logout),
                         contentDescription = "left icon",
                         modifier = Modifier
                             .size(24.dp)
@@ -181,7 +181,7 @@ fun MyPageMenu(
                 },
                 rightIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.right),
+                        painter = painterResource(R.drawable.right),
                         contentDescription = "right icon",
                         modifier = Modifier
                             .size(24.dp)

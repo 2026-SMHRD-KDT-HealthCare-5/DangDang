@@ -177,7 +177,7 @@ fun CommunityTeamSearchScreenContent(
                         isMaxLengthView = false,
                         rightIcon = {
                             Icon(
-                                painter = painterResource(R.mipmap.search),
+                                painter = painterResource(R.drawable.search),
                                 contentDescription = "검색",
                                 modifier = Modifier
                                     .size(24.dp)

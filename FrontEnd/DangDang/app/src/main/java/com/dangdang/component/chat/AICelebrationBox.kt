@@ -117,7 +117,7 @@ fun AICelebrationBox(
 
             if(isSuccess){
                 Image(
-                    painter = painterResource(R.mipmap.dangdang_login),
+                    painter = painterResource(R.drawable.dangdang_login),
                     contentDescription = "당당이",
                     modifier = Modifier
                         .wrapContentSize(unbounded = true)
@@ -126,7 +126,7 @@ fun AICelebrationBox(
                 )
             }else{
                 Image(
-                    painter = painterResource(R.mipmap.dangdang_failed),
+                    painter = painterResource(R.drawable.dangdang_failed),
                     contentDescription = "당당이",
                     modifier = Modifier
                         .width(80.dp)

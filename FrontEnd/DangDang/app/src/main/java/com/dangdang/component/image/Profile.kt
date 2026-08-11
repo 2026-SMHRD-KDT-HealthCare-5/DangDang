@@ -92,7 +92,7 @@ fun Profile(
         }
 
         Icon(
-            painter = painterResource(R.mipmap.right),
+            painter = painterResource(R.drawable.right),
             contentDescription = "next icon",
             modifier = Modifier
                 .size(24.dp)

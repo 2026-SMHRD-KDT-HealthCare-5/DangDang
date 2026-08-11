@@ -44,14 +44,14 @@ fun PrimaryOutlinedButtonPreview(
         PrimaryOutlinedButton(
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
             },
             rightIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "right icon",
                     modifier = Modifier.size(24.dp)
                 )

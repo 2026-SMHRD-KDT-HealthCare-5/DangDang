@@ -126,7 +126,7 @@ fun LoginScreenContent(
         verticalArrangement = Arrangement.Center
     ) {
         Image(
-            painter = painterResource(id = R.mipmap.dangdang_login),
+            painter = painterResource(id = R.drawable.dangdang_login),
             contentDescription = "당당이",
             modifier = Modifier
                 .width(135.dp)

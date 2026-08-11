@@ -58,7 +58,7 @@ fun AIChatView(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Image(
-            painter = painterResource(R.mipmap.dangdang),
+            painter = painterResource(R.drawable.dangdang),
             contentDescription = "당당이 이미지",
             modifier = Modifier
                 .width(30.dp)

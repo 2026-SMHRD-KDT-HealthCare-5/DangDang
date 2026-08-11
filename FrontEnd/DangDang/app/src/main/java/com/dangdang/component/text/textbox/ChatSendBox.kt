@@ -103,7 +103,7 @@ fun ChatSendBox(
         )
 
         Image(
-            painter = painterResource(R.mipmap.chat_send_icon),
+            painter = painterResource(R.drawable.chat_send_icon),
             contentDescription = "채팅 전송 아이콘",
             modifier = Modifier
                 .size(48.dp)

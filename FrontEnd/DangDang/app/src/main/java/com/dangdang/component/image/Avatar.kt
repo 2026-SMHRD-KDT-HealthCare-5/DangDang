@@ -34,7 +34,7 @@ fun AvatarPreview(
         )
         Avatar(
             avatarSize = AvatarSize.Small,
-            imageSrc = R.mipmap.lock_icon
+            imageSrc = R.drawable.lock_icon
         )
         Avatar(
             avatarSize = AvatarSize.XSmall,
@@ -61,8 +61,8 @@ fun Avatar(
         if(imageUrl != null){
             AsyncImage(
                 model = imageUrl,
-                error = painterResource(id = R.mipmap.mypage_black),
-                placeholder = painterResource(id = R.mipmap.mypage_black),
+                error = painterResource(id = R.drawable.mypage_black),
+                placeholder = painterResource(id = R.drawable.mypage_black),
                 contentDescription = "아바타",
                 modifier = Modifier
                     .size(avatarSize.avatarSize)
@@ -82,7 +82,7 @@ fun Avatar(
 
         if(imageUrl == null && imageSrc == null){
             Image(
-                painter = painterResource(id = R.mipmap.mypage_black),
+                painter = painterResource(id = R.drawable.mypage_black),
                 contentDescription = "아바타",
                 modifier = Modifier
                     .size(avatarSize.avatarSize)

@@ -6,8 +6,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.data.repository.WalkRepository
-import com.dangdang.di.StepCounterManager
-import com.dangdang.di.StepCounterService
+import com.dangdang.data.manager.StepCounterManager
+import com.dangdang.data.service.StepCounterService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject

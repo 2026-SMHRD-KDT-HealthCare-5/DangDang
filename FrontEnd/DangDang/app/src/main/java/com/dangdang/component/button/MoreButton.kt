@@ -47,7 +47,7 @@ fun MoreButton(
         horizontalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         Icon(
-            painter = painterResource(R.mipmap.plus),
+            painter = painterResource(R.drawable.plus),
             contentDescription = "더보기 아이콘",
             modifier = Modifier
                 .size(24.dp)

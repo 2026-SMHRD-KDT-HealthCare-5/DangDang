@@ -1,12 +1,11 @@
 package com.dangdang.ui.viewmodel.navigation
 
-import android.content.SharedPreferences
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.model.user.User
 import com.dangdang.data.repository.UserRepository
-import com.dangdang.di.SessionManager
+import com.dangdang.data.manager.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

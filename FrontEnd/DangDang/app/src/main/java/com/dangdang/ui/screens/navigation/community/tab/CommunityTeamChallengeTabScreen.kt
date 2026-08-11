@@ -178,7 +178,7 @@ fun CommunityTeamChallengeTabScreenContent(
                 color = Red,
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.logout),
+                        painter = painterResource(R.drawable.logout),
                         contentDescription = "나가기",
                         modifier = Modifier
                             .size(24.dp),

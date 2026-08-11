@@ -69,7 +69,7 @@ fun LoginTextField(
             isBorder = false,
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.email_icon),
+                    painter = painterResource(R.drawable.email_icon),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -90,7 +90,7 @@ fun LoginTextField(
             isBorder = false,
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.lock_icon),
+                    painter = painterResource(R.drawable.lock_icon),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -99,9 +99,9 @@ fun LoginTextField(
                 Icon(
                     painter = painterResource(
                         if(isPasswordVisible){
-                            R.mipmap.password_visible
+                            R.drawable.password_visible
                         }else{
-                            R.mipmap.password_invisible
+                            R.drawable.password_invisible
                         }
                     ),
                     contentDescription = "right icon",

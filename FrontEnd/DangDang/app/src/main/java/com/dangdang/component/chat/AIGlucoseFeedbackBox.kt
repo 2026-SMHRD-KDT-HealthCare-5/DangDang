@@ -123,9 +123,9 @@ fun AIGlucoseFeedbackBox(
             Image(
                 painter = painterResource(
                     if(isSuccess){
-                        R.mipmap.green_checkbox
+                        R.drawable.green_checkbox
                     }else{
-                        R.mipmap.failed_icon
+                        R.drawable.failed_icon
                     }
                 ),
                 contentDescription = "green checkbox",

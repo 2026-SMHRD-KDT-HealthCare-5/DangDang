@@ -4,16 +4,12 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -25,15 +21,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dangdang.common.utils.mainScreen
-import com.dangdang.common.utils.regular
 import com.dangdang.component.button.WalkButton
 import com.dangdang.component.dialog.WalkMissionCompleteDialog
-import com.dangdang.component.map.KakaoMap
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.walk.WalkInfo
 import com.dangdang.data.model.walk.WalkStatus
-import com.dangdang.di.StepCounterManager
-import com.dangdang.ui.theme.AppTypography
+import com.dangdang.data.manager.StepCounterManager
 import com.dangdang.ui.viewmodel.walk.WalkViewModel
 
 @Preview

@@ -1,10 +1,7 @@
-package com.dangdang.di
+package com.dangdang.data.network
 
-import com.dangdang.Application.Companion.REFRESH_PATH
-import com.dangdang.data.api.UserApiService
-import com.dangdang.data.model.user.TokenResponse
-import dagger.Lazy
-import kotlinx.coroutines.runBlocking
+import com.dangdang.Application
+import com.dangdang.data.manager.SessionManager
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -24,7 +21,7 @@ class ApiInterceptor(
 
 
         // Refresh API에는 Access Token을 붙이지 않음
-        if (path.contains(REFRESH_PATH)) {
+        if (path.contains(Application.REFRESH_PATH)) {
             return chain.proceed(
                 originalRequest
             )

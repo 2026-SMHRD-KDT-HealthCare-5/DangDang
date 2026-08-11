@@ -96,9 +96,9 @@ fun WeeklyCheck(
             Image(
                 painter = painterResource(
                     if(weeklyGlucoseCheck.isGlucoseManagement){
-                        R.mipmap.check_round_green
+                        R.drawable.check_round_green
                     }else{
-                        R.mipmap.wrong_round_red
+                        R.drawable.wrong_round_red
                     }
                 ),
                 contentDescription = "check",
