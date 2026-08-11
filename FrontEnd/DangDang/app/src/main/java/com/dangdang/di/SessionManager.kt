@@ -5,41 +5,110 @@ import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import com.dangdang.common.utils.AppPrefs
 import com.kakao.sdk.user.UserApiClient
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 
 class SessionManager(
     private val context: Context,
     private val appPrefs: AppPrefs
 ) {
+    @Volatile
+    private var accessToken: String = ""
 
-    fun getAccessToken(): String = appPrefs.getAccessToken()
+    @Volatile
+    private var refreshToken: String = ""
 
-    fun getRefreshToken(): String = appPrefs.getRefreshToken()
+    private val initialized =
+        CompletableDeferred<Unit>()
 
-    fun saveTokens(accessToken: String, refreshToken: String) {
-        appPrefs.setAccessToken(accessToken)
-        appPrefs.setRefreshToken(refreshToken)
+
+    private val _logoutEvent =
+        MutableSharedFlow<Unit>(
+            extraBufferCapacity = 1
+        )
+
+    val logoutEvent =
+        _logoutEvent.asSharedFlow()
+
+
+    suspend fun initialize() {
+
+        if (initialized.isCompleted) {
+            return
+        }
+
+        accessToken =
+            appPrefs.getAccessToken()
+
+        refreshToken =
+            appPrefs.getRefreshToken()
+
+        initialized.complete(Unit)
     }
 
-    // 로그아웃 이벤트를 전달하는 스트림
-    private val _logoutEvent = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
-    val logoutEvent = _logoutEvent.asSharedFlow()
+    fun getAccessToken(): String {
+        return accessToken
+    }
+
+
+    fun getRefreshToken(): String {
+        return refreshToken
+    }
+
+
+    suspend fun awaitInitialized() {
+        initialized.await()
+    }
+
+
+    suspend fun saveTokens(
+        newAccessToken: String,
+        newRefreshToken: String
+    ) {
+
+        appPrefs.saveTokens(
+            accessToken = newAccessToken,
+            refreshToken = newRefreshToken
+        )
+
+        accessToken = newAccessToken
+        refreshToken = newRefreshToken
+    }
+
+
+    suspend fun updateAccessToken(
+        newAccessToken: String
+    ) {
+
+        appPrefs.setAccessToken(
+            newAccessToken
+        )
+
+        accessToken = newAccessToken
+    }
+
 
     suspend fun handleLogout() {
+
         appPrefs.logout()
 
-        //구글 로그인 초기화
+        accessToken = ""
+        refreshToken = ""
+
         try {
-            CredentialManager.create(context)
-                .clearCredentialState(ClearCredentialStateRequest())
+            CredentialManager
+                .create(context)
+                .clearCredentialState(
+                    ClearCredentialStateRequest()
+                )
         } catch (e: Exception) {
             e.printStackTrace()
         }
 
-        //카카오 로그인 초기화
-        UserApiClient.instance.logout {}
+        UserApiClient.instance.logout { }
 
-        _logoutEvent.tryEmit(Unit) // 로그아웃 이벤트 발생
+        _logoutEvent.tryEmit(Unit)
     }
 }

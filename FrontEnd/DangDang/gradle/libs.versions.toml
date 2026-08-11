@@ -7,6 +7,7 @@ composeMaterial = "1.6.2"
 connectClient = "1.1.0"
 converterGson = "3.0.0"
 coreKtx = "1.19.0"
+datastorePreferences = "1.2.1"
 hiltAndroid = "2.60.1"
 hiltNavigationCompose = "1.4.0"
 junit = "4.13.2"
@@ -31,6 +32,7 @@ googleid = "1.2.0"
 androidx-compose-material = { module = "androidx.wear.compose:compose-material", version.ref = "composeMaterial" }
 androidx-connect-client = { module = "androidx.health.connect:connect-client", version.ref = "connectClient" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
+androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycleRuntimeKtx" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
