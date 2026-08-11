@@ -50,6 +50,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         createLocationCallback()
         createNotificationChannel()
+        createWarningNotificationChannel()
 
         startForeground(
             NOTIFICATION_ID,
@@ -273,7 +274,7 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun showInactivityNotification(message: String) {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, WARNING_CHANNEL_ID)
             .setContentTitle("걷기 안내")
             .setContentText(message)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
@@ -284,7 +285,7 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun showGoalReachedNotification() {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, WARNING_CHANNEL_ID)
             .setContentTitle("목표 달성!")
             .setContentText("축하합니다! 걷기 목표를 달성하셨습니다.")
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
@@ -300,12 +301,19 @@ class StepCounterService : Service(), SensorEventListener {
         notificationManager.createNotificationChannel(channel)
     }
 
+    private fun createWarningNotificationChannel() {
+        val channel = NotificationChannel(WARNING_CHANNEL_ID, "걷기 측정", NotificationManager.IMPORTANCE_HIGH)
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
         const val ACTION_START = "ACTION_START_STEP_COUNTING"
         const val ACTION_STOP = "ACTION_STOP_STEP_COUNTING"
         private const val CHANNEL_ID = "step_counter_channel"
+        private const val WARNING_CHANNEL_ID = "warning_channel"
         private const val NOTIFICATION_ID = 1001
         private const val MOVE_NOTIFICATION_ID = 1002
         private const val GOAL_NOTIFICATION_ID = 1003

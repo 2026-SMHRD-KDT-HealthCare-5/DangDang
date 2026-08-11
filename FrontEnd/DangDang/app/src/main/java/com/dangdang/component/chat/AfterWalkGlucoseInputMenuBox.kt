@@ -59,7 +59,9 @@ fun AfterWalkGlucoseInputMenuBox(
             keyboardType = KeyboardType.Number,
             value = afterWalkGlucoseValue,
             onValueChange = onAfterWalkGlucoseValueChange,
-            placeholderText = "예) 165(범위 : 50~500)",
+            isError = !isValidPostPrandialGlucose(afterWalkGlucoseValue),
+            errorText = "80~300 범위여야 합니다.",
+            placeholderText = "예) 165(범위 : 80~300)",
             maxLength = 5,
             sizeType = LayoutSize.FillMaxSize
         )

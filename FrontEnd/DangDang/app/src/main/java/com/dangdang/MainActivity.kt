@@ -11,6 +11,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
@@ -21,6 +22,11 @@ import com.dangdang.di.SessionManager
 import com.dangdang.ui.navhost.AppNavHost
 import com.dangdang.ui.theme.DangDangTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -32,10 +38,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        enableEdgeToEdge()
+
+        CoroutineScope(
+            SupervisorJob() + Dispatchers.IO
+        ).launch {
+            sessionManager.initialize()
+        }
+
         setContent {
             DangDangTheme {
-                enableEdgeToEdge()
-
                 val navController = rememberNavController()
 
                 //로그인 콜백 시

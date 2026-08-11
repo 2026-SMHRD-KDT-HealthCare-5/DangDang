@@ -100,7 +100,9 @@ fun BeginGlucoseInputMenuBox(
                     keyboardType = KeyboardType.Number,
                     value = glucoseValue,
                     onValueChange = onGlucoseValueChange,
-                    placeholderText = "50~500",
+                    isError = !isValidPostPrandialGlucose(glucoseValue),
+                    errorText = "80~300 범위여야 합니다.",
+                    placeholderText = "80~300",
                     maxLength = 5,
                     sizeType = LayoutSize.FillMaxSize
                 )

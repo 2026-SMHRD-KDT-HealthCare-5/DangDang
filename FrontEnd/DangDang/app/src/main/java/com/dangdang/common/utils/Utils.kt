@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Patterns
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -173,10 +174,22 @@ fun isValidBirthDate(dateStr: String): Boolean {
 
         val parsedDate = LocalDate.parse(dateStr, formatter)
 
-        !parsedDate.isAfter(LocalDate.now())
+        !parsedDate.isAfter(LocalDate.now()) &&
+                !parsedDate.isAfter(LocalDate.now().minusYears(14))
     } catch (e: Exception) {
         false
     }
+}
+
+//이메일 유효성 확인
+fun isValidEmail(email: String): Boolean {
+    return Patterns.EMAIL_ADDRESS
+        .matcher(email)
+        .matches()
+}
+
+fun isValidPassword(password: String): Boolean{
+    return password.length >= 8
 }
 
 //키 유효성 확인
@@ -187,20 +200,20 @@ fun isValidHeight(input: String): Boolean {
 
 //몸무게 유효성 확인
 fun isValidWeight(input: String): Boolean {
-    val value = input.toIntOrNull() ?: return false
-    return value in 20..300
+    val value = input.toFloatOrNull() ?: return false
+    return value in 20f..300f
 }
 
 //당화혈색소 유효성 확인
 fun isValidHbA1c(input: String): Boolean {
-    val value = input.toIntOrNull() ?: return false
-    return value in 3..20
+    val value = input.toFloatOrNull() ?: return false
+    return value in 4f..15f
 }
 
 // 식후 2시간 목표 혈당 유효성 확인
 fun isValidPostPrandialGlucose(input: String): Boolean {
     val value = input.toIntOrNull() ?: return false
-    return value in 50..500
+    return value in 80..300
 }
 
 val GuageColorList = listOf(

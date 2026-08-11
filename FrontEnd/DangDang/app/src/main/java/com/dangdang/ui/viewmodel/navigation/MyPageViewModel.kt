@@ -42,4 +42,10 @@ class MyPageViewModel @Inject constructor(
             sessionManager.handleLogout()
         }
     }
+
+    fun setNotification(isNotification: Boolean){
+        viewModelScope.launch {
+            appPrefs.setNotification(isNotification)
+        }
+    }
 }

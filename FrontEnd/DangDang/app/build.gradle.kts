@@ -151,4 +151,7 @@ dependencies {
 
     //이미지 미리보기 시
     implementation(libs.coil3.coil.compose)
+
+    //datastore preference
+    implementation(libs.androidx.datastore.preferences)
 }

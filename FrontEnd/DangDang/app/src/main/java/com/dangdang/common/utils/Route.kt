@@ -11,6 +11,7 @@ import com.dangdang.common.utils.MyPageRoute.MyInfoUpdate
 sealed class AppRoute(
     val route: String
 ) {
+    data object Splash : AppRoute("splash")
     data object Login : AppRoute("login")
     data object SignUp : AppRoute("signUp")
     data object SignUpComplete : AppRoute("signUpComplete")

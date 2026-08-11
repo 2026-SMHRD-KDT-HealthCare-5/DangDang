@@ -77,7 +77,7 @@ fun MyPageScreen(
         ) { isGranted ->
             if (isGranted) {
                 // 권한 허용됨
-                appPrefs.setNotification(!isNotification)
+                myPageViewModel.setNotification(!isNotification)
             }
         }
 
@@ -90,7 +90,7 @@ fun MyPageScreen(
                 //권한 요청
                 permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }else{
-                appPrefs.setNotification(!isNotification)
+                myPageViewModel.setNotification(!isNotification)
             }
         },
         onFaqClick = onFaqClick,
