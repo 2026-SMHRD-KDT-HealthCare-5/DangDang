@@ -53,8 +53,6 @@ fun AIChatMenuPreview(){
                 chatType = "",
                 isChatAble = true,
                 isInputComplete = false,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 chatStageType = "",
                 analysisFoodInfo = null,
                 recommendWalkInfo = null,
@@ -74,8 +72,6 @@ fun AIChatMenuPreview(){
                 chatType = TodayWalkTargetType,
                 isChatAble = true,
                 isInputComplete = false,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 chatStageType = "",
                 analysisFoodInfo = null,
                 recommendWalkInfo = AIRecommendWalkModel(
@@ -102,8 +98,6 @@ fun AIChatMenuPreview(){
                 chatType = AnalysisFoodType,
                 isChatAble = false,
                 isInputComplete = false,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 chatStageType = BeforeMealGlucoseInputStage,
                 analysisFoodInfo = null,
                 recommendWalkInfo = null,
@@ -123,8 +117,6 @@ fun AIChatMenuPreview(){
                     LocalTime.of(8, 30)
                 ),
                 chatType = AnalysisFoodType,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 isChatAble = false,
                 isInputComplete = false,
                 chatStageType = InputAteFoodStage,
@@ -159,8 +151,6 @@ fun AIChatMenuPreview2(){
                 chatType = AnalysisFoodType,
                 isChatAble = false,
                 isInputComplete = false,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 chatStageType = AnalysisFoodStage,
                 analysisFoodInfo = AnalysisFoodModel(
                     predictedGlucoseRise = 35,
@@ -228,8 +218,6 @@ fun AIChatMenuPreview3(){
                 chatType = AnalysisFoodType,
                 isChatAble = false,
                 isInputComplete = false,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 chatStageType = RecommendWalkDistanceStage,
                 analysisFoodInfo = AnalysisFoodModel(
                     predictedGlucoseRise = 35,
@@ -299,8 +287,6 @@ fun AIChatMenuPreview4(){
                 chatType = AnalysisFoodType,
                 isChatAble = false,
                 isInputComplete = false,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 chatStageType = AfterWalkGlucoseInputStage,
                 analysisFoodInfo = null,
                 recommendWalkInfo = null,
@@ -320,8 +306,6 @@ fun AIChatMenuPreview4(){
                 chatType = AnalysisFoodType,
                 isChatAble = true,
                 isInputComplete = false,
-                goalGlucose = 180,
-                weeklyMissionCompleteCount = 6,
                 chatStageType = AIFeedbackStage,
                 analysisFoodInfo = null,
                 recommendWalkInfo = null,
@@ -329,7 +313,8 @@ fun AIChatMenuPreview4(){
                     beginGlucose = 140,
                     aiPredictAfterGlucose = 175,
                     realAfterGlucose = 170,
-                    decreaseGlucose = -5
+                    targetDistance = 2.6f,
+                    walkDistance = 2.5f
                 )
             )
         )
@@ -467,19 +452,15 @@ fun AIChatMenu(
                             )
                         }
                         AIFeedbackStage -> {
-                            AIGlucoseFeedbackBox(
-                                goalGlucose = chatModel.goalGlucose?:0,
-                                glucoseFeedbackModel = chatModel.glucoseFeedbackInfo
-                                    ?: GlucoseFeedbackModel(
-                                        beginGlucose = 0,
-                                        aiPredictAfterGlucose = 0,
-                                        realAfterGlucose = 0,
-                                        decreaseGlucose = 0
-                                    )
-                            )
-                            AICelebrationBox(
-                                weeklyCompleteCount = chatModel.weeklyMissionCompleteCount?:0
-                            )
+                            chatModel.glucoseFeedbackInfo?.let {
+                                AIGlucoseFeedbackBox(
+                                    glucoseFeedbackModel = it
+                                )
+                                AICelebrationBox(
+                                    isSuccess =
+                                        (it.targetDistance) <= (it.walkDistance)
+                                )
+                            }
                         }
                     }
                 }

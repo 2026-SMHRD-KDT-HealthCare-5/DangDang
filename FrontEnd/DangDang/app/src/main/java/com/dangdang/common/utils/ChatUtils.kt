@@ -8,24 +8,28 @@ val GlucoseFeedbackTemplates = listOf(
         value = {
             it.beginGlucose
         },
+        unit = " mg/dL"
     ),
     GlucoseFeedbackTemplateModel(
         title = "AI 예상 식후 혈당",
         value = {
             it.aiPredictAfterGlucose
         },
+        unit = " mg/dL"
     ),
     GlucoseFeedbackTemplateModel(
-        title = "실제 식후 혈당",
+        title = "걷기 후 혈당",
         value = {
             it.realAfterGlucose
-        }
+        },
+        unit = " mg/dL"
     ),
     GlucoseFeedbackTemplateModel(
-        title = "감소한 혈당량",
+        title = "실제 걸음 거리",
         value = {
-            it.decreaseGlucose
-        }
+            it.walkDistance
+        },
+        unit = "km"
     ),
 )
 

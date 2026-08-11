@@ -79,7 +79,7 @@ fun WeeklyCheckListBox(
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Text(
-            text = "주간 혈당 관리 현황",
+            text = "주간 걷기 미션 달성",
             style = AppTypography.bodyLarge.medium,
             color = Black,
         )

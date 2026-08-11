@@ -31,20 +31,33 @@ import com.dangdang.ui.theme.SapphireBlue
 @Preview
 @Composable
 fun AIGlucoseFeedbackBoxPreview() {
-    AIGlucoseFeedbackBox(
-        goalGlucose = 180,
-        glucoseFeedbackModel = GlucoseFeedbackModel(
-            beginGlucose = 140,
-            aiPredictAfterGlucose = 175,
-            realAfterGlucose = 170,
-            decreaseGlucose = -5
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AIGlucoseFeedbackBox(
+            glucoseFeedbackModel = GlucoseFeedbackModel(
+                beginGlucose = 140,
+                aiPredictAfterGlucose = 175,
+                realAfterGlucose = 170,
+                walkDistance = 2.5f,
+                targetDistance = 2.6f
+            )
         )
-    )
+
+        AIGlucoseFeedbackBox(
+            glucoseFeedbackModel = GlucoseFeedbackModel(
+                beginGlucose = 140,
+                aiPredictAfterGlucose = 175,
+                realAfterGlucose = 170,
+                walkDistance = 2.6f,
+                targetDistance = 2.6f
+            )
+        )
+    }
 }
 
 @Composable
 fun AIGlucoseFeedbackBox(
-    goalGlucose: Int,
     glucoseFeedbackModel: GlucoseFeedbackModel
 ) {
     Column(
@@ -81,7 +94,7 @@ fun AIGlucoseFeedbackBox(
                 Text(
                     text = "${glucoseFeedbackTemplate.value(
                         glucoseFeedbackModel
-                    )} mg/dL",
+                    )}${glucoseFeedbackTemplate.unit}",
                     style = AppTypography.labelMedium.regular,
                     color = Black,
                 )
@@ -90,16 +103,31 @@ fun AIGlucoseFeedbackBox(
 
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            val isSuccess = glucoseFeedbackModel.targetDistance <=
+                    glucoseFeedbackModel.walkDistance
+
             Text(
-                text = "목표 (${goalGlucose} mg/dL 미만) 달성!",
+                text = "목표 거리 " +
+                        "[ ${glucoseFeedbackModel.targetDistance} km ] " +
+                        if(isSuccess){
+                            "달성!"
+                        } else {
+                            "실패"
+                        },
                 style = AppTypography.labelMedium.bold,
                 color = Black,
             )
 
             Image(
-                painter = painterResource(R.mipmap.green_checkbox),
+                painter = painterResource(
+                    if(isSuccess){
+                        R.mipmap.green_checkbox
+                    }else{
+                        R.mipmap.failed_icon
+                    }
+                ),
                 contentDescription = "green checkbox",
                 modifier = Modifier
                     .size(12.dp)

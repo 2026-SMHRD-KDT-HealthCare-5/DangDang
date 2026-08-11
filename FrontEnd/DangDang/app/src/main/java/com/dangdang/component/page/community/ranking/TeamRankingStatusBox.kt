@@ -1,23 +1,29 @@
 package com.dangdang.component.page.community.ranking
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.Application.Companion.ExamplePictureUrl
-import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
+import com.dangdang.common.utils.GuageColorList
+import com.dangdang.component.divider.Divider
+import com.dangdang.component.page.community.teamchallenge.TeamMemberStatusItem
+import com.dangdang.data.enums.DividerPosition
 import com.dangdang.data.model.community.TeamRankingStatusModel
+import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.White
 
 @Preview
 @Composable
-fun RankingIn3BoxPreview(){
-    RankingIn3Box(
+fun TeamRankingStatusBoxPreview(){
+    TeamRankingStatusBox(
         teamRankingStatusList = listOf(
             TeamRankingStatusModel(
                 rank = 1,
@@ -54,42 +60,31 @@ fun RankingIn3BoxPreview(){
 }
 
 @Composable
-fun RankingIn3Box(
+fun TeamRankingStatusBox(
     teamRankingStatusList: List<TeamRankingStatusModel>
 ) {
-    //2위, 1위, 3위 순서대로 나오게 섞는다.
-    val mixedTeamMemberChallengeStatusList =
-        listOf(
-            if(teamRankingStatusList.size >= 2){
-                teamRankingStatusList[1]
-            }else{
-                null
-            },
-            teamRankingStatusList[0],
-            if(teamRankingStatusList.size >= 3){
-                teamRankingStatusList[2]
-            }else{
-                null
-            }
-        )
-
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = White
+                color = White,
+                shape = RoundedCornerShape(12.dp)
             )
-            .padding(horizontal = 42.dp)
+            .border(
+                width = 1.dp,
+                color = Gray,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(10.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        mixedTeamMemberChallengeStatusList.forEachIndexed { index, item ->
-            if(item != null){
-                RankingIn3Item(
-                    teamRankingStatus = item
-                )
-            }
+        teamRankingStatusList.forEachIndexed { index, teamRankingStatus ->
+            TeamRankingStatusItem(
+                teamRankingStatus = teamRankingStatus
+            )
 
-            if(index < mixedTeamMemberChallengeStatusList.size - 1){
-                Spacer(Modifier.weight(1f))
+            if(index < teamRankingStatusList.size - 1){
+                Divider(position = DividerPosition.Horizontal)
             }
         }
     }

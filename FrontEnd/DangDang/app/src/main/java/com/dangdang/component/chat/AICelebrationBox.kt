@@ -32,29 +32,40 @@ import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.EmeraldGreen
 import com.dangdang.ui.theme.ForestGreen
 import com.dangdang.ui.theme.LightGreen
+import com.dangdang.ui.theme.LightScarlet
+import com.dangdang.ui.theme.MagentaPink
+import com.dangdang.ui.theme.Scarlet
 
 @Preview
 @Composable
 fun AICelebrationBoxPreview() {
-    AICelebrationBox(
-        weeklyCompleteCount = 6
-    )
+    Column(
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        AICelebrationBox(
+            isSuccess = true
+        )
+
+        AICelebrationBox(
+            isSuccess = false
+        )
+    }
 }
 
 @Composable
 fun AICelebrationBox(
-    weeklyCompleteCount: Int
+    isSuccess: Boolean
 ) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(
-                color = LightGreen,
+                color = if(isSuccess) LightGreen else LightScarlet,
             )
             .border(
                 width = 2.dp,
-                color = EmeraldGreen,
+                color = if(isSuccess) EmeraldGreen else Scarlet,
                 shape = RoundedCornerShape(12.dp)
             )
     ){
@@ -67,15 +78,23 @@ fun AICelebrationBox(
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Text(
-                text = "목표를 달성했어요! \uD83C\uDF89",
+                text = if(isSuccess){
+                    "목표를 달성했어요! \uD83C\uDF89"
+                } else {
+                    "목표를 달성하지 못했어요...\uD83D\uDE2D"
+                },
                 style = AppTypography.bodyLarge.bold,
-                color = ForestGreen,
+                color = if(isSuccess) ForestGreen else MagentaPink,
             )
 
             Text(
-                text = "오늘도 건강한 습관을 실천했네요.\n" +
-                        "이번 주 ${weeklyCompleteCount}번째 성공이에요! \uD83D\uDC4D\n" +
-                        "계속 함께 관리해봐요 \uD83D\uDC99",
+                text = if(isSuccess){
+                    "오늘도 건강한 습관을 실천했네요!\n" +
+                    "계속 함께 관리해봐요 \uD83D\uDC99"
+                } else {
+                    "하지만 오늘도 열심히 하려는 모습이\n" +
+                    "정말 멋져요! 계속 함께 관리해봐요 \uD83D\uDC99"
+                },
                 style = AppTypography.labelMedium.regular,
                 color = Black,
             )
@@ -86,19 +105,34 @@ fun AICelebrationBox(
                 .fillMaxWidth()
                 .height(120.dp)
                 .padding(
-                    horizontal = 40.dp
+                    horizontal = if(isSuccess) 40.dp else 28.dp
                 ),
             horizontalAlignment = Alignment.End
         ) {
-            Spacer(Modifier.height(50.dp))
-            Image(
-                painter = painterResource(R.mipmap.dangdang_login),
-                contentDescription = "당당이",
-                modifier = Modifier
-                    .wrapContentSize(unbounded = true)
-                    .width(80.dp)
-                    .height(110.dp)
+            Spacer(
+                Modifier.height(
+                    if(isSuccess) 50.dp else 22.dp
+                )
             )
+
+            if(isSuccess){
+                Image(
+                    painter = painterResource(R.mipmap.dangdang_login),
+                    contentDescription = "당당이",
+                    modifier = Modifier
+                        .wrapContentSize(unbounded = true)
+                        .width(80.dp)
+                        .height(110.dp)
+                )
+            }else{
+                Image(
+                    painter = painterResource(R.mipmap.dangdang_failed),
+                    contentDescription = "당당이",
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(98.dp)
+                )
+            }
         }
     }
 }

@@ -42,6 +42,8 @@ val Red = Color(0xFFFF0000)
 val LightRedOpacity30 = Color(0x4DFF4500)
 val HotPink = Color(0xFFED0086)
 
+val MagentaPink = Color(0xFFF96670)
+
 val Scarlet = Color(0xFFFCC1C5)
 
 val LightScarlet = Color(0xFFFEF4F3)
