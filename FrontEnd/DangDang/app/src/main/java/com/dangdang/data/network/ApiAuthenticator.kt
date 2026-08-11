@@ -1,9 +1,7 @@
 package com.dangdang.data.network
 
 import com.dangdang.data.api.RefreshApiService
-import com.dangdang.data.api.UserApiService
-import com.dangdang.data.model.user.TokenResponse
-import com.dangdang.di.SessionManager
+import com.dangdang.data.manager.SessionManager
 import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
 import okhttp3.Request
