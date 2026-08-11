@@ -1,9 +1,20 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
     id("kotlin-parcelize")
+}
+
+val localProperties = Properties()
+val localPropertiesFile = rootProject.file("local.properties")
+
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.inputStream().use {
+        localProperties.load(it)
+    }
 }
 
 android {
@@ -22,6 +33,36 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "KAKAO_NATIVE_APP_KEY",
+            "\"${localProperties.getProperty("KAKAO_NATIVE_APP_KEY", "")}\""
+        )
+
+        buildConfigField(
+            "String",
+            "InquiryEmail",
+            "\"${localProperties.getProperty("InquiryEmail", "")}\""
+        )
+
+        buildConfigField(
+            "String",
+            "GoogleLoginKey",
+            "\"${localProperties.getProperty("GoogleLoginKey", "")}\""
+        )
+
+        buildConfigField(
+            "String",
+            "ExamplePictureUrl",
+            "\"${localProperties.getProperty("ExamplePictureUrl", "")}\""
+        )
+
+        buildConfigField(
+            "String",
+            "API_BASE_URL",
+            "\"${localProperties.getProperty("API_BASE_URL", "")}\""
+        )
     }
 
     buildTypes {
