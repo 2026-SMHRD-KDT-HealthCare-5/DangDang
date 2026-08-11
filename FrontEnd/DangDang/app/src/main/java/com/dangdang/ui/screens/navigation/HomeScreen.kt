@@ -74,9 +74,13 @@ fun HomeScreenPreview(
         teamInfo = TeamInfoModel(
             isLeader = false,
             name = "우리팀 5월 걷기 챌린지",
+            currentMemberCount = 4,
+            maxMemberCount = 5,
             targetDistance = 150f,
             currentDistance = 20f,
-            currentTeamDistance = 30f
+            currentTeamDistance = 30f,
+            profileImageUrl = ExamplePictureUrl,
+            introduction = "하루 7천보 이상 함께 걸어요!"
         ),
         teamChallengeStatusList = listOf(
             TeamMemberChallengeStatusModel(

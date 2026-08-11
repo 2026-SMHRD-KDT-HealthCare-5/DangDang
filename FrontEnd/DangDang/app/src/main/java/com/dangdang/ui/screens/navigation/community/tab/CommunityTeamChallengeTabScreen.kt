@@ -29,6 +29,7 @@ import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.component.button.outlined.PrimaryOutlinedButton
 import com.dangdang.component.page.community.teamchallenge.TeamChallengeGraphBox
+import com.dangdang.component.page.community.teamchallenge.TeamChallengeInfoBox
 import com.dangdang.component.page.community.teamchallenge.TeamMemberStatusBox
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.data.enums.LoadingState
@@ -49,9 +50,13 @@ fun CommunityTeamChallengeTabScreenPreview(){
         teamInfo = TeamInfoModel(
             isLeader = false,
             name = "우리팀 5월 걷기 챌린지",
+            currentMemberCount = 4,
+            maxMemberCount = 5,
             targetDistance = 150f,
             currentDistance = 20f,
-            currentTeamDistance = 30f
+            currentTeamDistance = 30f,
+            profileImageUrl = ExamplePictureUrl,
+            introduction = "하루 7천보 이상 함께 걸어요!"
         ),
         teamChallengeStatusList = listOf(
             TeamMemberChallengeStatusModel(
@@ -143,7 +148,14 @@ fun CommunityTeamChallengeTabScreenContent(
             modifier = Modifier
                 .fillMaxWidth()
         ) {
-            Spacer(Modifier.height(5.dp))
+            Spacer(Modifier.height(20.dp))
+
+            TeamChallengeInfoBox(
+                teamInfo = teamInfo
+            )
+
+            Spacer(Modifier.height(15.dp))
+
             TeamChallengeGraphBox(
                 teamInfo = teamInfo
             )

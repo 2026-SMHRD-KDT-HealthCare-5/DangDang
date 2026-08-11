@@ -2,6 +2,7 @@ package com.dangdang.component.page.community.teamchallenge
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,9 +28,18 @@ import com.dangdang.ui.theme.White
 import java.util.Locale
 import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.res.painterResource
+import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.R
 import com.dangdang.common.utils.medium
+import com.dangdang.common.utils.screen
+import com.dangdang.component.guage.GuageBar
 import com.dangdang.component.guage.ThreeGuageBar
+import com.dangdang.data.enums.GuageBarSize
+import com.dangdang.ui.theme.DarkGray
+import com.dangdang.ui.theme.DarkGreen
+import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.LightSlateGray
+import kotlin.Int
 
 @Preview
 @Composable
@@ -37,10 +47,14 @@ fun TeamChallengeGraphBoxPreview(){
     TeamChallengeGraphBox(
         teamInfo = TeamInfoModel(
             isLeader = false,
+            currentMemberCount = 4,
+            maxMemberCount = 5,
             name = "우리팀 5월 걷기 챌린지",
             targetDistance = 150f,
             currentDistance = 20f,
-            currentTeamDistance = 30f
+            currentTeamDistance = 30f,
+            profileImageUrl = ExamplePictureUrl,
+            introduction = "하루 7천보 이상 함께 걸어요!"
         )
     )
 }
@@ -49,56 +63,32 @@ fun TeamChallengeGraphBoxPreview(){
 fun TeamChallengeGraphBox(
     teamInfo: TeamInfoModel
 ){
-    Box(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(
-                color = Navy,
+                color = White,
                 shape = RoundedCornerShape(12.dp)
             )
+            .border(
+                width = 1.dp,
+                color = Gray,
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(12.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ){
-        Box(
+        Text(
+            text = "팀 목표 진행률",
+            style = AppTypography.labelLarge.medium,
+            color = Black,
+        )
+
+        Row(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    horizontal = 10.dp,
-                    vertical = 20.dp
-                ),
-            contentAlignment = Alignment.CenterEnd
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
         ){
-            Image(
-                painter = painterResource(R.mipmap.hi_five),
-                contentDescription = "챌린지 이미지",
-                modifier = Modifier
-                    .height(120.dp)
-            )
-        }
-
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            Text(
-                text = teamInfo.name,
-                style = AppTypography.bodyLarge.bold,
-                color = White,
-            )
-
-            Text(
-                text = "목표 " +
-                        String.format(
-                            LocalLocale.current.platformLocale,
-                            "%.2f",
-                            teamInfo.targetDistance) +
-                        " km",
-                style = AppTypography.labelLarge.regular,
-                color = White,
-            )
-
-            Spacer(Modifier.height(10.dp))
-
             Row(
                 verticalAlignment = Alignment.Bottom,
                 horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -107,52 +97,65 @@ fun TeamChallengeGraphBox(
                     text = String.format(
                         LocalLocale.current.platformLocale,
                         "%.2f",
-                        teamInfo.currentTeamDistance
-                    ),
-                    style = AppTypography.bodyLarge.medium,
-                    color = White,
+                        teamInfo.currentTeamDistance) +
+                        " km",
+                    style = AppTypography.titleLarge.medium,
+                    color = Black,
                 )
 
                 Text(
                     text = "/",
-                    style = AppTypography.labelMedium.regular,
-                    color = White,
-                )
-
-                Text(
-                    text = String.format(
-                                LocalLocale.current.platformLocale,
-                                "%.2f",
-                                teamInfo.targetDistance) +
-                            " km",
-                    style = AppTypography.labelMedium.regular,
-                    color = White,
-                )
-            }
-
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                ){
-                    ThreeGuageBar(
-                        current = teamInfo.currentDistance,
-                        target = teamInfo.targetDistance,
-                        teamCurrent = teamInfo.currentTeamDistance
-                    )
-                }
-
-                Text(
-                    text =
-                        "${((teamInfo.currentTeamDistance/teamInfo.targetDistance)
-                                *100).toInt()}%",
                     style = AppTypography.labelLarge.medium,
-                    color = White,
+                    color = LightSlateGray,
+                )
+
+                Text(
+                    text = "${teamInfo.targetDistance} km",
+                    style = AppTypography.labelLarge.medium,
+                    color = LightSlateGray,
                 )
             }
+
+            Text(
+                text = "${((teamInfo.currentTeamDistance / 
+                        teamInfo.targetDistance)*100).toInt()}%",
+                style = AppTypography.bodyLarge.bold,
+                color = Black,
+            )
+        }
+
+        GuageBar(
+            size = GuageBarSize.Small,
+            guageColor = DarkGreen,
+            current = teamInfo.currentTeamDistance,
+            target = teamInfo.targetDistance
+        )
+
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            Text(
+                text = "남은 거리",
+                style = AppTypography.labelSmall.regular,
+                color = DarkGray,
+            )
+
+            Text(
+                text = String.format(
+                    LocalLocale.current.platformLocale,
+                    "%.2f",
+                    teamInfo.targetDistance -
+                            teamInfo.currentTeamDistance
+                ),
+                style = AppTypography.labelSmall.medium,
+                color = DarkGray,
+            )
+
+            Text(
+                text = "km",
+                style = AppTypography.labelSmall.regular,
+                color = DarkGray,
+            )
         }
     }
 }
