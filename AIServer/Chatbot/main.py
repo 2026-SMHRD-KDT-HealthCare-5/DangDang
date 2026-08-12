@@ -812,6 +812,77 @@ def calc_walking_mission(ppg: float) -> dict:
     return {"walk_minutes": minutes, "distance_km": distance_km, "calories": calories}
 
 
+# ---------------------------------------------------------
+# 6-3. 음식 최종 확정 시 portion 반영 재예측 엔드포인트
+#      Spring이 POST /api/intake-logs(음식 최종 확정) 처리 중
+#      -> 여기로 내부 호출
+#
+#      Spring은 food_no/custom_food_no로 이미 알고 있는 영양성분
+#      (1 serving_size 기준)에 사용자가 선택한 portion(0.5/1.0/1.5 등)을
+#      곱해서 보내면, FastAPI가 LightGBM으로 재예측하고 걷기 미션
+#      목표(targetDistance/targetKcal)까지 계산해서 돌려준다.
+# ---------------------------------------------------------
+class PortionPredictRequest(BaseModel):
+    carb: float
+    sugar: float = 0
+    protein: float
+    fat: float
+    fiber: float
+    calorie: float = 0
+    portion: float = 1.0  # 섭취 비율 (예: 0.5 / 1.0 / 1.5)
+    baseline: float  # 식전 혈당 (preGlucose)
+    diagnosis_group: str  # "건강군" | "전당뇨" | "2형당뇨"
+
+
+@app.post("/rag/intake-logs/predict")
+def predict_with_portion(req: PortionPredictRequest):
+    """
+    portion이 반영된 최종 예상 혈당 상승량 + 추천 걷기 미션을 계산한다.
+
+    nutrition(carb/sugar/protein/fat/fiber/calorie)은 "1 serving_size 기준"
+    값으로 받는다 (100g 기준이 아님 — Spring이 FOOD_INFO/CUSTOM_FOOD에서
+    가져온 값을 그대로 전달). portion을 곱해서 실제 섭취량을 반영한다.
+    """
+    if req.diagnosis_group not in DIAGNOSIS_GROUPS:
+        return JSONResponse(
+            content={"error": f"diagnosis_group은 {DIAGNOSIS_GROUPS} 중 하나여야 합니다."},
+            status_code=400,
+            media_type="application/json; charset=utf-8",
+        )
+
+    carb = req.carb * req.portion
+    sugar = req.sugar * req.portion
+    protein = req.protein * req.portion
+    fat = req.fat * req.portion
+    fiber = req.fiber * req.portion
+    calorie = req.calorie * req.portion
+
+    prediction = glucose_predictor.predict_peak(
+        carb=carb, protein=protein, fat=fat, fiber=fiber,
+        baseline=req.baseline, diagnosis_group=req.diagnosis_group,
+    )
+    mission = calc_walking_mission(prediction["predicted_peak"])
+
+    return JSONResponse(
+        content={
+            "predictedGlucoseRise": prediction["predicted_rise"],
+            "predictedPeak": prediction["predicted_peak"],
+            "lowConfidence": prediction["low_confidence"],
+            "targetDistance": mission["distance_km"],
+            "targetKcal": mission["calories"],
+            "nutritionUsed": {
+                "carb": round(carb, 1),
+                "sugar": round(sugar, 1),
+                "protein": round(protein, 1),
+                "fat": round(fat, 1),
+                "fiber": round(fiber, 1),
+                "calorie": round(calorie, 1),
+            },
+        },
+        media_type="application/json; charset=utf-8",
+    )
+
+
 NUTRITION_ESTIMATION_PROMPT = """다음 음식의 100g당 영양성분을 추정해서 아래 JSON 형식으로만 답해.
 설명 문장 없이 순수 JSON만 출력해.
 
