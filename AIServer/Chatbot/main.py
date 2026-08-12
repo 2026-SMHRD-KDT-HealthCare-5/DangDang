@@ -211,35 +211,6 @@ def signup_profile(req: SignupRequest):
 
 
 # ---------------------------------------------------------
-# 자연어 메시지에서 "음식 + 혈당 수치" 언급 추출
-# ---------------------------------------------------------
-MEAL_EXTRACTION_PROMPT = """사용자 메시지에서 "방금/오늘 먹은 음식"과 "현재 또는 식전 혈당 수치(mg/dL)"가
-함께 언급되었는지 확인해서 아래 JSON 형식으로만 답해. 설명 문장 없이 순수 JSON만 출력해.
-
-{
-  "has_meal_info": true 또는 false,
-  "food_name": "언급된 음식명 (간결하게, 없으면 null)",
-  "baseline": 혈당_숫자_또는_null
-}
-
-혈당 수치와 음식 둘 다 언급된 경우에만 has_meal_info를 true로 해.
-"""
-
-
-def extract_meal_info(message: str) -> dict:
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=message,
-        config={"system_instruction": MEAL_EXTRACTION_PROMPT, "temperature": 0.0},
-    )
-    log_token_usage(response, label="meal-extraction")
-    try:
-        return parse_gemini_json(response.text)
-    except Exception:
-        return {"has_meal_info": False, "food_name": None, "baseline": None}
-
-
-# ---------------------------------------------------------
 # 약물/인슐린 용량 관련 질문 차단 (안전상 절대 답변하지 않음)
 # LLM 판단에 맡기지 않고 키워드로 확실하게 걸러서 고정 문구로 응답
 # ---------------------------------------------------------
@@ -342,102 +313,61 @@ def is_medication_dosage_question(message: str) -> bool:
     return False
 
 
-@app.post("/chat")
+@app.post("/rag/chat")
 def chat(req: ChatRequest):
+    """
+    일반 대화 엔드포인트 (Spring이 /api/chat -> 여기로 내부 호출)
+
+    음식 인식/혈당 예측은 이 엔드포인트의 역할이 아님 — 그건
+    /rag/intake-logs/recognize, /rag/intake-logs/reanalyze,
+    /rag/intake-logs/predict가 전담한다. 여긴 순수 대화(페르소나 응답,
+    논문 기반 Q&A)만 처리한다.
+    """
     # 인슐린/약물 용량 관련 질문은 Gemini 호출 전에 키워드로 먼저 차단
     if is_medication_dosage_question(req.message):
         return JSONResponse(
-            content={"reply": MEDICATION_SAFETY_MESSAGE, "prediction_data": None},
+            content={"reply": MEDICATION_SAFETY_MESSAGE},
             media_type="application/json; charset=utf-8",
         )
 
     if req.diagnosis_group:
         user_diagnosis_groups[req.user_id] = req.diagnosis_group
 
+    # 논문 기반 지식 질문 -> 논문 텍스트 컨텍스트로 답변
+    if paper_cache:
+        # 캐시가 있으면 논문을 매번 다시 안 보내고 캐시만 참조 (훨씬 빠름)
+        response = answer_with_paper_cache(client, MODEL_NAME, req.message, paper_cache)
+        log_token_usage(response, label="chat-paper-cached")
+
+        return JSONResponse(
+            content={"reply": response.text},
+            media_type="application/json; charset=utf-8",
+        )
+    elif combined_papers_text:
+        # 캐시 생성이 실패했을 때의 폴백 (느리지만 동작은 함)
+        response = answer_without_cache(client, MODEL_NAME, req.message, combined_papers_text)
+        log_token_usage(response, label="chat-paper-nocache")
+
+        return JSONResponse(
+            content={"reply": response.text},
+            media_type="application/json; charset=utf-8",
+        )
+
+    # 논문 리소스가 아예 없을 때의 최종 폴백 -> 페르소나 대화 세션
     user_context = get_dummy_user_context(req.user_id)
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         knowledge=FIXED_KNOWLEDGE,
         user_context=user_context,
     )
-
     chat_session = get_or_create_chat_session(req.user_id, system_prompt)
-
-    # 1) 메시지에 "음식 + 혈당 수치"가 함께 언급됐는지 먼저 확인
-    meal_info = extract_meal_info(req.message)
-
-    message_to_send = req.message
-    prediction_data = None  # 구조화된 예측 결과 (프론트엔드 카드 UI용, 있으면 채워짐)
-
-    if meal_info.get("has_meal_info") and meal_info.get("food_name") and meal_info.get("baseline") is not None:
-        prediction_result = run_glucose_prediction(
-            food_name=meal_info["food_name"],
-            baseline=float(meal_info["baseline"]),
-            diagnosis_group=get_diagnosis_group(req.user_id),
-        )
-
-        if "error" not in prediction_result:
-            prediction_data = prediction_result
-
-            estimate_note = (
-                " (이 음식은 정확한 DB 정보가 없어서 대략적으로 추정한 영양성분 기준이라는 것도 언급해줘.)"
-                if prediction_result["nutrition_source"] == "llm_estimated"
-                else ""
-            )
-
-            # 예측 결과를 당당이가 자연스러운 말투로, 하지만 핵심 수치(예상 혈당, 걷기 시간·거리)는
-            # 반드시 문장 안에 포함해서 답하도록 컨텍스트에 실어 보냄
-            message_to_send = (
-                f"{req.message}\n\n"
-                f"[내부 참고용 예측 결과 — 아래 수치를 반드시 답변 문장에 자연스럽게 포함해서 말해줘. "
-                f"예: '지금 {{baseline}}에서 약 {{상승분}} 올라서 {{peak}} 근처일 것 같아요. "
-                f"{{걷기시간}}분, 약 {{거리}}km 정도 걸어보세요'처럼 "
-                f"식전혈당/예상peak혈당/추천 걷기시간(분)/걷기거리(km)는 꼭 숫자로 알려줘.{estimate_note} "
-                f"이 수치는 학습된 예측 모델이 직접 계산한 값이니, 이전 대화에서 첨부됐던 논문이나 "
-                f"다른 참고자료를 이번 답변에는 인용하지 마 (이번 답변은 논문 근거가 아님)]\n"
-                f"매칭된 음식: {prediction_result['matched_food']}\n"
-                f"영양성분 출처: {'DB 매칭' if prediction_result['nutrition_source'] == 'db_matched' else 'LLM 추정치'}\n"
-                f"식전 혈당: {prediction_result['prediction']['baseline']}\n"
-                f"예측 peak 혈당: {prediction_result['prediction']['predicted_peak']}\n"
-                f"상승분: {prediction_result['prediction']['predicted_rise']}\n"
-                f"추천 걷기 시간: {prediction_result['walking_mission']['walk_minutes']}분\n"
-                f"추천 걷기 거리: {prediction_result['walking_mission']['distance_km']}km\n"
-            )
-        else:
-            # DB 매칭 실패 등은 그냥 알려주고 일반 대화로 넘어감
-            message_to_send = (
-                f"{req.message}\n\n"
-                f"[참고: 예측 시도했으나 실패함 - {prediction_result['error']}. "
-                f"이 사실은 사용자에게 자연스럽게 알려주되 너무 기술적으로 말하지 마]"
-            )
-    else:
-        # 2) 음식/혈당 언급이 없는 일반 질문 -> 논문 텍스트 컨텍스트로 답변
-        if paper_cache:
-            # 캐시가 있으면 논문을 매번 다시 안 보내고 캐시만 참조 (훨씬 빠름)
-            response = answer_with_paper_cache(client, MODEL_NAME, req.message, paper_cache)
-            log_token_usage(response, label="chat-paper-cached")
-
-            return JSONResponse(
-                content={"reply": response.text, "prediction_data": None},
-                media_type="application/json; charset=utf-8",
-            )
-        elif combined_papers_text:
-            # 캐시 생성이 실패했을 때의 폴백 (느리지만 동작은 함)
-            response = answer_without_cache(client, MODEL_NAME, req.message, combined_papers_text)
-            log_token_usage(response, label="chat-paper-nocache")
-
-            return JSONResponse(
-                content={"reply": response.text, "prediction_data": None},
-                media_type="application/json; charset=utf-8",
-            )
-
-    response = chat_session.send_message(message_to_send)
+    response = chat_session.send_message(req.message)
 
     log_token_usage(response, label="chat")
 
     # PowerShell(Windows) 등 일부 클라이언트가 charset 없는 응답을
     # 잘못 해석해 한글이 깨지는 문제 방지 위해 charset 명시
     return JSONResponse(
-        content={"reply": response.text, "prediction_data": prediction_data},
+        content={"reply": response.text},
         media_type="application/json; charset=utf-8",
     )
 
