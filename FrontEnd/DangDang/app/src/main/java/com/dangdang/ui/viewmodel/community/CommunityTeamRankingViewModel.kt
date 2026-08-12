@@ -2,6 +2,9 @@ package com.dangdang.ui.viewmodel.community
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dangdang.common.utils.applyResponse
+import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.data.repository.CommunityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -15,8 +18,11 @@ import javax.inject.Inject
 class CommunityTeamRankingViewModel @Inject constructor(
     private val communityRepository: CommunityRepository
 ): ViewModel(){
-    private val _teamRankingStatusList = MutableStateFlow<List<TeamRankingStatusModel>>(emptyList())
-    val teamRankingStatusList: StateFlow<List<TeamRankingStatusModel>> = _teamRankingStatusList.asStateFlow()
+    private val _teamRankingStatusList = MutableStateFlow<PendingModel<List<TeamRankingStatusModel>>>(
+        PendingModel(emptyList(), LoadingState.Loading)
+    )
+    val teamRankingStatusList: StateFlow<PendingModel<List<TeamRankingStatusModel>>> =
+        _teamRankingStatusList.asStateFlow()
 
     init {
         getTeamRankingStatusList()
@@ -24,11 +30,7 @@ class CommunityTeamRankingViewModel @Inject constructor(
 
     fun getTeamRankingStatusList(){
         viewModelScope.launch {
-            val response = communityRepository.getTeamRankingStatusList()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _teamRankingStatusList.value = responseBody ?: emptyList()
-            }
+            _teamRankingStatusList.applyResponse(communityRepository.getTeamRankingStatusList())
         }
     }
 }

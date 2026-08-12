@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.component.button.outlined.PrimaryOutlinedButton
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.page.community.teamchallenge.TeamChallengeGraphBox
 import com.dangdang.component.page.community.teamchallenge.TeamChallengeInfoBox
 import com.dangdang.component.page.community.teamchallenge.TeamMemberStatusBox
@@ -104,6 +106,7 @@ fun CommunityTeamChallengeTabScreen(
     communityTeamChallengeViewModel: CommunityTeamChallengeViewModel = hiltViewModel(),
     communityViewModel: CommunityViewModel?,
 ) {
+    val context = LocalContext.current
     val teamInfo =
         communityViewModel?.teamInfo?.collectAsState()
 
@@ -111,20 +114,30 @@ fun CommunityTeamChallengeTabScreen(
         communityTeamChallengeViewModel.teamChallengeStatusList.collectAsState()
 
     if(teamInfo?.value?.loadingState == LoadingState.Success 
-        && teamInfo.value.data != null){
+        && teamInfo.value.data != null
+        && teamChallengeStatusList.loadingState == LoadingState.Success){
         teamInfo.value.data?.let {
             CommunityTeamChallengeTabScreenContent(
                 teamInfo = it,
-                teamChallengeStatusList = teamChallengeStatusList ?: emptyList(),
+                teamChallengeStatusList = teamChallengeStatusList.data?:emptyList(),
                 onOutTeam = {
-                    communityViewModel.outTeam()
+                    communityViewModel.outTeam(context)
                 }
             )
         }
     }else{
-        Box(
-            modifier = Modifier
-                .mainScreen()
+        ErrorView(
+            loadingState = if(
+                (teamInfo?.value?.loadingState?:LoadingState.Loading) ==
+                    LoadingState.Error
+                || teamChallengeStatusList.loadingState ==
+                    LoadingState.Error
+            ){
+                LoadingState.Error
+            }else{
+                LoadingState.Loading
+            },
+            message = "팀 랭킹 정보 불러오기를 실패했습니다."
         )
     }
 }

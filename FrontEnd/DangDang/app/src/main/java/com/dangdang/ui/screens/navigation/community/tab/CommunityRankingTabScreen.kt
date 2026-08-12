@@ -1,6 +1,7 @@
 package com.dangdang.ui.screens.navigation.community.tab
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -18,9 +19,11 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.regular
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.page.community.ranking.RankingIn3Box
 import com.dangdang.component.page.community.ranking.TeamRankingStatusBox
 import com.dangdang.component.page.community.teamchallenge.TeamMemberStatusBox
+import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.ui.theme.AppTypography
@@ -73,9 +76,16 @@ fun CommunityRankingTabScreen(
     val teamRankingStatusList by
         communityTeamRankingViewModel.teamRankingStatusList.collectAsState()
 
-    CommunityRankingTabScreenContent(
-        teamRankingStatusList = teamRankingStatusList
-    )
+    if(teamRankingStatusList.loadingState == LoadingState.Success){
+        CommunityRankingTabScreenContent(
+            teamRankingStatusList = teamRankingStatusList.data?:emptyList()
+        )
+    }else{
+        ErrorView(
+            loadingState = teamRankingStatusList.loadingState,
+            message = "팀 랭킹 정보 불러오기를 실패했습니다."
+        )
+    }
 }
 
 @Composable

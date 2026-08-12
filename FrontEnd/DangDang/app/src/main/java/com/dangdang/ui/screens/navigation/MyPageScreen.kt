@@ -27,9 +27,11 @@ import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.regular
 import com.dangdang.common.utils.sendMail
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.image.Profile
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.mypage.MyPageMenu
+import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.user.User
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.viewmodel.navigation.MyPageViewModel
@@ -81,26 +83,33 @@ fun MyPageScreen(
             }
         }
 
-    MyPageScreenContent(
-        user = userInfo,
-        onMyInfoUpdateMove = onMyInfoUpdateMove,
-        isSwitchChecked = isNotification,
-        onSwitchCheckChange = {
-            if(!isNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED){
-                //권한 요청
-                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }else{
-                myPageViewModel.setNotification(!isNotification)
+    if(userInfo.loadingState == LoadingState.Success){
+        MyPageScreenContent(
+            user = userInfo.data,
+            onMyInfoUpdateMove = onMyInfoUpdateMove,
+            isSwitchChecked = isNotification,
+            onSwitchCheckChange = {
+                if(!isNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED){
+                    //권한 요청
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }else{
+                    myPageViewModel.setNotification(!isNotification)
+                }
+            },
+            onFaqClick = onFaqClick,
+            onInquiryClick = {
+                sendMail(context)
+            },
+            onLogoutClick = {
+                myPageViewModel.logout()
             }
-        },
-        onFaqClick = onFaqClick,
-        onInquiryClick = {
-            sendMail(context)
-        },
-        onLogoutClick = {
-            myPageViewModel.logout()
-        }
-    )
+        )
+    }else{
+        ErrorView(
+            loadingState = userInfo.loadingState,
+            message = "유저 정보 불러오기를 실패했습니다."
+        )
+    }
 }
 
 @Composable

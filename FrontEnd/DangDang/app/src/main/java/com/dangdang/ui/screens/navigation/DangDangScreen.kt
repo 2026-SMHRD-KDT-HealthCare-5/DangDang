@@ -31,9 +31,11 @@ import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.TodayWalkTargetType
 import com.dangdang.component.button.outlined.SecondaryOutlinedButton
 import com.dangdang.component.chat.AIChatListView
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.text.textbox.ChatSendBox
 import com.dangdang.data.enums.ChatUserType
+import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.ChatRecommendQuestionModel
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
@@ -124,10 +126,14 @@ fun DangDangScreen(
 
     val isChatAble by remember(chattingList) {
         derivedStateOf{
-            if(chattingList.isEmpty()){
-                true
+            if(chattingList.loadingState == LoadingState.Success){
+                if(chattingList.data?.isEmpty() == true){
+                    true
+                }else{
+                    chattingList.data?.last()?.isChatAble == true
+                }
             }else{
-                chattingList.last().isChatAble
+                false
             }
         }
     }
@@ -183,75 +189,90 @@ fun DangDangScreen(
         }
     }
 
-    DangDangScreenContent(
-        chatMessageValue = chatMessageValue,
-        onChatMessageValueChange = {
-            chatMessageValue = it
-        },
-        isChatAble = isChatAble,
-        recommendQuestionList = recommendQuestionList,
-        chattingList = chattingList,
-        onRecommendQuestionClick = {
-            dangDangViewModel.onRecommendQuestionClick(
-                it
-            )
-        },
-        glucoseValue = glucoseValue,
-        onGlucoseValueChange = {
-            glucoseValue = it
-        },
-        ateFoodValue = ateFoodValue,
-        onAteFoodValueChange = {
-            ateFoodValue = it
-        },
-        onAteFoodSendClick = {
-            dangDangViewModel.ateFoodSend(
-                ateFoodValue
-            )
-        },
-        afterWalkGlucoseValue = afterWalkGlucoseValue,
-        onAfterWalkGlucoseValueChange = {
-            afterWalkGlucoseValue = it
-        },
-        onAfterWalkGlucoseInputCompleteClick = {
-            dangDangViewModel.afterWalkGlucoseSend(
-                afterWalkGlucoseValue.toInt()
-            )
-        },
-        onChallengeClick = {
-            onWalkChallengeMove()
-        },
-        onGlucoseInputCompleteClick = {
-            dangDangViewModel.sendBeforeMealGlucose(
-                glucoseValue
-            )
-        },
-        onGlucoseInputCancelClick = {
-            dangDangViewModel.sendBeforeMealGlucose(
-                "모르겠어요"
-            )
-        },
-        onFoodCheckClick = {
-            dangDangViewModel.foodCheck()
-        },
-        onFoodAIAnalysisClick = {
-            dangDangViewModel.ateFoodSend(
-                ateFoodValue
-            )
-        },
-        onFoodKeywordInputClick = {
-            dangDangViewModel.ateFoodReSearch()
-        },
-        onFoodInputDirectlyClick = {
-            onFoodInputDirectlyClick()
-        },
-        onChatSendClick = {
-            dangDangViewModel.chatSend(
-                chatMessageValue
-            )
-            chatMessageValue = ""
-        }
-    )
+    if(chattingList.loadingState == LoadingState.Success
+        && recommendQuestionList.loadingState == LoadingState.Success){
+        DangDangScreenContent(
+            chatMessageValue = chatMessageValue,
+            onChatMessageValueChange = {
+                chatMessageValue = it
+            },
+            isChatAble = isChatAble,
+            recommendQuestionList = recommendQuestionList.data?:emptyList(),
+            chattingList = chattingList.data?:emptyList(),
+            onRecommendQuestionClick = {
+                dangDangViewModel.onRecommendQuestionClick(
+                    it
+                )
+            },
+            glucoseValue = glucoseValue,
+            onGlucoseValueChange = {
+                glucoseValue = it
+            },
+            ateFoodValue = ateFoodValue,
+            onAteFoodValueChange = {
+                ateFoodValue = it
+            },
+            onAteFoodSendClick = {
+                dangDangViewModel.ateFoodSend(
+                    ateFoodValue
+                )
+            },
+            afterWalkGlucoseValue = afterWalkGlucoseValue,
+            onAfterWalkGlucoseValueChange = {
+                afterWalkGlucoseValue = it
+            },
+            onAfterWalkGlucoseInputCompleteClick = {
+                dangDangViewModel.afterWalkGlucoseSend(
+                    afterWalkGlucoseValue.toInt()
+                )
+            },
+            onChallengeClick = {
+                onWalkChallengeMove()
+            },
+            onGlucoseInputCompleteClick = {
+                dangDangViewModel.sendBeforeMealGlucose(
+                    glucoseValue
+                )
+            },
+            onGlucoseInputCancelClick = {
+                dangDangViewModel.sendBeforeMealGlucose(
+                    "모르겠어요"
+                )
+            },
+            onFoodCheckClick = {
+                dangDangViewModel.foodCheck()
+            },
+            onFoodAIAnalysisClick = {
+                dangDangViewModel.ateFoodSend(
+                    ateFoodValue
+                )
+            },
+            onFoodKeywordInputClick = {
+                dangDangViewModel.ateFoodReSearch()
+            },
+            onFoodInputDirectlyClick = {
+                onFoodInputDirectlyClick()
+            },
+            onChatSendClick = {
+                dangDangViewModel.chatSend(
+                    chatMessageValue
+                )
+                chatMessageValue = ""
+            }
+        )
+    }else{
+        ErrorView(
+            loadingState = if(
+                (chattingList.loadingState == LoadingState.Error
+                    || recommendQuestionList.loadingState == LoadingState.Error)
+            ){
+                LoadingState.Error
+            }else{
+                LoadingState.Loading
+            },
+            message = "채팅 정보 또는 추천 질문 불러오기를 실패했습니다."
+        )
+    }
 }
 
 @Composable

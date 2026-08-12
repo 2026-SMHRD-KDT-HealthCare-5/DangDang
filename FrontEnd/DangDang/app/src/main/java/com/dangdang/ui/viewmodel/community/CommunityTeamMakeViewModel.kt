@@ -1,6 +1,7 @@
 package com.dangdang.ui.viewmodel.community
 
 import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.data.model.community.TeamMakeForm
@@ -19,6 +20,8 @@ class CommunityTeamMakeViewModel @Inject constructor(
             val response = communityRepository.makeTeam(context, teamMakeForm)
             if(response.isSuccessful){
                 onMakeSuccess()
+            }else{
+                Toast.makeText(context, "팀 만들기 요청이 실패했습니다.", Toast.LENGTH_SHORT).show()
             }
         }
     }

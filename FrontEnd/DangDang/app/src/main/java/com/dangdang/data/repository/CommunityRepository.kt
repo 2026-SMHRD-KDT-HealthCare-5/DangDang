@@ -124,7 +124,7 @@ class CommunityRepository @Inject constructor(
     }
 
     //팀 리스트 가져오기
-    suspend fun getTeamList(): Response<List<TeamSearchInfoModel>>{
+    suspend fun getTeamList(keyword:String): Response<List<TeamSearchInfoModel>>{
         val response = listOf(
             TeamSearchInfoModel(
                 id = 1,
@@ -176,7 +176,9 @@ class CommunityRepository @Inject constructor(
                 targetDistance = 150f,
                 introduction = "주말에 함께 러닝과 걷기!"
             )
-        )
+        ).filter {
+            it.name.contains(keyword)
+        }
 
         return Response.success(response)
     }

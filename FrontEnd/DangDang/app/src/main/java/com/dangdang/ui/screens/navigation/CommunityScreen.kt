@@ -12,6 +12,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.dangdang.common.utils.mainScreen
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.ui.screens.navigation.community.CommunityTeamMainScreen
@@ -61,9 +62,9 @@ fun CommunityScreen(
             onTeamMakeMove = onTeamMakeMove
         )
     }else{
-        Box(
-            modifier = Modifier
-                .mainScreen()
+        ErrorView(
+            loadingState = teamInfo.loadingState,
+            message = "사용자 팀 정보 불러오기를 실패했습니다."
         )
     }
 }

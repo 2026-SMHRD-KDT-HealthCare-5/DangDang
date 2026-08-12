@@ -5,6 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.AnalysisFoodType
 import com.dangdang.common.utils.BeforeMealTipType
 import com.dangdang.common.utils.TodayWalkTargetType
+import com.dangdang.common.utils.applyResponse
+import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.ChatRecommendQuestionModel
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
@@ -20,11 +23,16 @@ import javax.inject.Inject
 class DangDangViewModel @Inject constructor(
     private val dangDangRepository: DangDangRepository
 ): ViewModel(){
-    private val _chattingList = MutableStateFlow<List<ChatModel>>(emptyList())
-    val chattingList: StateFlow<List<ChatModel>> = _chattingList.asStateFlow()
+    private val _chattingList = MutableStateFlow<PendingModel<List<ChatModel>>>(
+        PendingModel(emptyList(), LoadingState.Loading)
+    )
+    val chattingList: StateFlow<PendingModel<List<ChatModel>>> = _chattingList.asStateFlow()
 
-    private val _recommendQuestionList = MutableStateFlow<List<ChatRecommendQuestionModel>>(emptyList())
-    val recommendQuestionList: StateFlow<List<ChatRecommendQuestionModel>> = _recommendQuestionList.asStateFlow()
+    private val _recommendQuestionList = MutableStateFlow<PendingModel<List<ChatRecommendQuestionModel>>>(
+        PendingModel(emptyList(), LoadingState.Loading)
+    )
+    val recommendQuestionList: StateFlow<PendingModel<List<ChatRecommendQuestionModel>>> =
+        _recommendQuestionList.asStateFlow()
 
     init {
         getRecommendQuestion()
@@ -32,32 +40,20 @@ class DangDangViewModel @Inject constructor(
 
     fun getRecommendQuestion(){
         viewModelScope.launch {
-            val response = dangDangRepository.getRecommendQuestion()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _recommendQuestionList.value = responseBody ?: emptyList()
-            }
+            _recommendQuestionList.applyResponse(dangDangRepository.getRecommendQuestion())
         }
     }
 
     fun getChattingList(){
         viewModelScope.launch {
-            val response = dangDangRepository.getChattingList()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.getChattingList())
         }
     }
 
     //채팅 전송
     fun chatSend(message: String) {
         viewModelScope.launch {
-            val response = dangDangRepository.chatSend(message)
-            if (response.isSuccessful) {
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.chatSend(message))
         }
     }
 
@@ -78,98 +74,62 @@ class DangDangViewModel @Inject constructor(
     //음식 분석&걷기 시작
     fun startAnalysisFood(){
         viewModelScope.launch {
-            val response = dangDangRepository.startAnalysisFood()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.startAnalysisFood())
         }
     }
 
     //식전 혈당 전송
     fun sendBeforeMealGlucose(glucoseValue: String) {
         viewModelScope.launch {
-            val response = dangDangRepository.sendBeforeMealGlucose(glucoseValue)
-            if (response.isSuccessful) {
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.sendBeforeMealGlucose(glucoseValue))
         }
     }
 
     //음식 입력 전송
     fun ateFoodSend(ateFoodValue: String) {
         viewModelScope.launch {
-            val response = dangDangRepository.ateFoodSend(ateFoodValue)
-            if (response.isSuccessful) {
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.ateFoodSend(ateFoodValue))
         }
     }
 
     //음식 직접 입력 전송
     fun sendFoodInputDirectly(foodInputDirectlyForm: FoodInputDirectlyForm) {
         viewModelScope.launch {
-            val response = dangDangRepository.sendFoodInputDirectly(foodInputDirectlyForm)
-            if (response.isSuccessful) {
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.sendFoodInputDirectly(foodInputDirectlyForm))
         }
     }
 
     //검색어 다시 입력 선택 시
     fun ateFoodReSearch() {
         viewModelScope.launch {
-            val response = dangDangRepository.ateFoodReSearch()
-            if (response.isSuccessful) {
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.ateFoodReSearch())
         }
     }
 
     //음식 확정 선택 시
     fun foodCheck(){
         viewModelScope.launch {
-            val response = dangDangRepository.foodCheck()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.foodCheck())
         }
     }
 
     //오늘 걷기 목표 불러오기 선택 시
     fun getRecommendWalkChallenge(){
         viewModelScope.launch {
-            val response = dangDangRepository.getRecommendWalkChallenge()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.getRecommendWalkChallenge())
         }
     }
 
     //걷기 완료 미션 전송
     fun completeWalkMission() {
         viewModelScope.launch {
-            val response = dangDangRepository.completeWalkMission()
-            if (response.isSuccessful) {
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.completeWalkMission())
         }
     }
 
     fun afterWalkGlucoseSend(glucose: Int){
         viewModelScope.launch {
-            val response = dangDangRepository.afterWalkGlucoseSend(glucose)
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _chattingList.value = responseBody ?: emptyList()
-            }
+            _chattingList.applyResponse(dangDangRepository.afterWalkGlucoseSend(glucose))
         }
     }
 }
