@@ -168,7 +168,7 @@ fun TextField(
     sizeType: LayoutSize = LayoutSize.DefaultSize,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .background(White),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -191,7 +191,7 @@ fun TextField(
                 imeAction = ImeAction.Done
             ),
             singleLine = true,
-            modifier = modifier
+            modifier = Modifier
                 .componentWidthModifier(
                     fixWidth = fixWidth,
                     sizeType = sizeType

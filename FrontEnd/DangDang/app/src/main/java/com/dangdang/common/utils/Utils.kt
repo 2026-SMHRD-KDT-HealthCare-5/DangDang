@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.util.Patterns
+import android.webkit.MimeTypeMap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.navigation.NavHostController
 import com.dangdang.data.enums.LayoutSize
 import androidx.core.net.toUri
 import com.dangdang.Application.Companion.InquiryEmail
+import com.dangdang.data.model.community.CameraImage
 import com.dangdang.ui.theme.DarkGreen
 import com.dangdang.ui.theme.HotPink
 import com.dangdang.ui.theme.Orange
@@ -118,26 +120,38 @@ fun sendMail(context: Context){
 }
 
 fun Context.uriToFile(uri: Uri): File {
+    val mimeType = contentResolver.getType(uri)
 
-    val input = contentResolver.openInputStream(uri)
+    val extension = MimeTypeMap.getSingleton()
+        .getExtensionFromMimeType(mimeType)
+        ?.let { ".$it" }
+        ?: ".jpg"
 
     val file = File.createTempFile(
-        "upload",
-        ".png",
+        "upload_",
+        extension,
         cacheDir
     )
 
-    file.outputStream().use {
-        input?.copyTo(it)
+    contentResolver.openInputStream(uri)?.use { input ->
+        file.outputStream().use { output ->
+            input.copyTo(output)
+        }
     }
 
     return file
 }
 
 fun File.toMultipart(): MultipartBody.Part {
+    val mimeType = MimeTypeMap.getSingleton()
+        .getMimeTypeFromExtension(
+            extension.lowercase()
+        )
+        ?: "application/octet-stream"
 
-    val requestBody =
-        asRequestBody("image/*".toMediaType())
+    val requestBody = asRequestBody(
+        mimeType.toMediaType()
+    )
 
     return MultipartBody.Part.createFormData(
         "image",
@@ -146,21 +160,38 @@ fun File.toMultipart(): MultipartBody.Part {
     )
 }
 
+fun File.deleteSafely(): Boolean {
+    return try {
+        if (exists()) {
+            delete()
+        } else {
+            true
+        }
+    } catch (e: Exception) {
+        false
+    }
+}
+
 fun String.toRequestBody() =
     toRequestBody("text/plain".toMediaType())
 
-fun Context.createImageUri(): Uri {
+fun Context.createImage(): CameraImage {
 
     val file = File.createTempFile(
-        "camera",
+        "camera_",
         ".jpg",
         cacheDir
     )
 
-    return FileProvider.getUriForFile(
+    val uri = FileProvider.getUriForFile(
         this,
         "$packageName.provider",
         file
+    )
+
+    return CameraImage(
+        file = file,
+        uri = uri
     )
 }
 

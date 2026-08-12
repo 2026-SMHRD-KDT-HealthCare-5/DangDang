@@ -2,6 +2,7 @@ package com.dangdang.data.repository
 
 import android.content.Context
 import com.dangdang.Application.Companion.ExamplePictureUrl
+import com.dangdang.common.utils.deleteSafely
 import com.dangdang.common.utils.toMultipart
 import com.dangdang.common.utils.toRequestBody
 import com.dangdang.common.utils.uriToFile
@@ -13,6 +14,7 @@ import com.dangdang.data.model.community.TeamSearchInfoModel
 import com.dangdang.data.model.user.TokenResponse
 import com.dangdang.data.model.user.User
 import retrofit2.Response
+import java.io.File
 import javax.inject.Inject
 
 class CommunityRepository @Inject constructor(
@@ -186,13 +188,21 @@ class CommunityRepository @Inject constructor(
 
     //팀 만들기
     suspend fun makeTeam(context: Context, teamMakeForm: TeamMakeForm): Response<String>{
-        val imagePart = teamMakeForm.uri?.let {
-            context.uriToFile(it).toMultipart()
-        }
-        val namePart = teamMakeForm.name.toRequestBody()
-        val introductionPart = teamMakeForm.introduction.toRequestBody()
-        val targetDistancePart = teamMakeForm.targetDistance.toRequestBody()
+        var uploadFile: File? = null
 
-        return Response.success("success")
+        try{
+            val imagePart = teamMakeForm.uri?.let { uri->
+                uploadFile = context.uriToFile(uri)
+
+                uploadFile.toMultipart()
+            }
+            val namePart = teamMakeForm.name.toRequestBody()
+            val introductionPart = teamMakeForm.introduction.toRequestBody()
+            val targetDistancePart = teamMakeForm.targetDistance.toRequestBody()
+
+            return Response.success("success")
+        } finally {
+            uploadFile?.deleteSafely()
+        }
     }
 }
