@@ -103,15 +103,17 @@ class FoodDB:
 
     def _row_to_dict(self, row, match_type: str, score: float):
         return {
-            "식품명": row["food_name"],
-            "탄수화물": row["carb"],
-            "단백질": row["protein"],
-            "지방": row["fat"],
-            "식이섬유": row["fiber"],
-            "에너지": row["calorie"],
+            "food_no": int(row["food_no"]),
+            "food_name": row["food_name"],
+            "calorie": row["calorie"],
+            "carb": row["carb"],
+            "protein": row["protein"],
+            "fat": row["fat"],
+            "fiber": row["fiber"],
+            "sugar": row["sugar"],
             "serving_size": row["serving_size"],
-            "매칭방식": match_type,
-            "유사도점수": round(float(score), 1),
+            "match_type": match_type,
+            "match_score": round(float(score), 1),
         }
 
     def get_best_match(self, query: str, brand: str | None = None):

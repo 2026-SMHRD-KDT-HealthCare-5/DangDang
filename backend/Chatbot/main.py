@@ -445,10 +445,12 @@ FOOD_RECOGNITION_PROMPT = """이 사진 속 음식을 인식해서 아래 JSON �
   "confidence": "high | medium | low 중 하나 (인식 확신도)",
   "estimated_serving_g": 예상 1인분 중량(그램, 숫자만),
   "fallback_nutrition": {
-    "탄수화물": 100g당_추정_탄수화물_그램_숫자,
-    "단백질": 100g당_추정_단백질_그램_숫자,
-    "지방": 100g당_추정_지방_그램_숫자,
-    "식이섬유": 100g당_추정_식이섬유_그램_숫자
+    "carb": 100g당_추정_탄수화물_그램_숫자,
+    "sugar": 100g당_추정_당류_그램_숫자,
+    "protein": 100g당_추정_단백질_그램_숫자,
+    "fat": 100g당_추정_지방_그램_숫자,
+    "fiber": 100g당_추정_식이섬유_그램_숫자,
+    "calorie": 100g당_추정_칼로리_숫자
   }
 }
 
@@ -504,30 +506,40 @@ async def identify_food(image: UploadFile = File(...)):
 
     MATCH_SCORE_THRESHOLD = 70  # 이 점수 미만이면 신뢰 안 하고 LLM 추정값 사용
 
-    if db_match and db_match["유사도점수"] >= MATCH_SCORE_THRESHOLD:
-        nutrition_source = "db_matched"
-        nutrition = {
-            "탄수화물": db_match["탄수화물"],
-            "단백질": db_match["단백질"],
-            "지방": db_match["지방"],
-            "식이섬유": db_match["식이섬유"],
-            "기준": "100g당",
-            "matched_food_name": db_match["식품명"],  # 브랜드가 있으면 "브랜드_음식명" 형태로 포함되어 있음
-            "match_score": db_match["유사도점수"],
-        }
+    if db_match and db_match["match_score"] >= MATCH_SCORE_THRESHOLD:
+        return JSONResponse(
+            content={
+                "matched": True,
+                "foodNo": db_match["food_no"],
+                "foodName": db_match["food_name"],
+                "serving_size": db_match["serving_size"],
+                "nutrition": {
+                    "carb": db_match["carb"],
+                    "sugar": db_match["sugar"],
+                    "protein": db_match["protein"],
+                    "fat": db_match["fat"],
+                    "fiber": db_match["fiber"],
+                    "calorie": db_match["calorie"],
+                },
+                "source": "공공데이터",
+                "chatbotMessage": "식약처 데이터에서 찾았어요! 이 음식이 맞나요?",
+            },
+            media_type="application/json; charset=utf-8",
+        )
     else:
-        nutrition_source = "llm_estimated"
-        nutrition = recognition.get("fallback_nutrition", {})
-        nutrition["기준"] = "100g당 (LLM 추정)"
-
-    return JSONResponse(
-        content={
-            "recognition": recognition,
-            "nutrition_source": nutrition_source,
-            "nutrition": nutrition,
-        },
-        media_type="application/json; charset=utf-8",
-    )
+        # DD_101: 조회 실패 시 자동 AI 분석 수행하지 않음 — 안내만 표시
+        return JSONResponse(
+            content={
+                "matched": False,
+                "foodNo": None,
+                "foodName": food_name,
+                "serving_size": None,
+                "nutrition": None,
+                "source": None,
+                "chatbotMessage": "식약처 데이터에서 찾지 못했어요. AI로 분석하거나 직접 입력해 주세요.",
+            },
+            media_type="application/json; charset=utf-8",
+        )
 
 
 # ---------------------------------------------------------
@@ -567,10 +579,12 @@ NUTRITION_ESTIMATION_PROMPT = """다음 음식의 100g당 영양성분을 추정
 설명 문장 없이 순수 JSON만 출력해.
 
 {
-  "탄수화물": 100g당_탄수화물_그램_숫자,
-  "단백질": 100g당_단백질_그램_숫자,
-  "지방": 100g당_지방_그램_숫자,
-  "식이섬유": 100g당_식이섬유_그램_숫자
+  "carb": 100g당_탄수화물_그램_숫자,
+  "sugar": 100g당_당류_그램_숫자,
+  "protein": 100g당_단백질_그램_숫자,
+  "fat": 100g당_지방_그램_숫자,
+  "fiber": 100g당_식이섬유_그램_숫자,
+  "calorie": 100g당_칼로리_숫자
 }
 
 일반적으로 알려진 조리법과 재료를 기준으로 최대한 합리적인 값을 추정해.
@@ -605,19 +619,19 @@ def run_glucose_prediction(
     db_match = food_db.get_best_match(food_name, brand=brand)
     MATCH_SCORE_THRESHOLD = 70
 
-    if db_match and db_match["유사도점수"] >= MATCH_SCORE_THRESHOLD:
+    if db_match and db_match["match_score"] >= MATCH_SCORE_THRESHOLD:
         nutrition_source = "db_matched"
-        matched_name = db_match["식품명"]
+        matched_name = db_match["food_name"]
         per_100g = {
-            "탄수화물": db_match["탄수화물"],
-            "단백질": db_match["단백질"],
-            "지방": db_match["지방"],
-            "식이섬유": db_match["식이섬유"],
+            "carb": db_match["carb"],
+            "protein": db_match["protein"],
+            "fat": db_match["fat"],
+            "fiber": db_match["fiber"],
         }
     else:
-        # DB에 없으면 Gemini로 영양성분 추정 (사진 인식 때와 동일한 폴백 전략)
+        # DB에 없으면 Gemini로 영양성분 추정 (reanalyze 엔드포인트에서 호출)
         estimated = estimate_nutrition_via_llm(food_name)
-        required_keys = ["탄수화물", "단백질", "지방", "식이섬유"]
+        required_keys = ["carb", "protein", "fat", "fiber"]
         if not estimated or not all(k in estimated for k in required_keys):
             return {"error": f"'{food_name}'에 해당하는 음식을 DB에서도, LLM 추정으로도 찾지 못했습니다."}
 
@@ -626,10 +640,10 @@ def run_glucose_prediction(
         per_100g = estimated
 
     scale = serving_g / 100.0
-    carb = per_100g["탄수화물"] * scale
-    protein = per_100g["단백질"] * scale
-    fat = per_100g["지방"] * scale
-    fiber = per_100g["식이섬유"] * scale
+    carb = per_100g["carb"] * scale
+    protein = per_100g["protein"] * scale
+    fat = per_100g["fat"] * scale
+    fiber = per_100g["fiber"] * scale
 
     prediction = glucose_predictor.predict_peak(
         carb=carb, protein=protein, fat=fat, fiber=fiber,
@@ -653,10 +667,10 @@ def run_glucose_prediction(
         "nutrition_source": nutrition_source,  # "db_matched" | "llm_estimated"
         "serving_g": serving_g,
         "nutrition_used": {
-            "탄수화물": round(carb, 1),
-            "단백질": round(protein, 1),
-            "지방": round(fat, 1),
-            "식이섬유": round(fiber, 1),
+            "carb": round(carb, 1),
+            "protein": round(protein, 1),
+            "fat": round(fat, 1),
+            "fiber": round(fiber, 1),
         },
         "prediction": prediction,
         "walking_mission": mission,
