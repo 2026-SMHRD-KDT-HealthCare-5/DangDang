@@ -621,6 +621,12 @@ async def recognize_food(
 
     # DB 매칭
     db_match = food_db.get_best_match(food_name, brand=brand)
+
+    # ── DEBUG ── 매칭 과정 추적 (버그 해결 후 삭제)
+    print(f"[DEBUG recognize] food_name={food_name!r}, brand={brand!r}")
+    print(f"[DEBUG recognize] db_match={db_match}")
+    # ── /DEBUG ──
+
     matched = db_match is not None and db_match["match_score"] >= MATCH_SCORE_THRESHOLD
 
     return JSONResponse(
@@ -630,12 +636,11 @@ async def recognize_food(
 
 
 # ---------------------------------------------------------
-# 6-2. 음식 사진 AI 재분석 엔드포인트
+# 6-2. 음식 AI 재분석 엔드포인트 (사진 or 텍스트)
 #      Spring이 /api/intake-logs/reanalyze → 여기로 내부 호출
 #      DD_101: 사용자가 "틀려요, AI로 분석하기" 선택 시에만 호출
-#      사진 필수, 텍스트 불가
 # ---------------------------------------------------------
-FOOD_REANALYSIS_PROMPT = """이 사진 속 음식을 분석해서 아래 JSON 형식으로만 답해.
+FOOD_REANALYSIS_IMAGE_PROMPT = """이 사진 속 음식을 분석해서 아래 JSON 형식으로만 답해.
 설명 문장이나 마크다운 코드블록(```json) 없이, 순수 JSON 텍스트만 출력해.
 
 {
@@ -655,35 +660,75 @@ FOOD_REANALYSIS_PROMPT = """이 사진 속 음식을 분석해서 아래 JSON �
 영양성분을 최대한 합리적으로 추정해.
 """
 
+FOOD_REANALYSIS_TEXT_PROMPT = """다음 음식의 영양성분을 추정해서 아래 JSON 형식으로만 답해.
+설명 문장이나 마크다운 코드블록(```json) 없이, 순수 JSON 텍스트만 출력해.
+
+{
+  "food_name": "음식 이름 (한글, 간결하게)",
+  "serving_size": 예상 1인분 중량(그램, 숫자만),
+  "nutrition": {
+    "carb": 100g당_탄수화물_그램_숫자,
+    "sugar": 100g당_당류_그램_숫자,
+    "protein": 100g당_단백질_그램_숫자,
+    "fat": 100g당_지방_그램_숫자,
+    "fiber": 100g당_식이섬유_그램_숫자,
+    "calorie": 100g당_칼로리_숫자
+  }
+}
+
+해당 음식의 일반적인 조리법과 재료를 기준으로 영양성분을 최대한 합리적으로 추정해.
+"""
+
 
 @app.post("/rag/intake-logs/reanalyze")
 async def reanalyze_food(
-    image: UploadFile = File(...),
+    image: UploadFile | None = File(None),
+    food_name: str | None = Form(None),
     baseline: float | None = Form(None),
     diagnosis_group: str | None = Form(None),
 ):
     """
-    음식 사진 AI 재분석 엔드포인트 (Spring 내부 호출용)
+    음식 AI 재분석 엔드포인트 (Spring 내부 호출용)
 
     사용자가 "틀려요, AI로 분석하기"를 선택했을 때만 호출됨.
-    사진 필수 — 텍스트로만 진행한 경우에는 이 버튼이 노출되지 않음.
-    AI가 사진을 재분석해 영양성분을 추정한다.
+    - image: 음식 사진 → Gemini Vision으로 분석
+    - food_name: 음식명 텍스트 → Gemini 텍스트로 영양성분 추정
+    둘 중 하나는 필수.
 
-    ※ custom_food 테이블 저장은 Spring 쪽에서 처리.
+    ※ CUSTOM_FOOD 테이블 저장은 Spring 쪽에서 처리.
        FastAPI는 추정 결과만 반환한다.
     """
+    if not image and not food_name:
+        return JSONResponse(
+            content={"error": "image 또는 food_name 중 하나는 필수입니다."},
+            status_code=400,
+            media_type="application/json; charset=utf-8",
+        )
+
     diag = diagnosis_group if diagnosis_group in DIAGNOSIS_GROUPS else "건강군"
     bl = baseline if baseline is not None else get_pre_glucose_default(diag)
 
-    image_bytes = await image.read()
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=image.content_type),
-            FOOD_REANALYSIS_PROMPT,
-        ],
-    )
-    log_token_usage(response, label="reanalyze")
+    # --- 사진 분석 ---
+    if image:
+        image_bytes = await image.read()
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=image.content_type),
+                FOOD_REANALYSIS_IMAGE_PROMPT,
+            ],
+        )
+        log_token_usage(response, label="reanalyze-image")
+        source_msg = "AI가 사진을 분석해서 영양성분을 추정했어요."
+    # --- 텍스트 분석 ---
+    else:
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=f"음식: {food_name}",
+            config={"system_instruction": FOOD_REANALYSIS_TEXT_PROMPT, "temperature": 0.2},
+        )
+        log_token_usage(response, label="reanalyze-text")
+        source_msg = f"AI가 '{food_name}'의 영양성분을 추정했어요."
 
     try:
         analysis = parse_gemini_json(response.text)
@@ -716,7 +761,7 @@ async def reanalyze_food(
 
     return JSONResponse(
         content={
-            "foodName": analysis.get("food_name", "알 수 없는 음식"),
+            "foodName": analysis.get("food_name", food_name or "알 수 없는 음식"),
             "serving_size": analysis.get("serving_size"),
             "nutrition": {
                 "carb": nutrition.get("carb"),
@@ -728,7 +773,7 @@ async def reanalyze_food(
             },
             "predictedGlucoseRise": prediction["predicted_rise"],
             "source": "AI추정",
-            "chatbotMessage": "AI가 사진을 분석해서 영양성분을 추정했어요. 정확하지 않을 수 있으니 확인해 주세요!",
+            "chatbotMessage": f"{source_msg} 정확하지 않을 수 있으니 확인해 주세요!",
         },
         media_type="application/json; charset=utf-8",
     )

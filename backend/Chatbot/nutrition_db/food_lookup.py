@@ -79,10 +79,19 @@ class FoodDB:
         if len(exact) > 0:
             return self._rows_to_result(exact.head(top_k), match_type="정확일치", score=100)
 
-        # 2) 유사도 매칭 (rapidfuzz)
-        names = candidates_df["food_name"].tolist()
-        matches = process.extract(query, names, scorer=fuzz.WRatio, limit=None)
-        # matches: [(matched_name, score, index_in_names), ...]
+        # 2) 부분문자열 필터 → 유사도 매칭
+        #    쿼리가 food_name에 포함된 항목이 있으면 그 안에서만 퍼지 매칭
+        #    (짧은 쿼리 "치킨"이 "치킨가스"보다 "KFC_치킨_오리지널" 같은 항목을 찾게)
+        _strip = lambda s: re.sub(r"[_ ]+", "", s) if isinstance(s, str) else s
+        norm_query = _strip(query)
+        substr_df = candidates_df[
+            candidates_df["food_name"].apply(lambda n: norm_query in _strip(str(n)))
+        ]
+        fuzzy_df = substr_df if len(substr_df) > 0 else candidates_df
+
+        names = fuzzy_df["food_name"].tolist()
+        matches = process.extract(query, names, scorer=fuzz.WRatio, processor=_strip, limit=None)
+        # matches: [(원본_food_name, score, index_in_names), ...]
 
         def sort_key(m):
             matched_name, score, _ = m
@@ -94,7 +103,7 @@ class FoodDB:
 
         results = []
         for matched_name, score, _ in matches:
-            row = candidates_df[candidates_df["food_name"] == matched_name].iloc[0]
+            row = fuzzy_df[fuzzy_df["food_name"] == matched_name].iloc[0]
             results.append(self._row_to_dict(row, match_type="유사도매칭", score=score))
         return results
 
@@ -104,22 +113,41 @@ class FoodDB:
     def _row_to_dict(self, row, match_type: str, score: float):
         return {
             "food_no": int(row["food_no"]),
-            "food_name": row["food_name"],
-            "calorie": row["calorie"],
-            "carb": row["carb"],
-            "protein": row["protein"],
-            "fat": row["fat"],
-            "fiber": row["fiber"],
-            "sugar": row["sugar"],
-            "serving_size": row["serving_size"],
+            "food_name": str(row["food_name"]),
+            "calorie": float(row["calorie"]),
+            "carb": float(row["carb"]),
+            "protein": float(row["protein"]),
+            "fat": float(row["fat"]),
+            "fiber": float(row["fiber"]),
+            "sugar": float(row["sugar"]),
+            "serving_size": int(row["serving_size"]),
             "match_type": match_type,
             "match_score": round(float(score), 1),
         }
 
     def get_best_match(self, query: str, brand: str | None = None):
-        """가장 유사한 항목 1개만 반환. 매칭 결과 없으면 None."""
+        """가장 유사한 항목 1개만 반환. 매칭 결과 없으면 None.
+
+        brand 처리 전략:
+        1. 브랜드가 DB에 접두어로 존재하면(KFC_, 비비큐_ 등) → 브랜드 결과 반환
+           (점수가 threshold 미만이면 main.py에서 matched=false 처리)
+        2. 브랜드가 접두어로 없으면(BBQ→비비큐 등 불일치) → 전체 데이터에서 재검색
+        """
         results = self.search(query, brand=brand, top_k=1)
-        return results[0] if results else None
+        best = results[0] if results else None
+
+        if brand and best:
+            brand_upper = brand.upper()
+            name_upper = best["food_name"].upper()
+            brand_confirmed = name_upper.startswith(brand_upper + "_") or name_upper.startswith(brand_upper)
+
+            if not brand_confirmed:
+                # 브랜드 불일치 (예: "BBQ" → "비비큐") → 전체에서 재검색
+                full_results = self.search(query, brand=None, top_k=1)
+                if full_results and full_results[0]["match_score"] > best["match_score"]:
+                    best = full_results[0]
+
+        return best
 
 
 if __name__ == "__main__":
