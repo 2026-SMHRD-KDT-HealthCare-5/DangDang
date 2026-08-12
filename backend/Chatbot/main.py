@@ -172,6 +172,23 @@ def hba1c_to_diagnosis_group(hba1c: float) -> str:
         return "2형당뇨"
 
 
+# 식전 혈당 미입력 시 진단군별 기본값 (mg/dL)
+# ADA/대한당뇨병학회 공복혈당 범위의 중간값 기준
+#   건강군: 70~99  → 95
+#   전당뇨: 100~125 → 115
+#   2형당뇨: 126~168 → 140 (모델 신뢰구간 MAX_RELIABLE_BASELINE=168.8 이내)
+PRE_GLUCOSE_DEFAULTS = {
+    "건강군": 95,
+    "전당뇨": 115,
+    "2형당뇨": 140,
+}
+
+
+def get_pre_glucose_default(diagnosis_group: str) -> int:
+    """식전 혈당 미입력 시 진단군별 기본값 반환"""
+    return PRE_GLUCOSE_DEFAULTS.get(diagnosis_group, 95)
+
+
 class SignupRequest(BaseModel):
     user_id: str
     hba1c: float
