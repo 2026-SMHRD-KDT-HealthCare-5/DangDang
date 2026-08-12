@@ -630,6 +630,111 @@ async def recognize_food(
 
 
 # ---------------------------------------------------------
+# 6-2. 음식 사진 AI 재분석 엔드포인트
+#      Spring이 /api/intake-logs/reanalyze → 여기로 내부 호출
+#      DD_101: 사용자가 "틀려요, AI로 분석하기" 선택 시에만 호출
+#      사진 필수, 텍스트 불가
+# ---------------------------------------------------------
+FOOD_REANALYSIS_PROMPT = """이 사진 속 음식을 분석해서 아래 JSON 형식으로만 답해.
+설명 문장이나 마크다운 코드블록(```json) 없이, 순수 JSON 텍스트만 출력해.
+
+{
+  "food_name": "음식 이름 (한글, 간결하게)",
+  "serving_size": 예상 1인분 중량(그램, 숫자만),
+  "nutrition": {
+    "carb": 100g당_탄수화물_그램_숫자,
+    "sugar": 100g당_당류_그램_숫자,
+    "protein": 100g당_단백질_그램_숫자,
+    "fat": 100g당_지방_그램_숫자,
+    "fiber": 100g당_식이섬유_그램_숫자,
+    "calorie": 100g당_칼로리_숫자
+  }
+}
+
+사진을 정밀하게 분석해서 음식 종류를 판별하고, 일반적인 조리법과 재료를 기준으로
+영양성분을 최대한 합리적으로 추정해.
+"""
+
+
+@app.post("/rag/intake-logs/reanalyze")
+async def reanalyze_food(
+    image: UploadFile = File(...),
+    baseline: float | None = Form(None),
+    diagnosis_group: str | None = Form(None),
+):
+    """
+    음식 사진 AI 재분석 엔드포인트 (Spring 내부 호출용)
+
+    사용자가 "틀려요, AI로 분석하기"를 선택했을 때만 호출됨.
+    사진 필수 — 텍스트로만 진행한 경우에는 이 버튼이 노출되지 않음.
+    AI가 사진을 재분석해 영양성분을 추정한다.
+
+    ※ custom_food 테이블 저장은 Spring 쪽에서 처리.
+       FastAPI는 추정 결과만 반환한다.
+    """
+    diag = diagnosis_group if diagnosis_group in DIAGNOSIS_GROUPS else "건강군"
+    bl = baseline if baseline is not None else get_pre_glucose_default(diag)
+
+    image_bytes = await image.read()
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=[
+            types.Part.from_bytes(data=image_bytes, mime_type=image.content_type),
+            FOOD_REANALYSIS_PROMPT,
+        ],
+    )
+    log_token_usage(response, label="reanalyze")
+
+    try:
+        analysis = parse_gemini_json(response.text)
+    except Exception:
+        return JSONResponse(
+            content={"error": "AI 분석 결과 파싱 실패", "raw": response.text},
+            status_code=500,
+            media_type="application/json; charset=utf-8",
+        )
+
+    nutrition = analysis.get("nutrition", {})
+    required_keys = ["carb", "protein", "fat", "fiber"]
+
+    if not all(k in nutrition for k in required_keys):
+        return JSONResponse(
+            content={"error": "AI가 영양성분을 추정하지 못했습니다.", "raw": analysis},
+            status_code=500,
+            media_type="application/json; charset=utf-8",
+        )
+
+    # 예상 혈당 상승량 계산
+    prediction = glucose_predictor.predict_peak(
+        carb=float(nutrition["carb"]),
+        protein=float(nutrition["protein"]),
+        fat=float(nutrition["fat"]),
+        fiber=float(nutrition["fiber"]),
+        baseline=bl,
+        diagnosis_group=diag,
+    )
+
+    return JSONResponse(
+        content={
+            "foodName": analysis.get("food_name", "알 수 없는 음식"),
+            "serving_size": analysis.get("serving_size"),
+            "nutrition": {
+                "carb": nutrition.get("carb"),
+                "sugar": nutrition.get("sugar"),
+                "protein": nutrition.get("protein"),
+                "fat": nutrition.get("fat"),
+                "fiber": nutrition.get("fiber"),
+                "calorie": nutrition.get("calorie"),
+            },
+            "predictedGlucoseRise": prediction["predicted_rise"],
+            "source": "AI추정",
+            "chatbotMessage": "AI가 사진을 분석해서 영양성분을 추정했어요. 정확하지 않을 수 있으니 확인해 주세요!",
+        },
+        media_type="application/json; charset=utf-8",
+    )
+
+
+# ---------------------------------------------------------
 # 7. 혈당 예측 + 걷기 미션 엔드포인트
 # ---------------------------------------------------------
 class PredictRequest(BaseModel):
