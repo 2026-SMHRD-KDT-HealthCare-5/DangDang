@@ -148,30 +148,6 @@ class ChatResponse(BaseModel):
 user_diagnosis_groups: dict[str, str] = {}
 
 
-def get_diagnosis_group(user_id: str) -> str:
-    return user_diagnosis_groups.get(user_id, "건강군")
-
-
-def hba1c_to_diagnosis_group(hba1c: float) -> str:
-    """
-    대한당뇨병학회/ADA 기준 HbA1c → 진단군 변환
-
-    < 5.7%       : 건강군
-    5.7% ~ 6.4%  : 전당뇨
-    >= 6.5%      : 2형당뇨
-
-    주의: 이건 선별(screening) 목적의 참고 기준이지 의학적 확진이 아님.
-    실제 진단군은 사용자가 병원에서 진단받은 결과를 우선하는 게 맞고,
-    HbA1c는 진단명을 모르는 회원가입 시점의 "추정용 폴백"으로 쓰는 걸 추천.
-    """
-    if hba1c < 5.7:
-        return "건강군"
-    elif hba1c < 6.5:
-        return "전당뇨"
-    else:
-        return "2형당뇨"
-
-
 # 식전 혈당 미입력 시 진단군별 기본값 (mg/dL)
 # ADA/대한당뇨병학회 공복혈당 범위의 중간값 기준
 #   건강군: 70~99  → 95
@@ -187,27 +163,6 @@ PRE_GLUCOSE_DEFAULTS = {
 def get_pre_glucose_default(diagnosis_group: str) -> int:
     """식전 혈당 미입력 시 진단군별 기본값 반환"""
     return PRE_GLUCOSE_DEFAULTS.get(diagnosis_group, 95)
-
-
-class SignupRequest(BaseModel):
-    user_id: str
-    hba1c: float
-
-
-@app.post("/signup-profile")
-def signup_profile(req: SignupRequest):
-    """회원가입 시 HbA1c만 받아서 진단군을 자동 계산 후 저장"""
-    diagnosis_group = hba1c_to_diagnosis_group(req.hba1c)
-    user_diagnosis_groups[req.user_id] = diagnosis_group
-
-    return JSONResponse(
-        content={
-            "user_id": req.user_id,
-            "hba1c": req.hba1c,
-            "diagnosis_group": diagnosis_group,
-        },
-        media_type="application/json; charset=utf-8",
-    )
 
 
 # ---------------------------------------------------------
@@ -710,16 +665,8 @@ async def reanalyze_food(
 
 
 # ---------------------------------------------------------
-# 7. 혈당 예측 + 걷기 미션 엔드포인트
+# 7. 걷기 미션 계산 유틸 (/rag/intake-logs/predict 등에서 공용으로 사용)
 # ---------------------------------------------------------
-class PredictRequest(BaseModel):
-    food_name: str
-    brand: str | None = None
-    serving_g: float = 100  # 실제 섭취량(g). DB는 100g 기준이라 이 값으로 스케일링
-    baseline: float  # 식전 혈당 (mg/dL)
-    diagnosis_group: str  # "건강군" | "전당뇨" | "2형당뇨"
-
-
 def calc_walking_mission(ppg: float) -> dict:
     """
     예측 peak 혈당(PPG, mg/dL) 기준 3구간 걷기 시간 공식
@@ -813,121 +760,3 @@ def predict_with_portion(req: PortionPredictRequest):
     )
 
 
-NUTRITION_ESTIMATION_PROMPT = """다음 음식의 100g당 영양성분을 추정해서 아래 JSON 형식으로만 답해.
-설명 문장 없이 순수 JSON만 출력해.
-
-{
-  "carb": 100g당_탄수화물_그램_숫자,
-  "sugar": 100g당_당류_그램_숫자,
-  "protein": 100g당_단백질_그램_숫자,
-  "fat": 100g당_지방_그램_숫자,
-  "fiber": 100g당_식이섬유_그램_숫자,
-  "calorie": 100g당_칼로리_숫자
-}
-
-일반적으로 알려진 조리법과 재료를 기준으로 최대한 합리적인 값을 추정해.
-"""
-
-
-def estimate_nutrition_via_llm(food_name: str) -> dict:
-    """DB 매칭 실패 시 텍스트 음식명만으로 Gemini에게 영양성분(100g당)을 추정시킴"""
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=food_name,
-        config={"system_instruction": NUTRITION_ESTIMATION_PROMPT, "temperature": 0.3},
-    )
-    log_token_usage(response, label="nutrition-estimation")
-    try:
-        return parse_gemini_json(response.text)
-    except Exception:
-        return {}
-
-
-def run_glucose_prediction(
-    food_name: str,
-    baseline: float,
-    diagnosis_group: str,
-    brand: str | None = None,
-    serving_g: float = 100,
-) -> dict:
-    """/predict-glucose와 /chat(자연어 파서)이 공용으로 쓰는 예측 로직"""
-    if diagnosis_group not in DIAGNOSIS_GROUPS:
-        return {"error": f"diagnosis_group은 {DIAGNOSIS_GROUPS} 중 하나여야 합니다."}
-
-    db_match = food_db.get_best_match(food_name, brand=brand)
-    MATCH_SCORE_THRESHOLD = 70
-
-    if db_match and db_match["match_score"] >= MATCH_SCORE_THRESHOLD:
-        nutrition_source = "db_matched"
-        matched_name = db_match["food_name"]
-        per_100g = {
-            "carb": db_match["carb"],
-            "protein": db_match["protein"],
-            "fat": db_match["fat"],
-            "fiber": db_match["fiber"],
-        }
-    else:
-        # DB에 없으면 Gemini로 영양성분 추정 (reanalyze 엔드포인트에서 호출)
-        estimated = estimate_nutrition_via_llm(food_name)
-        required_keys = ["carb", "protein", "fat", "fiber"]
-        if not estimated or not all(k in estimated for k in required_keys):
-            return {"error": f"'{food_name}'에 해당하는 음식을 DB에서도, LLM 추정으로도 찾지 못했습니다."}
-
-        nutrition_source = "llm_estimated"
-        matched_name = food_name
-        per_100g = estimated
-
-    scale = serving_g / 100.0
-    carb = per_100g["carb"] * scale
-    protein = per_100g["protein"] * scale
-    fat = per_100g["fat"] * scale
-    fiber = per_100g["fiber"] * scale
-
-    prediction = glucose_predictor.predict_peak(
-        carb=carb, protein=protein, fat=fat, fiber=fiber,
-        baseline=baseline, diagnosis_group=diagnosis_group,
-    )
-
-    mission = calc_walking_mission(prediction["predicted_peak"])
-
-    message = (
-        f"지금 {prediction['baseline']}에서 약 {prediction['predicted_rise']} 정도 올라서 "
-        f"{prediction['predicted_peak']} 근처일 것 같아요. "
-        f"{mission['walk_minutes']}분(약 {mission['distance_km']}km) 정도 걸으면 도움이 될 거예요!"
-    )
-    if nutrition_source == "llm_estimated":
-        message += " (다만 이 음식은 정확한 영양정보가 없어서 대략적으로 추정한 값이에요.)"
-    if prediction["low_confidence"]:
-        message += " (또한 지금 식전 혈당이 학습 데이터 범위보다 높아서, 이 예측은 참고용으로만 봐주세요.)"
-
-    return {
-        "matched_food": matched_name,
-        "nutrition_source": nutrition_source,  # "db_matched" | "llm_estimated"
-        "serving_g": serving_g,
-        "nutrition_used": {
-            "carb": round(carb, 1),
-            "protein": round(protein, 1),
-            "fat": round(fat, 1),
-            "fiber": round(fiber, 1),
-        },
-        "prediction": prediction,
-        "walking_mission": mission,
-        "message": message,
-    }
-
-
-@app.post("/predict-glucose")
-def predict_glucose(req: PredictRequest):
-    result = run_glucose_prediction(
-        food_name=req.food_name,
-        baseline=req.baseline,
-        diagnosis_group=req.diagnosis_group,
-        brand=req.brand,
-        serving_g=req.serving_g,
-    )
-
-    status_code = 200
-    if "error" in result:
-        status_code = 400 if "diagnosis_group" in result["error"] else 404
-
-    return JSONResponse(content=result, status_code=status_code, media_type="application/json; charset=utf-8")
