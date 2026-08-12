@@ -13,7 +13,7 @@ Gemini API로 대화형 응답을 생성하는 최소 기능 버전.
 
 import os
 from dotenv import load_dotenv
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from google import genai
@@ -451,7 +451,9 @@ def health_check():
 
 
 # ---------------------------------------------------------
-# 6. 음식 사진 인식 + 영양성분 DB 매칭 엔드포인트
+# 6. 음식 인식 + 영양성분 DB 매칭 엔드포인트
+#    Spring이 /api/intake-logs/recognize → 여기로 내부 호출
+#    입력: 사진(image) 또는 텍스트(message) — 둘 중 하나 필수
 # ---------------------------------------------------------
 FOOD_RECOGNITION_PROMPT = """이 사진 속 음식을 인식해서 아래 JSON 형식으로만 답해.
 설명 문장이나 마크다운 코드블록(```json) 없이, 순수 JSON 텍스트만 출력해.
@@ -460,20 +462,24 @@ FOOD_RECOGNITION_PROMPT = """이 사진 속 음식을 인식해서 아래 JSON �
   "food_name": "음식 이름 (한글, 검색하기 좋게 간결하게. 예: '황금올리브 치킨', '불고기 피자')",
   "brand": "프랜차이즈/브랜드명이 보이면 적고, 안 보이면 null",
   "confidence": "high | medium | low 중 하나 (인식 확신도)",
-  "estimated_serving_g": 예상 1인분 중량(그램, 숫자만),
-  "fallback_nutrition": {
-    "carb": 100g당_추정_탄수화물_그램_숫자,
-    "sugar": 100g당_추정_당류_그램_숫자,
-    "protein": 100g당_추정_단백질_그램_숫자,
-    "fat": 100g당_추정_지방_그램_숫자,
-    "fiber": 100g당_추정_식이섬유_그램_숫자,
-    "calorie": 100g당_추정_칼로리_숫자
-  }
+  "estimated_serving_g": 예상 1인분 중량(그램, 숫자만)
 }
 
-fallback_nutrition은 DB 매칭이 실패했을 때 쓸 추정값이니, 최대한 합리적으로 채워줘.
 사진에서 음식이 명확히 보이지 않으면 food_name을 "인식불가"로 설정해.
 """
+
+TEXT_FOOD_EXTRACTION_PROMPT = """사용자 메시지에서 음식명을 추출해서 아래 JSON 형식으로만 답해.
+설명 문장이나 마크다운 코드블록(```json) 없이, 순수 JSON 텍스트만 출력해.
+
+{
+  "food_name": "음식 이름 (한글, 검색하기 좋게 간결하게. 예: '김치찌개', '제육볶음')",
+  "brand": "프랜차이즈/브랜드명이 언급됐으면 적고, 없으면 null"
+}
+
+음식이 언급되지 않았으면 food_name을 "인식불가"로 설정해.
+"""
+
+MATCH_SCORE_THRESHOLD = 70  # DB 유사도 매칭 최소 점수
 
 
 def parse_gemini_json(text: str) -> dict:
@@ -486,77 +492,141 @@ def parse_gemini_json(text: str) -> dict:
     return json.loads(cleaned)
 
 
-@app.post("/identify-food")
-async def identify_food(image: UploadFile = File(...)):
-    image_bytes = await image.read()
-
-    response = client.models.generate_content(
-        model=MODEL_NAME,
-        contents=[
-            types.Part.from_bytes(data=image_bytes, mime_type=image.content_type),
-            FOOD_RECOGNITION_PROMPT,
-        ],
-    )
-
-    log_token_usage(response, label="identify-food")
-
-    try:
-        recognition = parse_gemini_json(response.text)
-    except Exception:
-        # JSON 파싱 실패 시 원문이라도 반환
-        return JSONResponse(
-            content={"error": "인식 결과 파싱 실패", "raw": response.text},
-            media_type="application/json; charset=utf-8",
+def _build_recognize_response(
+    matched: bool,
+    food_name: str,
+    db_match: dict | None,
+    baseline: float,
+    diagnosis_group: str,
+) -> dict:
+    """음식 인식 결과를 명세서 형식의 응답 dict로 구성"""
+    if matched and db_match:
+        # 예상 혈당 상승량 계산
+        prediction = glucose_predictor.predict_peak(
+            carb=float(db_match["carb"]),
+            protein=float(db_match["protein"]),
+            fat=float(db_match["fat"]),
+            fiber=float(db_match["fiber"]),
+            baseline=baseline,
+            diagnosis_group=diagnosis_group,
         )
-
-    food_name = recognition.get("food_name", "")
-    brand = recognition.get("brand")
-
-    if food_name == "인식불가":
-        return JSONResponse(
-            content={"recognition": recognition, "nutrition_source": None, "nutrition": None},
-            media_type="application/json; charset=utf-8",
-        )
-
-    # 식약처 DB에서 가장 유사한 항목 매칭 시도
-    db_match = food_db.get_best_match(food_name, brand=brand)
-
-    MATCH_SCORE_THRESHOLD = 70  # 이 점수 미만이면 신뢰 안 하고 LLM 추정값 사용
-
-    if db_match and db_match["match_score"] >= MATCH_SCORE_THRESHOLD:
-        return JSONResponse(
-            content={
-                "matched": True,
-                "foodNo": db_match["food_no"],
-                "foodName": db_match["food_name"],
-                "serving_size": db_match["serving_size"],
-                "nutrition": {
-                    "carb": db_match["carb"],
-                    "sugar": db_match["sugar"],
-                    "protein": db_match["protein"],
-                    "fat": db_match["fat"],
-                    "fiber": db_match["fiber"],
-                    "calorie": db_match["calorie"],
-                },
-                "source": "공공데이터",
-                "chatbotMessage": "식약처 데이터에서 찾았어요! 이 음식이 맞나요?",
+        return {
+            "matched": True,
+            "foodNo": db_match["food_no"],
+            "foodName": db_match["food_name"],
+            "serving_size": db_match["serving_size"],
+            "nutrition": {
+                "carb": db_match["carb"],
+                "sugar": db_match["sugar"],
+                "protein": db_match["protein"],
+                "fat": db_match["fat"],
+                "fiber": db_match["fiber"],
+                "calorie": db_match["calorie"],
             },
-            media_type="application/json; charset=utf-8",
-        )
+            "predictedGlucoseRise": prediction["predicted_rise"],
+            "source": "공공데이터",
+            "chatbotMessage": "식약처 데이터에서 찾았어요! 이 음식이 맞나요?",
+        }
     else:
         # DD_101: 조회 실패 시 자동 AI 분석 수행하지 않음 — 안내만 표시
+        return {
+            "matched": False,
+            "foodNo": None,
+            "foodName": food_name,
+            "serving_size": None,
+            "nutrition": None,
+            "predictedGlucoseRise": None,
+            "source": None,
+            "chatbotMessage": "식약처 데이터에서 찾지 못했어요. AI로 분석하거나 직접 입력해 주세요.",
+        }
+
+
+@app.post("/rag/intake-logs/recognize")
+async def recognize_food(
+    image: UploadFile | None = File(None),
+    message: str | None = Form(None),
+    baseline: float | None = Form(None),
+    diagnosis_group: str | None = Form(None),
+):
+    """
+    음식 인식 엔드포인트 (Spring 내부 호출용)
+
+    - image: 음식 사진 (사진 인식 시)
+    - message: 텍스트 입력 (채팅으로 음식명 입력 시)
+    - baseline: 식전 혈당 (미입력 시 진단군별 기본값 적용)
+    - diagnosis_group: 진단군 ("건강군" / "전당뇨" / "2형당뇨")
+    """
+    # 사진도 텍스트도 없으면 에러
+    if not image and not message:
         return JSONResponse(
-            content={
-                "matched": False,
-                "foodNo": None,
-                "foodName": food_name,
-                "serving_size": None,
-                "nutrition": None,
-                "source": None,
-                "chatbotMessage": "식약처 데이터에서 찾지 못했어요. AI로 분석하거나 직접 입력해 주세요.",
-            },
+            content={"error": "image 또는 message 중 하나는 필수입니다."},
+            status_code=400,
             media_type="application/json; charset=utf-8",
         )
+
+    # 진단군 기본값
+    diag = diagnosis_group if diagnosis_group in DIAGNOSIS_GROUPS else "건강군"
+
+    # 식전 혈당 기본값
+    bl = baseline if baseline is not None else get_pre_glucose_default(diag)
+
+    # --- 사진 입력 ---
+    if image:
+        image_bytes = await image.read()
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=[
+                types.Part.from_bytes(data=image_bytes, mime_type=image.content_type),
+                FOOD_RECOGNITION_PROMPT,
+            ],
+        )
+        log_token_usage(response, label="recognize-image")
+
+        try:
+            recognition = parse_gemini_json(response.text)
+        except Exception:
+            return JSONResponse(
+                content={"error": "인식 결과 파싱 실패", "raw": response.text},
+                status_code=500,
+                media_type="application/json; charset=utf-8",
+            )
+
+        food_name = recognition.get("food_name", "")
+        brand = recognition.get("brand")
+
+    # --- 텍스트 입력 ---
+    else:
+        response = client.models.generate_content(
+            model=MODEL_NAME,
+            contents=message,
+            config={"system_instruction": TEXT_FOOD_EXTRACTION_PROMPT, "temperature": 0.0},
+        )
+        log_token_usage(response, label="recognize-text")
+
+        try:
+            extraction = parse_gemini_json(response.text)
+        except Exception:
+            # 파싱 실패 시 입력 텍스트를 음식명으로 직접 사용
+            extraction = {"food_name": message.strip(), "brand": None}
+
+        food_name = extraction.get("food_name", message.strip())
+        brand = extraction.get("brand")
+
+    # 인식 불가
+    if food_name == "인식불가":
+        return JSONResponse(
+            content=_build_recognize_response(False, food_name, None, bl, diag),
+            media_type="application/json; charset=utf-8",
+        )
+
+    # DB 매칭
+    db_match = food_db.get_best_match(food_name, brand=brand)
+    matched = db_match is not None and db_match["match_score"] >= MATCH_SCORE_THRESHOLD
+
+    return JSONResponse(
+        content=_build_recognize_response(matched, food_name, db_match if matched else None, bl, diag),
+        media_type="application/json; charset=utf-8",
+    )
 
 
 # ---------------------------------------------------------
