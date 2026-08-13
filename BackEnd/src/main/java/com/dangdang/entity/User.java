@@ -55,7 +55,7 @@ public class User {
     @Column(precision = 4, scale = 2)
     private BigDecimal hba1c; // 당화혈색소
 
-    // 1=하(주 1~3회) / 2=중(주 3~5회) / 3=상(주 5~7회) — ActivityLevel enum 참고
+    // 1=거의 안함 / 2=주 1~2회 / 3=주 3~5회 / 4=매일 — ActivityLevel enum 참고
     @Column(name = "activity_level")
     private Integer activityLevel;
 

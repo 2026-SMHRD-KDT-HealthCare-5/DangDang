@@ -48,7 +48,7 @@ public class AuthService {
 
         String encodedPassword = passwordEncoder.encode(request.password());
 
-        // [각주 P] "주 1~3회" 같은 화면 문구를 1(하)/2(중)/3(상) 코드로 바꿔서 저장합니다.
+        // [각주 P] "거의 안함/주 1~2회/주 3~5회/매일" 같은 화면 문구를 1~4 코드로 바꿔서 저장합니다.
         // activityLevel이 안 넘어온 경우(선택 입력)는 매핑을 건너뜁니다.
         Integer activityLevelCode = request.activityLevel() == null
                 ? null
