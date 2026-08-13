@@ -1,0 +1,46 @@
+# [각주] 이 파일은 서버의 "설정값"을 모아두는 곳입니다 (포트 번호, DB 접속정보 등).
+# ${VAR:기본값} 형식은 "환경변수 VAR가 있으면 그 값을, 없으면 기본값을 쓴다"는 뜻입니다.
+# 실제 비밀번호/키는 여기 직접 적지 않고, 실행 시 환경변수로 주입하는 것이 안전합니다.
+
+server:
+  # [각주] .env의 SERVER_PORT 값을 읽습니다. 없으면 8080을 기본값으로 씁니다.
+  port: ${SERVER_PORT:8080} # 설계 문서 기준: 로컬에서는 Nginx 없이 앱이 Spring 포트를 직접 호출
+
+spring:
+  application:
+    name: dangdang-server
+
+  datasource:
+    # [각주] 팀 .env 규칙에 맞춤: DB_URL은 "호스트 주소만" 넣는 값입니다 (예: project-db-campus.smhrd.com
+    # 또는 로컬이면 localhost). 포트/DB이름은 학원 서버 기준 확정되면 .env에 DB_PORT/DB_NAME으로
+    # 추가하세요 — 지금은 못 정해진 경우를 대비해 기본값(5432 / dangdang)을 넣어뒀습니다.
+    url: jdbc:postgresql://${DB_URL:localhost}:${DB_PORT:5432}/${DB_NAME:dangdang}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+
+  jpa:
+    hibernate:
+      # [각주] ddl-auto=validate : 엔티티(Java 코드)와 실제 DB 테이블 구조가 일치하는지 "검사만" 하고,
+      # 스프링이 마음대로 테이블을 만들거나 바꾸지 않습니다. 테이블 생성은 아래 Flyway가 전담합니다.
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+    open-in-view: false # 트랜잭션 범위를 명확히 하기 위한 권장 설정(성능/설계상 이유)
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+# JWT(로그인 토큰) 관련 설정
+jwt:
+  # [각주] 반드시 운영 환경에서는 환경변수 JWT_SECRET으로 교체하세요.
+  # 생성 예시(터미널): openssl rand -base64 64
+  secret: ${JWT_SECRET:dangdang-local-dev-secret-key-please-change-this-in-real-env-32bytes+}
+  access-token-expiration-ms: ${JWT_ACCESS_TOKEN_EXPIRATION_MS:10800000}      # 3시간 (accessToken 유효기간)
+  refresh-token-expiration-ms: ${JWT_REFRESH_TOKEN_EXPIRATION_MS:1209600000} # 14일 (refreshToken 유효기간)
+
+logging:
+  level:
+    com.dangdang: debug

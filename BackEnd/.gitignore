@@ -1,0 +1,21 @@
+# 개인 로컬 비밀값 — 절대 커밋하지 않음
+.env
+
+# Gradle
+.gradle/
+build/
+
+# IDE
+.idea/
+*.iml
+out/
+
+# 이 컴퓨터에만 있는 로컬 경로 정보 (다른 팀원 PC와 경로가 다름 — 커밋하면 충돌/오류 유발)
+local.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# 로그 파일
+*.log
