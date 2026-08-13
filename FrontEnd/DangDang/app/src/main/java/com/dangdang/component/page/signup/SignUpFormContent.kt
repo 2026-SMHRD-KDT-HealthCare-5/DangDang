@@ -34,7 +34,7 @@ fun SignUpFormContentPreview(
             email = "",
             password = "",
             passwordCheck = "",
-            gender = Gender.Male,
+            gender = Gender.Male.name,
             birth_date = "",
             height = "",
             weight = "",
@@ -141,10 +141,10 @@ fun SignUpFormContent(
         )
         //성별
         GenderCheckView(
-            gender = signUpForm.gender,
+            gender = Gender.valueOf(signUpForm.gender),
             onGenderChange = {
                 onFormChange(
-                    signUpForm.copy(gender = it)
+                    signUpForm.copy(gender = it.name)
                 )
             }
         )

@@ -48,7 +48,7 @@ fun MyPageScreenPreview(
             email = "email@gmail.com",
             password = "",
             passwordCheck = "",
-            gender = Gender.Male,
+            gender = Gender.Male.name,
             birth_date = "1997.05.16",
             height = "170",
             weight = "70",

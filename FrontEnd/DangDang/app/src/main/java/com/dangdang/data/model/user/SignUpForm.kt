@@ -16,7 +16,7 @@ data class SignUpForm(
     //비밀번호 확인
     var passwordCheck: String,
     //성별
-    var gender: Gender,
+    var gender: String,
     //생일
     var birth_date: String,
     //키

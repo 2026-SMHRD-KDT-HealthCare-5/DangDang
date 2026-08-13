@@ -3,6 +3,7 @@ package com.dangdang.data.repository
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.data.api.UserApiService
 import com.dangdang.data.enums.Gender
+import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.data.model.user.SignUpForm
@@ -97,7 +98,7 @@ class UserRepository @Inject constructor(
             email = "email@gmail.com",
             password = "",
             passwordCheck = "",
-            gender = Gender.Male,
+            gender = Gender.Male.name,
             birth_date = "1997.05.16",
             height = "170",
             weight = "70",
@@ -161,32 +162,32 @@ class UserRepository @Inject constructor(
     suspend fun getWeeklyGlucoseCheckList(): Response<List<WeeklyGlucoseCheckModel>>{
         val response = listOf(
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "월",
-                isGlucoseManagement = false
+                day = "월",
+                status = WeeklyAttendanceStatus.MISSED.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "화",
-                isGlucoseManagement = true
+                day = "화",
+                status = WeeklyAttendanceStatus.DONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "수",
-                isGlucoseManagement = false
+                day = "수",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "목",
-                isGlucoseManagement = false
+                day = "목",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "금",
-                isGlucoseManagement = false
+                day = "금",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "토",
-                isGlucoseManagement = false
+                day = "토",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "일",
-                isGlucoseManagement = false
+                day = "일",
+                status = WeeklyAttendanceStatus.NONE.name
             )
         )
 

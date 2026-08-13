@@ -4,6 +4,6 @@ import androidx.annotation.Keep
 
 @Keep
 data class WeeklyGlucoseCheckModel(
-    val dayOfWeek: String,
-    var isGlucoseManagement: Boolean
+    val day: String,
+    var status: String
 )
