@@ -7,6 +7,7 @@ import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
+import com.dangdang.data.model.user.LoginForm
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.SignUpResponse
 import com.dangdang.data.model.user.TokenResponse
@@ -20,36 +21,13 @@ class UserRepository @Inject constructor(
     private val userApiService: UserApiService
 ){
     //이메일 로그인 api 부르기
-    suspend fun emailLogin(email: String, password: String): Response<TokenResponse>{
-        if(email == "email@gmail.com" && password == "1234567"){
-            val response = TokenResponse(
-                accessToken = "AccessToken",
-                refreshToken = "RefreshToken",
-                user = User(
-                    id = "1",
-                    isSignUp = false,
-                    nickname = "닉네임",
-                    profileImageUrl = ExamplePictureUrl,
-                    email = "email@gmail.com",
-                    sinceDays = 120,
-                    createdDt = "2026-07-28",
-                    updatedDt = "2026-07-28",
-                )
+    suspend fun emailLogin(email: String, password: String): Response<TokenResponse> = safeApiCall {
+        userApiService.login(
+            LoginForm(
+                email = email,
+                password = password
             )
-
-            return Response.success(response)
-        }else{
-            val errorJson = """
-                {
-                    "message": "Not Authorized"
-                }
-            """.trimIndent()
-
-            return Response.error(
-                401,
-                errorJson.toResponseBody("application/json".toMediaType())
-            )
-        }
+        )
     }
 
     //구글 로그인 api 부르기
@@ -57,16 +35,6 @@ class UserRepository @Inject constructor(
         val response = TokenResponse(
             accessToken = "AccessToken",
             refreshToken = "RefreshToken",
-            user = User(
-                id = "1",
-                isSignUp = false,
-                nickname = "닉네임",
-                profileImageUrl = ExamplePictureUrl,
-                email = "email@gmail.com",
-                sinceDays = 120,
-                createdDt = "2026-07-28",
-                updatedDt = "2026-07-28",
-            )
         )
 
         return Response.success(response)
@@ -77,16 +45,6 @@ class UserRepository @Inject constructor(
         val response = TokenResponse(
             accessToken = "AccessToken",
             refreshToken = "RefreshToken",
-            user = User(
-                id = "1",
-                isSignUp = true,
-                nickname = "닉네임",
-                profileImageUrl = ExamplePictureUrl,
-                email = "email@gmail.com",
-                sinceDays = 120,
-                createdDt = "2026-07-28",
-                updatedDt = "2026-07-28",
-            )
         )
 
         return Response.success(response)
@@ -140,8 +98,8 @@ class UserRepository @Inject constructor(
     }
 
     //로그아웃 api 부르기
-    suspend fun logout():Response<String>{
-        return Response.success("success")
+    suspend fun logout():Response<String> = safeApiCall {
+        userApiService.logout()
     }
 
     //알람설정 api 부르기

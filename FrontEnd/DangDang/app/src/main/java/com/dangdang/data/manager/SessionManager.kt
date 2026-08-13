@@ -96,6 +96,8 @@ class SessionManager(
         accessToken = ""
         refreshToken = ""
 
+        _logoutEvent.tryEmit(Unit)
+
         try {
             CredentialManager
                 .create(context)
@@ -107,7 +109,5 @@ class SessionManager(
         }
 
         UserApiClient.instance.logout { }
-
-        _logoutEvent.tryEmit(Unit)
     }
 }
