@@ -14,17 +14,17 @@ val activityLevelList = listOf(
     ),
     UserActivityLevelModel(
         titleIconResourceId = R.drawable.exercise_low,
-        title = "주 1 ~2회",
+        title = "주 1~2회",
         description = "가벼운 운동을 일주일에 1~2회 해요"
     ),
     UserActivityLevelModel(
         titleIconResourceId = R.drawable.exercise_medium,
-        title = "주 3 ~5회",
+        title = "주 3~5회",
         description = "보통 강도의 운동을 일주일에 3~5회 해요"
     ),
     UserActivityLevelModel(
         titleIconResourceId = R.drawable.exercise_high,
-        title = "거의 매일",
+        title = "매일",
         description = "거의 매일 꾸준히 운동해요"
     )
 )
@@ -35,14 +35,14 @@ val SignUpDefault = SignUpForm(
     email = "",
     password = "",
     passwordCheck = "",
-    gender = Gender.Male,
-    birth_date = "",
+    gender = Gender.male.name,
+    birthDate = "",
     height = "",
     weight = "",
     hba1c = "",
     isHemoglobinRecentResultUnknown = false,
-    target_glucose = "",
-    activity_level = activityLevelList[0].title,
+    targetGlucose = "",
+    activityLevel = activityLevelList[0].title,
     profileImageUrl = "",
     joined_at = "",
     notification_enabled = false

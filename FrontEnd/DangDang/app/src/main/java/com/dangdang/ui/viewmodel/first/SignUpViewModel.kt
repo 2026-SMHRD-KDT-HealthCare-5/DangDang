@@ -87,8 +87,8 @@ class SignUpViewModel @Inject constructor(
                     )
                 )
                 && (
-                    userInfoDetail.birth_date.isNotEmpty() &&
-                            isValidBirthDate(userInfoDetail.birth_date)
+                    userInfoDetail.birthDate.isNotEmpty() &&
+                            isValidBirthDate(userInfoDetail.birthDate)
                 )
                 && (
                     userInfoDetail.height.isNotEmpty() &&
@@ -106,8 +106,8 @@ class SignUpViewModel @Inject constructor(
                             || userInfoDetail.isHemoglobinRecentResultUnknown
                 )
                 && (
-                    userInfoDetail.target_glucose.isNotEmpty() &&
-                            isValidPostPrandialGlucose(userInfoDetail.target_glucose)
+                    userInfoDetail.targetGlucose.isNotEmpty() &&
+                            isValidPostPrandialGlucose(userInfoDetail.targetGlucose)
                 )
     }
 

@@ -1,7 +1,6 @@
 package com.dangdang.data.model.user
 
 import androidx.annotation.Keep
-import com.dangdang.data.enums.Gender
 
 @Keep
 data class SignUpForm(
@@ -16,9 +15,9 @@ data class SignUpForm(
     //비밀번호 확인
     var passwordCheck: String,
     //성별
-    var gender: Gender,
+    var gender: String,
     //생일
-    var birth_date: String,
+    var birthDate: String,
     //키
     var height: String,
     //몸무게
@@ -27,7 +26,7 @@ data class SignUpForm(
     var hba1c: String,
     var isHemoglobinRecentResultUnknown: Boolean,
     //식후 2시간 목표 혈당
-    var target_glucose: String,
+    var targetGlucose: String,
     //평소 활동량
-    var activity_level: String
+    var activityLevel: String
 )

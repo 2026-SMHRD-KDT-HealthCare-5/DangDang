@@ -1,11 +1,14 @@
 package com.dangdang.data.repository
 
 import com.dangdang.Application.Companion.ExamplePictureUrl
+import com.dangdang.common.utils.safeApiCall
 import com.dangdang.data.api.UserApiService
 import com.dangdang.data.enums.Gender
+import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.data.model.user.SignUpForm
+import com.dangdang.data.model.user.SignUpResponse
 import com.dangdang.data.model.user.TokenResponse
 import com.dangdang.data.model.user.User
 import okhttp3.MediaType.Companion.toMediaType
@@ -97,14 +100,14 @@ class UserRepository @Inject constructor(
             email = "email@gmail.com",
             password = "",
             passwordCheck = "",
-            gender = Gender.Male,
-            birth_date = "1997.05.16",
+            gender = Gender.male.name,
+            birthDate = "1997.05.16",
             height = "170",
             weight = "70",
             hba1c = "12",
             isHemoglobinRecentResultUnknown = false,
-            target_glucose = "180",
-            activity_level = "주 1 ~2회",
+            targetGlucose = "180",
+            activityLevel = "주 1 ~2회",
             joined_at = "2026-07-28",
             profileImageUrl = ExamplePictureUrl,
             notification_enabled = true
@@ -130,21 +133,10 @@ class UserRepository @Inject constructor(
     }
 
     //회원가입 api 부르기
-    suspend fun signUp(signUpForm: SignUpForm?): Response<String>{
-        if(signUpForm?.email == "email@gmail.com" || signUpForm?.nickname == "닉네임"){
-            val errorJson = """
-                {
-                    "message": "중복된 이메일입니다."
-                }
-            """.trimIndent()
-
-            return Response.error(
-                409,
-                errorJson.toResponseBody("application/json".toMediaType())
-            )
-        }else{
-            return Response.success("success")
-        }
+    suspend fun signUp(signUpForm: SignUpForm?): Response<SignUpResponse> = safeApiCall {
+        userApiService.signUp(signUpForm?.copy(
+            birthDate = signUpForm.birthDate.replace(".", "-")
+        ))
     }
 
     //로그아웃 api 부르기
@@ -161,32 +153,32 @@ class UserRepository @Inject constructor(
     suspend fun getWeeklyGlucoseCheckList(): Response<List<WeeklyGlucoseCheckModel>>{
         val response = listOf(
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "월",
-                isGlucoseManagement = false
+                day = "월",
+                status = WeeklyAttendanceStatus.MISSED.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "화",
-                isGlucoseManagement = true
+                day = "화",
+                status = WeeklyAttendanceStatus.DONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "수",
-                isGlucoseManagement = false
+                day = "수",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "목",
-                isGlucoseManagement = false
+                day = "목",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "금",
-                isGlucoseManagement = false
+                day = "금",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "토",
-                isGlucoseManagement = false
+                day = "토",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "일",
-                isGlucoseManagement = false
+                day = "일",
+                status = WeeklyAttendanceStatus.NONE.name
             )
         )
 

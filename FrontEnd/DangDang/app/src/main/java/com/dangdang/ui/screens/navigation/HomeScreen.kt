@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -16,7 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.mainScreen
-import com.dangdang.common.utils.regular
 import com.dangdang.component.chart.GlucoseTrendChart
 import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.navigation.topnavigation.TopNavigation
@@ -24,11 +22,11 @@ import com.dangdang.component.page.home.HomeGuideBox
 import com.dangdang.component.page.home.HomeTeamChallengeStatus
 import com.dangdang.component.page.home.WeeklyCheckListBox
 import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
-import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.viewmodel.home.HomeViewModel
 
 @Preview
@@ -41,32 +39,32 @@ fun HomeScreenPreview(
         onTeamChallengeMoreClick = {},
         weeklyGlucoseCheckList = listOf(
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "월",
-                isGlucoseManagement = false
+                day = "월",
+                status = WeeklyAttendanceStatus.MISSED.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "화",
-                isGlucoseManagement = true
+                day = "화",
+                status = WeeklyAttendanceStatus.DONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "수",
-                isGlucoseManagement = false
+                day = "수",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "목",
-                isGlucoseManagement = false
+                day = "목",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "금",
-                isGlucoseManagement = false
+                day = "금",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "토",
-                isGlucoseManagement = false
+                day = "토",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "일",
-                isGlucoseManagement = false
+                day = "일",
+                status = WeeklyAttendanceStatus.NONE.name
             )
         ),
         afterMealGlucoseStatus = AfterMealGlucoseStatusModel(
