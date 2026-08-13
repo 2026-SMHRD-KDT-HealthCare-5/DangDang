@@ -9,6 +9,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.HeightMaxValue
+import com.dangdang.common.utils.HeightMinValue
+import com.dangdang.common.utils.PasswordMinLength
+import com.dangdang.common.utils.WeightMaxValue
+import com.dangdang.common.utils.WeightMinValue
 import com.dangdang.common.utils.activityLevelList
 import com.dangdang.common.utils.isValidBirthDate
 import com.dangdang.common.utils.isValidEmail
@@ -108,7 +113,7 @@ fun SignUpFormContent(
             isBorder = true,
             value = signUpForm.password,
             isError = !isValidPassword(signUpForm.password),
-            errorText = "비밀번호는 8자 이상이어야 합니다.",
+            errorText = "비밀번호는 ${PasswordMinLength}자 이상이어야 합니다.",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(password = it)
@@ -174,13 +179,15 @@ fun SignUpFormContent(
             isBorder = true,
             value = signUpForm.height,
             isError = !isValidHeight(signUpForm.height),
-            errorText = "키를 숫자로 입력해주세요(50~500)",
+            errorText = "키를 숫자로 입력해주세요(" +
+                    "${HeightMinValue}~${HeightMaxValue})",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(height = it)
                 )
             },
-            placeholderText = "키를 숫자로 입력해주세요(50~500)",
+            placeholderText = "키를 숫자로 입력해주세요(" +
+                    "${HeightMinValue}~${HeightMaxValue})",
             maxLength = 3,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
@@ -193,13 +200,15 @@ fun SignUpFormContent(
             isBorder = true,
             value = signUpForm.weight,
             isError = !isValidWeight(signUpForm.weight),
-            errorText = "몸무게를 숫자로 입력해주세요(20~300)",
+            errorText = "몸무게를 숫자로 입력해주세요(" +
+                    "${WeightMinValue.toInt()}~${WeightMaxValue.toInt()})",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(weight = it)
                 )
             },
-            placeholderText = "몸무게를 숫자로 입력해주세요(20~300)",
+            placeholderText = "몸무게를 숫자로 입력해주세요(" +
+                    "${WeightMinValue.toInt()}~${WeightMaxValue.toInt()})",
             maxLength = 5,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number

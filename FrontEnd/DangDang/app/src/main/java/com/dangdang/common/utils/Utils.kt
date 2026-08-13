@@ -7,8 +7,10 @@ import android.net.Uri
 import android.util.Patterns
 import android.webkit.MimeTypeMap
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
@@ -22,17 +24,22 @@ import androidx.navigation.NavHostController
 import com.dangdang.data.enums.LayoutSize
 import androidx.core.net.toUri
 import com.dangdang.Application.Companion.InquiryEmail
+import com.dangdang.data.enums.DividerPosition
+import com.dangdang.data.model.ResponseErrorModel
 import com.dangdang.data.model.community.CameraImage
 import com.dangdang.ui.theme.DarkGreen
 import com.dangdang.ui.theme.HotPink
 import com.dangdang.ui.theme.Orange
 import com.dangdang.ui.theme.PrimaryBlue
 import com.dangdang.ui.theme.PrimaryPurple
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.notoSansKR
+import com.google.gson.Gson
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
+import retrofit2.Response
 import java.io.File
 import java.text.DecimalFormat
 import java.time.LocalDate
@@ -66,6 +73,39 @@ fun Modifier.componentWidthModifier(
                 }
             LayoutSize.FillMaxSize ->
                 Modifier.fillMaxWidth()
+        }
+    )
+
+fun Modifier.dividerWidthModifier(
+    position: DividerPosition,
+    size: Dp? = null,
+) = this
+    .then(
+    if(position == DividerPosition.Horizontal){
+        if(size != null){
+            Modifier.width(size)
+        }else{
+            Modifier.fillMaxWidth()
+        }
+    }else{
+        Modifier.width(ThinLineDp)
+    }
+)
+
+
+fun Modifier.dividerHeightModifier(
+    position: DividerPosition,
+    size: Dp? = null,
+) = this
+    .then(
+        if(position == DividerPosition.Vertical){
+            if(size != null){
+                Modifier.height(size)
+            }else{
+                Modifier.fillMaxHeight()
+            }
+        }else{
+            Modifier.height(ThinLineDp)
         }
     )
 
@@ -195,57 +235,14 @@ fun Context.createImage(): CameraImage {
     )
 }
 
-//생년월일 유효성 확인
-fun isValidBirthDate(dateStr: String): Boolean {
-    if (dateStr.length != 10) return false
-
-    return try {
-        val formatter = DateTimeFormatter.ofPattern("uuuu.MM.dd")
-            .withResolverStyle(ResolverStyle.STRICT)
-
-        val parsedDate = LocalDate.parse(dateStr, formatter)
-
-        !parsedDate.isAfter(LocalDate.now()) &&
-                !parsedDate.isAfter(LocalDate.now().minusYears(14))
-    } catch (e: Exception) {
-        false
-    }
+//errormessage 가져오기
+fun <T> getResponseError(response: Response<T>): ResponseErrorModel{
+    val errorString = response.errorBody()?.string()
+    val errorJson = Gson().fromJson(errorString, ResponseErrorModel::class.java)
+    return errorJson
 }
 
-//이메일 유효성 확인
-fun isValidEmail(email: String): Boolean {
-    return Patterns.EMAIL_ADDRESS
-        .matcher(email)
-        .matches()
-}
-
-fun isValidPassword(password: String): Boolean{
-    return password.length >= 8
-}
-
-//키 유효성 확인
-fun isValidHeight(input: String): Boolean {
-    val value = input.toIntOrNull() ?: return false
-    return value in 50..500
-}
-
-//몸무게 유효성 확인
-fun isValidWeight(input: String): Boolean {
-    val value = input.toFloatOrNull() ?: return false
-    return value in 20f..300f
-}
-
-//당화혈색소 유효성 확인
-fun isValidHbA1c(input: String): Boolean {
-    val value = input.toFloatOrNull() ?: return false
-    return value in 4f..15f
-}
-
-// 식후 2시간 목표 혈당 유효성 확인
-fun isValidPostPrandialGlucose(input: String): Boolean {
-    val value = input.toIntOrNull() ?: return false
-    return value in 80..300
-}
+val CHART_TIMES: List<String> = (6..24).map { "${it}시" }
 
 val GuageColorList = listOf(
     PrimaryBlue,

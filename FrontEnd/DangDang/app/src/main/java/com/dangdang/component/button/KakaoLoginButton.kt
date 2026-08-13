@@ -25,6 +25,7 @@ import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.KakaoYellow
 import com.dangdang.ui.theme.LightGray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -48,7 +49,7 @@ fun KakaoLoginButton(
         modifier = Modifier
             .background(
                 color = KakaoYellow,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp)
             .componentWidthModifier(

@@ -43,7 +43,9 @@ import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.Red
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -207,8 +209,8 @@ fun TextField(
             decorationBox = { innerTextField ->
                 Row(
                     modifier = Modifier
-                        .background(if(isEnabled) White else DarkGray, shape = RoundedCornerShape(12.dp))
-                        .border(1.dp, if(isBorder) Gray else White, shape = RoundedCornerShape(12.dp))
+                        .background(if(isEnabled) White else DarkGray, shape = MediumRoundShape)
+                        .border(ThinLineDp, if(isBorder) Gray else White, shape = MediumRoundShape)
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp)

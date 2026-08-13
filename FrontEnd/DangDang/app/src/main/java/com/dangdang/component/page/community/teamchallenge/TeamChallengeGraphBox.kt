@@ -39,6 +39,8 @@ import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.DarkGreen
 import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.LightSlateGray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import kotlin.Int
 
 @Preview
@@ -68,12 +70,12 @@ fun TeamChallengeGraphBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)

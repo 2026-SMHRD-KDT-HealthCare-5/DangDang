@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.Application.Companion.GoogleLoginKey
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.getResponseError
 import com.dangdang.data.manager.SessionManager
 import com.dangdang.data.repository.UserRepository
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
@@ -45,7 +46,7 @@ class LoginViewModel @Inject constructor(
             }else{
                 Toast.makeText(
                     context,
-                    "아이디 또는 비밀번호를 확인해주세요.",
+                    getResponseError(response).message,
                     Toast.LENGTH_SHORT).show()
             }
         }

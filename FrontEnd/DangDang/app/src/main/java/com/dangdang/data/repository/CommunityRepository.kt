@@ -11,8 +11,6 @@ import com.dangdang.data.model.community.TeamMakeForm
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.data.model.community.TeamSearchInfoModel
-import com.dangdang.data.model.user.TokenResponse
-import com.dangdang.data.model.user.User
 import retrofit2.Response
 import java.io.File
 import javax.inject.Inject
@@ -86,32 +84,32 @@ class CommunityRepository @Inject constructor(
             TeamRankingStatusModel(
                 rank = 1,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명",
-                currentDistance = 32.56f,
+                teamName = "팀명",
+                monthlyDistance = 32.56f,
             ),
             TeamRankingStatusModel(
                 rank = 2,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명2",
-                currentDistance = 20.56f,
+                teamName = "팀명2",
+                monthlyDistance = 20.56f,
             ),
             TeamRankingStatusModel(
                 rank = 3,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명3",
-                currentDistance = 10.56f,
+                teamName = "팀명3",
+                monthlyDistance = 10.56f,
             ),
             TeamRankingStatusModel(
                 rank = 4,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명4",
-                currentDistance = 5.56f,
+                teamName = "팀명4",
+                monthlyDistance = 5.56f,
             ),
             TeamRankingStatusModel(
                 rank = 5,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명5",
-                currentDistance = 3.56f,
+                teamName = "팀명5",
+                monthlyDistance = 3.56f,
             )
         )
 
@@ -127,57 +125,57 @@ class CommunityRepository @Inject constructor(
     suspend fun getTeamList(keyword:String): Response<List<TeamSearchInfoModel>>{
         val response = listOf(
             TeamSearchInfoModel(
-                id = 1,
+                teamNo = 1,
                 profileImageUrl = ExamplePictureUrl,
-                name = "건강한 습관 만들기",
-                currentMemberCount = 4,
-                maxMemberCount = 5,
+                teamName = "건강한 습관 만들기",
+                memberCount = 4,
+                capacity = 5,
                 currentDistance = 30.2f,
                 targetDistance = 150f,
-                introduction = "하루 7천보 이상 함께 걸어요!"
+                teamIntro = "하루 7천보 이상 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 2,
+                teamNo = 2,
                 profileImageUrl = ExamplePictureUrl,
-                name = "매일 만보 걷기",
-                currentMemberCount = 3,
-                maxMemberCount = 5,
+                teamName = "매일 만보 걷기",
+                memberCount = 3,
+                capacity = 5,
                 currentDistance = 60.2f,
                 targetDistance = 150f,
-                introduction = "만보 걷기 습관을 만들어요!"
+                teamIntro = "만보 걷기 습관을 만들어요!"
             ),
             TeamSearchInfoModel(
-                id = 3,
+                teamNo = 3,
                 profileImageUrl = ExamplePictureUrl,
-                name = "아침 걷기 챌린지",
-                currentMemberCount = 2,
-                maxMemberCount = 5,
+                teamName = "아침 걷기 챌린지",
+                memberCount = 2,
+                capacity = 5,
                 currentDistance = 40.2f,
                 targetDistance = 150f,
-                introduction = "아침에 함께 걸어요!"
+                teamIntro = "아침에 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 4,
+                teamNo = 4,
                 profileImageUrl = ExamplePictureUrl,
-                name = "건강한 습관 만들기",
-                currentMemberCount = 1,
-                maxMemberCount = 5,
+                teamName = "건강한 습관 만들기",
+                memberCount = 1,
+                capacity = 5,
                 currentDistance = 10.2f,
                 targetDistance = 150f,
-                introduction = "하루 7천보 이상 함께 걸어요!"
+                teamIntro = "하루 7천보 이상 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 5,
+                teamNo = 5,
                 profileImageUrl = ExamplePictureUrl,
-                name = "주말 러닝 & 걷기",
-                currentMemberCount = 1,
-                maxMemberCount = 5,
+                teamName = "주말 러닝 & 걷기",
+                memberCount = 1,
+                capacity = 5,
                 currentDistance = 50.2f,
                 targetDistance = 150f,
-                introduction = "주말에 함께 러닝과 걷기!"
+                teamIntro = "주말에 함께 러닝과 걷기!"
             )
         ).filter {
-            it.name.contains(keyword)
+            it.teamName.contains(keyword)
         }
 
         return Response.success(response)

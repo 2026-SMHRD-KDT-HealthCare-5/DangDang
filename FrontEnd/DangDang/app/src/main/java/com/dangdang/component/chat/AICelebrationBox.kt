@@ -34,6 +34,8 @@ import com.dangdang.ui.theme.ForestGreen
 import com.dangdang.ui.theme.LightGreen
 import com.dangdang.ui.theme.LightScarlet
 import com.dangdang.ui.theme.MagentaPink
+import com.dangdang.ui.theme.MediumLineDp
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.Scarlet
 
 @Preview
@@ -59,14 +61,14 @@ fun AICelebrationBox(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(12.dp))
+            .clip(MediumRoundShape)
             .background(
                 color = if(isSuccess) LightGreen else LightScarlet,
             )
             .border(
-                width = 2.dp,
+                width = MediumLineDp,
                 color = if(isSuccess) EmeraldGreen else Scarlet,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
     ){
         Column(

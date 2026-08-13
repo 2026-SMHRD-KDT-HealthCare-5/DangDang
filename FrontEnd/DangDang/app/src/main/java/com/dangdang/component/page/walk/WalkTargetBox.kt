@@ -27,6 +27,8 @@ import com.dangdang.ui.theme.PrimaryBlue
 import com.dangdang.ui.theme.White
 import java.util.Locale
 import androidx.compose.ui.platform.LocalLocale
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 
 @Preview
 @Composable
@@ -47,12 +49,12 @@ fun WalkTargetBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)

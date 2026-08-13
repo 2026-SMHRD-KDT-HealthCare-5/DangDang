@@ -25,6 +25,8 @@ import com.dangdang.data.enums.Direction
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 
 @Preview
 @Composable
@@ -69,14 +71,14 @@ fun SpeechBubble(
                 .weight(1f)
                 .background(
                     color = chatUserType.speechBubbleBackground,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MediumRoundShape
                 )
                 .then(
                     if(chatUserType.isSpeechBubbleBorder){
                         Modifier.border(
-                            width = 1.dp,
+                            width = ThinLineDp,
                             color = Gray,
-                            shape = RoundedCornerShape(12.dp)
+                            shape = MediumRoundShape
                         )
                     }else{
                         Modifier

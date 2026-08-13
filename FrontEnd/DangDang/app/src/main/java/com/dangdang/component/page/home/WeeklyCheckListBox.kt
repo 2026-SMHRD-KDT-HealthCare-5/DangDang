@@ -19,6 +19,8 @@ import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 import java.time.LocalDate
 
@@ -68,12 +70,12 @@ fun WeeklyCheckListBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
