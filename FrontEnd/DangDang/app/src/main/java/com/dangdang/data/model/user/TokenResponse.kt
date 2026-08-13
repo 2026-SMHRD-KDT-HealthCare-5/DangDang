@@ -6,5 +6,4 @@ import androidx.annotation.Keep
 data class TokenResponse(
     val accessToken: String,
     val refreshToken: String,
-    val user: User,
 )

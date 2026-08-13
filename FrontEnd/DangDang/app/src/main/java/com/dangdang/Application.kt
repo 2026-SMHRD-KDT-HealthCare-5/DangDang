@@ -9,7 +9,7 @@ import dagger.hilt.android.HiltAndroidApp
 class Application : Application(){
     companion object {
         //여기에 자주 쓰는 상수 기재
-        const val REFRESH_PATH = "/auth/refresh"
+        const val REFRESH_PATH = "/api/auth/refresh"
 
         const val API_BASE_URL = BuildConfig.API_BASE_URL
 

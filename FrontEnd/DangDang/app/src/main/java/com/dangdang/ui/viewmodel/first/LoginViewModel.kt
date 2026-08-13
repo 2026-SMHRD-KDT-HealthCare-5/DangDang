@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.Application.Companion.GoogleLoginKey
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.data.manager.SessionManager
 import com.dangdang.data.repository.UserRepository
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -20,7 +21,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val appPrefs: AppPrefs,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
     //이메일 로그인
     fun emailLogin(context: Context, onLoginSuccess: () -> Unit, email: String, password: String){
@@ -29,8 +31,10 @@ class LoginViewModel @Inject constructor(
 
             if(response.isSuccessful){
                 val responseBody = response.body()
-                appPrefs.setAccessToken(responseBody?.accessToken?:"")
-                appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
+                sessionManager.saveTokens(
+                    responseBody?.accessToken?:"",
+                    responseBody?.refreshToken?:""
+                )
 
                 appPrefs.setAutoLogin(true)
 
@@ -56,10 +60,12 @@ class LoginViewModel @Inject constructor(
 
             if(response.isSuccessful){
                 val responseBody = response.body()
-                appPrefs.setAccessToken(responseBody?.accessToken?:"")
-                appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
+                sessionManager.saveTokens(
+                    responseBody?.accessToken?:"",
+                    responseBody?.refreshToken?:""
+                )
 
-                val isSignUp = responseBody?.user?.isSignUp
+                val isSignUp = true
 
                 appPrefs.setAutoLogin(isSignUp != true)
 
@@ -120,10 +126,12 @@ class LoginViewModel @Inject constructor(
 
                     if(response.isSuccessful){
                         val responseBody = response.body()
-                        appPrefs.setAccessToken(responseBody?.accessToken?:"")
-                        appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
+                        sessionManager.saveTokens(
+                            responseBody?.accessToken?:"",
+                            responseBody?.refreshToken?:""
+                        )
 
-                        val isSignUp = responseBody?.user?.isSignUp
+                        val isSignUp = true
 
                         appPrefs.setAutoLogin(isSignUp != true)
 
