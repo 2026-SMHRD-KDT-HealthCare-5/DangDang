@@ -1,0 +1,30 @@
+# [각주] 이 파일은 DangDang 폴더 전체(BackEnd/FrontEnd/AI 공통)에 적용되는 최상위 .gitignore입니다.
+# 각 하위 폴더(BackEnd/.gitignore, FrontEnd/DangDang/.gitignore)에도 자체 규칙이 있지만,
+# 그건 "그 폴더 안"에서만 적용되고 DangDang 루트 자체에서 생기는 파일은 못 잡아줍니다.
+# (예: 전체 폴더를 IntelliJ로 열었을 때 루트에 생기는 .idea/ 등)
+
+
+
+# 최상위에서 IntelliJ로 전체 프로젝트를 열었을 때 생기는 설정 폴더
+.idea/
+*.iml
+out/
+Document
+
+# OS가 자동으로 만드는 파일
+.DS_Store
+Thumbs.db
+
+# 비밀값/로컬 전용 설정 (혹시 루트에 생기더라도 절대 커밋 금지)
+.env
+.env.local
+local.properties
+*.log
+
+# ── 나중에 추가할 파이썬(FastAPI/RAG) 폴더 대비 미리 넣어둔 규칙 ──
+# 파이썬 실행 시 자동 생성되는 캐시/가상환경 폴더는 용량만 크고 커밋할 필요가 없습니다.
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
