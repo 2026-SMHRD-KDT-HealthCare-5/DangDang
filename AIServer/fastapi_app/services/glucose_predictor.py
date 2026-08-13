@@ -9,7 +9,11 @@ FEATURE_ORDER는 학습 노트북에서 확인된 실제 순서입니다:
 """
 
 import pickle
+from pathlib import Path
+
 import numpy as np
+
+from core.config import DIAGNOSIS_GROUPS
 
 FEATURE_ORDER = [
     "탄수화물",
@@ -22,15 +26,17 @@ FEATURE_ORDER = [
     "진단군_전당뇨",
 ]
 
-DIAGNOSIS_GROUPS = ["건강군", "전당뇨", "2형당뇨"]
-
 # 학습 데이터 baseline의 90th 백분위수. 이 값을 넘는 입력은 학습 데이터가
 # 희박한 구간이라 예측이 불안정할 수 있음 (노트북에서 확인된 값)
 MAX_RELIABLE_BASELINE = 168.8
 
+# fastapi_app/models/final_risk_model.pkl 고정 위치.
+# __file__ 기준 상대경로라 uvicorn을 어느 위치에서 실행해도 항상 같은 파일을 찾는다.
+DEFAULT_MODEL_PATH = Path(__file__).resolve().parent.parent / "models" / "final_risk_model.pkl"
+
 
 class GlucosePredictor:
-    def __init__(self, model_path: str = "final_risk_model.pkl"):
+    def __init__(self, model_path: Path | str = DEFAULT_MODEL_PATH):
         with open(model_path, "rb") as f:
             self.model = pickle.load(f)
 
@@ -82,9 +88,16 @@ class GlucosePredictor:
         }
 
 
+# 모듈 최초 import 시 1회만 로드되어 이후 재사용된다 (Python import 캐싱).
+# NFR-DV-001(예측 15초 이내 응답)을 만족하려면 요청마다 모델을 새로 로드하면 안 되는데,
+# 여기서 모듈 레벨 싱글턴으로 만들어두면 그 요구사항이 자연스럽게 지켜진다.
+# → models/final_risk_model.pkl 이 로컬에 없으면 이 줄에서 바로 FileNotFoundError가 난다.
+#   (.gitignore로 제외된 파일이라 각자 로컬에 직접 받아둬야 함)
+glucose_predictor = GlucosePredictor()
+
+
 if __name__ == "__main__":
-    predictor = GlucosePredictor("final_risk_model.pkl")
-    result = predictor.predict_peak(
+    result = glucose_predictor.predict_peak(
         carb=15.23, protein=20.85, fat=16.72, fiber=1.21,
         baseline=110, diagnosis_group="전당뇨",
     )

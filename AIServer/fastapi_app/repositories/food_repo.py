@@ -19,8 +19,16 @@ Gemini가 사진/자연어로 인식한 음식명(예: "치킨", "제육볶음")
 """
 
 import re
+from pathlib import Path
+
 import pandas as pd
 from rapidfuzz import fuzz, process
+
+# fastapi_app/data/food_for_db.csv 고정 위치.
+# __file__ 기준 상대경로라 uvicorn을 어느 위치에서 실행해도 항상 같은 파일을 찾는다.
+# TODO: 현재는 CSV 기반 텍스트 유사도 매칭 프로토타입. 스펙(백엔드 가이드 5장)상
+#       최종 목표는 PostgreSQL FOOD_INFO 테이블 + pgvector/pg_trgm 유사도 검색으로 교체.
+DEFAULT_CSV_PATH = Path(__file__).resolve().parent.parent / "data" / "food_for_db.csv"
 
 # 한글 사이즈 표현 -> 데이터에 실제로 쓰이는 영문 코드 매핑
 # (파파존스 등 피자 프랜차이즈 표기 관례 기준. 브랜드마다 F/P 의미가 조금 다를 수 있어
@@ -48,7 +56,7 @@ def _extract_size_code(query: str):
 
 
 class FoodDB:
-    def __init__(self, csv_path: str):
+    def __init__(self, csv_path: Path | str = DEFAULT_CSV_PATH):
         try:
             self.df = pd.read_csv(csv_path, encoding="utf-8-sig")
         except UnicodeDecodeError:
@@ -150,9 +158,14 @@ class FoodDB:
         return best
 
 
+# 모듈 최초 import 시 1회만 로드되어 이후 재사용된다 (Python import 캐싱).
+# services/food_recognition.py가 이 싱글턴을 그대로 가져다 쓴다.
+food_db = FoodDB()
+
+
 if __name__ == "__main__":
     # 간단한 테스트
-    db = FoodDB("db_import/food_for_db.csv")
+    db = food_db
 
     tests = [
         ("황금올리브 치킨", "비비큐"),
