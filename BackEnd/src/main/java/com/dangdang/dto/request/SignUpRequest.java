@@ -50,7 +50,7 @@ public record SignUpRequest(
         BigDecimal hba1c,
 
         /*
-         * [각주 P] 평소 활동량. 프론트 화면에는 "주 1~3회 / 주 3~5회 / 주 5~7회" 문구로 노출되고,
+         * [각주 P] 평소 활동량. 프론트 화면에는 "거의 안함 / 주 1~2회 / 주 3~5회 / 매일" 문구로 노출되고,
          * 여기서는 그 문자열을 그대로 받습니다. DB에는 정수(1=하/2=중/3=상)로 저장해야 하므로,
          * 실제 매핑·검증은 AuthService에서 ActivityLevel.fromRawText()가 담당합니다.
          * (문자열이 셋 중 하나가 아니면 400 INVALID_ACTIVITY_LEVEL)

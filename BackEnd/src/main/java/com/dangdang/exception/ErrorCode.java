@@ -18,7 +18,7 @@ public enum ErrorCode {
     AUTHENTICATION_REQUIRED(HttpStatus.UNAUTHORIZED, "AUTH_401_REQUIRED", "로그인이 필요합니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_404_USER_NOT_FOUND", "존재하지 않는 사용자입니다."),
     INVALID_ACTIVITY_LEVEL(HttpStatus.BAD_REQUEST, "AUTH_400_INVALID_ACTIVITY_LEVEL",
-            "평소 활동량 값이 올바르지 않습니다. (주 1~3회 / 주 3~5회 / 주 5~7회 중 하나여야 합니다)");
+            "평소 활동량 값이 올바르지 않습니다. (거의 안함 / 주 1~2회 / 주 3~5회 / 매일 중 하나여야 합니다)");
 
     private final HttpStatus status;
     private final String code;
