@@ -144,7 +144,7 @@ fun FoodDetailBox(
                 )
 
                 Icon(
-                    painter = painterResource(R.mipmap.important_icon),
+                    painter = painterResource(R.drawable.important_icon),
                     contentDescription = "중요 아이콘",
                     modifier = Modifier
                         .size(8.dp),
@@ -236,7 +236,7 @@ fun FoodDetailBox(
                 backgroundColor = DarkGreenOpacity15,
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.green_check),
+                        painter = painterResource(R.drawable.green_check),
                         contentDescription = "green check",
                         modifier = Modifier
                             .size(24.dp),
@@ -253,7 +253,7 @@ fun FoodDetailBox(
                 backgroundColor = LavenderPurple,
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.ai_chip),
+                        painter = painterResource(R.drawable.ai_chip),
                         contentDescription = "ai chip",
                         modifier = Modifier
                             .size(24.dp),
@@ -270,7 +270,7 @@ fun FoodDetailBox(
                 backgroundColor = PrimaryBlueOpacity13,
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.search),
+                        painter = painterResource(R.drawable.search),
                         contentDescription = "search",
                         modifier = Modifier
                             .size(24.dp),
@@ -287,7 +287,7 @@ fun FoodDetailBox(
                 backgroundColor = SlateGrayOpacity13,
                 leftIcon = {
                     Icon(
-                        painter = painterResource(R.mipmap.pencil_icon),
+                        painter = painterResource(R.drawable.pencil_icon),
                         contentDescription = "pencil",
                         modifier = Modifier
                             .size(24.dp),

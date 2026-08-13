@@ -11,47 +11,43 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
+import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.ui.theme.White
 
 @Preview
 @Composable
 fun RankingIn3BoxPreview(){
     RankingIn3Box(
-        teamMemberChallengeStatusList = listOf(
-            TeamMemberChallengeStatusModel(
+        teamRankingStatusList = listOf(
+            TeamRankingStatusModel(
                 rank = 1,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임",
+                name = "닉네임",
                 currentDistance = 32.56f,
-                targetDistance = 150f
             ),
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 2,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임2",
+                name = "닉네임2",
                 currentDistance = 20.56f,
-                targetDistance = 150f
             ),
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 3,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임3",
+                name = "닉네임3",
                 currentDistance = 10.56f,
-                targetDistance = 150f
             ),
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 4,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임4",
+                name = "닉네임4",
                 currentDistance = 5.56f,
-                targetDistance = 150f
             ),
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 5,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임5",
+                name = "닉네임5",
                 currentDistance = 3.56f,
-                targetDistance = 150f
             )
         )
     )
@@ -59,19 +55,19 @@ fun RankingIn3BoxPreview(){
 
 @Composable
 fun RankingIn3Box(
-    teamMemberChallengeStatusList: List<TeamMemberChallengeStatusModel>
+    teamRankingStatusList: List<TeamRankingStatusModel>
 ) {
     //2위, 1위, 3위 순서대로 나오게 섞는다.
     val mixedTeamMemberChallengeStatusList =
         listOf(
-            if(teamMemberChallengeStatusList.size >= 2){
-                teamMemberChallengeStatusList[1]
+            if(teamRankingStatusList.size >= 2){
+                teamRankingStatusList[1]
             }else{
                 null
             },
-            teamMemberChallengeStatusList[0],
-            if(teamMemberChallengeStatusList.size >= 3){
-                teamMemberChallengeStatusList[2]
+            teamRankingStatusList[0],
+            if(teamRankingStatusList.size >= 3){
+                teamRankingStatusList[2]
             }else{
                 null
             }
@@ -88,7 +84,7 @@ fun RankingIn3Box(
         mixedTeamMemberChallengeStatusList.forEachIndexed { index, item ->
             if(item != null){
                 RankingIn3Item(
-                    teamMemberChallengeStatus = item
+                    teamRankingStatus = item
                 )
             }
 

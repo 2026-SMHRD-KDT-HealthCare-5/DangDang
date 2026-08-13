@@ -150,8 +150,8 @@ fun <T> Selector(
 
                 Icon(
                     painter = painterResource(
-                        if (expanded) R.mipmap.up_icon
-                        else R.mipmap.down
+                        if (expanded) R.drawable.up_icon
+                        else R.drawable.down
                     ),
                     contentDescription = null,
                     modifier = Modifier.size(24.dp),

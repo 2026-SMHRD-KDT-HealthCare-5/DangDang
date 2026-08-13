@@ -60,7 +60,7 @@ fun CheckBox(
     ){
         if(checked){
             Icon(
-                painter = painterResource(id = R.mipmap.check),
+                painter = painterResource(id = R.drawable.check),
                 contentDescription = "체크 아이콘",
                 tint = PrimaryBlue,
                 modifier = Modifier

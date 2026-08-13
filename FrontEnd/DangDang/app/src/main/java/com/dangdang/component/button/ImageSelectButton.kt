@@ -57,8 +57,8 @@ fun ImageSelectButton(
             modifier = Modifier
                 .size(70.dp)
                 .clip(CircleShape),
-            error = painterResource(id = R.mipmap.community_black),
-            placeholder = painterResource(id = R.mipmap.community_black),
+            error = painterResource(id = R.drawable.community_black),
+            placeholder = painterResource(id = R.drawable.community_black),
             contentScale = ContentScale.Crop
         )
 
@@ -85,7 +85,7 @@ fun ImageSelectButton(
                 contentAlignment = Alignment.Center
             ){
                 Icon(
-                    painter = painterResource(id = R.mipmap.camera),
+                    painter = painterResource(id = R.drawable.camera),
                     contentDescription = "카메라",
                 )
             }

@@ -80,7 +80,7 @@ fun HomeGuideBox(
         }
 
         Image(
-            painter = painterResource(R.mipmap.food),
+            painter = painterResource(R.drawable.food),
             contentDescription = "음식",
             modifier = Modifier
                 .width(80.dp)

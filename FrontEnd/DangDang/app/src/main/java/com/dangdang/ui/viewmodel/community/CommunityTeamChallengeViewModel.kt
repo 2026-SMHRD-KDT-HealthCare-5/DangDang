@@ -2,6 +2,9 @@ package com.dangdang.ui.viewmodel.community
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dangdang.common.utils.applyResponse
+import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.repository.CommunityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,8 +19,10 @@ class CommunityTeamChallengeViewModel @Inject constructor(
     private val communityRepository: CommunityRepository
 ): ViewModel(){
     private val _teamChallengeStatusList =
-        MutableStateFlow<List<TeamMemberChallengeStatusModel>?>(null)
-    val teamChallengeStatusList: StateFlow<List<TeamMemberChallengeStatusModel>?> =
+        MutableStateFlow<PendingModel<List<TeamMemberChallengeStatusModel>>>(
+            PendingModel(null, LoadingState.Loading)
+        )
+    val teamChallengeStatusList: StateFlow<PendingModel<List<TeamMemberChallengeStatusModel>>> =
         _teamChallengeStatusList.asStateFlow()
 
     init {
@@ -27,11 +32,7 @@ class CommunityTeamChallengeViewModel @Inject constructor(
     //팀원들 걷기 현황 가져오기
     fun getTeamChallengeStatusList(){
         viewModelScope.launch {
-            val response = communityRepository.getTeamChallengeStatusList()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _teamChallengeStatusList.value = responseBody
-            }
+            _teamChallengeStatusList.applyResponse(communityRepository.getTeamChallengeStatusList())
         }
     }
 }

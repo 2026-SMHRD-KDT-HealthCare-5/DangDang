@@ -15,7 +15,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.R
-import com.dangdang.common.utils.bold
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.common.utils.screen
@@ -30,22 +29,22 @@ import com.dangdang.ui.theme.SkyBlueOpacity30
 fun SignUpCompleteScreenPreview(
 ){
     SignUpCompleteScreenContent(
-        onHomeMove = {}
+        onLoginMove = {}
     )
 }
 
 @Composable
 fun SignUpCompleteScreen(
-    onHomeMove: ()-> Unit
+    onLoginMove: ()-> Unit
 ){
     SignUpCompleteScreenContent(
-        onHomeMove = onHomeMove
+        onLoginMove = onLoginMove
     )
 }
 
 @Composable
 fun SignUpCompleteScreenContent(
-    onHomeMove: ()-> Unit
+    onLoginMove: ()-> Unit
 ){
     Column(
         modifier = Modifier
@@ -60,7 +59,7 @@ fun SignUpCompleteScreenContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                painter = painterResource(R.mipmap.dangdang_signupcomplete),
+                painter = painterResource(R.drawable.dangdang_signupcomplete),
                 contentDescription = "회원가입 완료 이미지",
                 modifier = Modifier
                     .size(120.dp)
@@ -83,10 +82,10 @@ fun SignUpCompleteScreenContent(
                 )
 
                 SecondaryOutlinedButton(
-                    text = "홈으로 이동",
+                    text = "로그인하러 가기",
                     fixWidth = 150.dp,
                     sizeType = LayoutSize.FixSize,
-                    onClick = onHomeMove
+                    onClick = onLoginMove
                 )
             }
         }

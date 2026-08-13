@@ -1,5 +1,6 @@
-package com.dangdang.di
+package com.dangdang.data.service
 
+import android.R
 import android.annotation.SuppressLint
 import android.app.Notification
 import android.app.NotificationChannel
@@ -15,12 +16,30 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
-import com.google.android.gms.location.*
-import kotlinx.coroutines.*
+import com.dangdang.common.utils.AppPrefs
+import com.dangdang.data.manager.StepCounterManager
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationCallback
+import com.google.android.gms.location.LocationRequest
+import com.google.android.gms.location.LocationResult
+import com.google.android.gms.location.LocationServices
+import com.google.android.gms.location.Priority
+import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
+import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
+@AndroidEntryPoint
 class StepCounterService : Service(), SensorEventListener {
+
+    @Inject
+    lateinit var appPrefs: AppPrefs
 
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
@@ -50,6 +69,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         createLocationCallback()
         createNotificationChannel()
+        createWarningNotificationChannel()
 
         startForeground(
             NOTIFICATION_ID,
@@ -91,7 +111,7 @@ class StepCounterService : Service(), SensorEventListener {
             // m 단위를 km 단위로 변환하여 매니저에 업데이트
             StepCounterManager.updateWalkDistance(totalDistance / 1000f)
             StepCounterManager.addRoutePoint(location.latitude, location.longitude)
-            
+
             // 마지막 유의미한 이동 시각 갱신
             lastMeaningfulMovementTime = System.currentTimeMillis()
         } else {
@@ -130,7 +150,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
         startLocationUpdates()
-        
+
         elapsedSecond = 0
         StepCounterManager.resetStepTime()
         StepCounterManager.updateWalkingState(true)
@@ -144,7 +164,7 @@ class StepCounterService : Service(), SensorEventListener {
         val locationRequest = LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, 5000)
             .setMinUpdateIntervalMillis(2000)
             .build()
-        
+
         fusedLocationClient.requestLocationUpdates(
             locationRequest,
             locationCallback,
@@ -212,10 +232,12 @@ class StepCounterService : Service(), SensorEventListener {
 
                 // 미동작 감지 (자체 타이머)
                 val inactiveMillis = System.currentTimeMillis() - lastMeaningfulMovementTime
-                
+
                 // 10분 경과 -> 로컬 알림
                 if (inactiveMillis >= 10 * 60 * 1000L && inactiveMillis < 10 * 60 * 1000L + 1000L) {
-                    showInactivityNotification("계속 걷고 계신가요?")
+                    if (appPrefs.isNotificationEnabled()) {
+                        showInactivityNotification("계속 걷고 계신가요?")
+                    }
                 }
 
                 // 30분 경과 -> 세션 만료 서버 호출
@@ -232,16 +254,18 @@ class StepCounterService : Service(), SensorEventListener {
 
     // --- Mock API Calls ---
 
-    private fun trackWalkMission(no: Int, location: Location?) {
+    private suspend fun trackWalkMission(no: Int, location: Location?) {
         if (no == -1 || location == null) return
-        
+
         Log.d("WalkService", "Tracking mission $no at ${location.latitude}, ${location.longitude}")
         // POST /api/walk-missions/{no}/track
         // Mock Response handling
         val goalReached = false // from server response
         if (goalReached && !isGoalReachedNotified) {
             isGoalReachedNotified = true
-            showGoalReachedNotification()
+            if (appPrefs.isNotificationEnabled()) {
+                showGoalReachedNotification()
+            }
         }
     }
 
@@ -253,8 +277,7 @@ class StepCounterService : Service(), SensorEventListener {
 
     private suspend fun endWalkMission(no: Int) {
         if (no == -1) return
-        Log.d("WalkService", "Ending mission $no")
-        // POST /walk-missions/{no}/end
+        StepCounterManager.endWalkMission(no)
     }
 
     // --- Notifications ---
@@ -263,7 +286,7 @@ class StepCounterService : Service(), SensorEventListener {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("걷기 측정 중")
             .setContentText("발걸음: ${stepCount}보 | 거리: ${String.format(Locale.getDefault(), "%.2f", distance / 1000f)}km")
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setSmallIcon(R.drawable.ic_menu_mylocation)
             .setOngoing(true)
             .build()
     }
@@ -274,10 +297,10 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun showInactivityNotification(message: String) {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, WARNING_CHANNEL_ID)
             .setContentTitle("걷기 안내")
             .setContentText(message)
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setSmallIcon(R.drawable.ic_menu_mylocation)
             .setAutoCancel(true)
             .build()
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -285,10 +308,10 @@ class StepCounterService : Service(), SensorEventListener {
     }
 
     private fun showGoalReachedNotification() {
-        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+        val notification = NotificationCompat.Builder(this, WARNING_CHANNEL_ID)
             .setContentTitle("목표 달성!")
             .setContentText("축하합니다! 걷기 목표를 달성하셨습니다.")
-            .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+            .setSmallIcon(R.drawable.ic_menu_mylocation)
             .setAutoCancel(true)
             .build()
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -301,12 +324,20 @@ class StepCounterService : Service(), SensorEventListener {
         notificationManager.createNotificationChannel(channel)
     }
 
+    private fun createWarningNotificationChannel() {
+        val channel =
+            NotificationChannel(WARNING_CHANNEL_ID, "걷기 측정", NotificationManager.IMPORTANCE_HIGH)
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.createNotificationChannel(channel)
+    }
+
     override fun onBind(intent: Intent?): IBinder? = null
 
     companion object {
         const val ACTION_START = "ACTION_START_STEP_COUNTING"
         const val ACTION_STOP = "ACTION_STOP_STEP_COUNTING"
         private const val CHANNEL_ID = "step_counter_channel"
+        private const val WARNING_CHANNEL_ID = "warning_channel"
         private const val NOTIFICATION_ID = 1001
         private const val MOVE_NOTIFICATION_ID = 1002
         private const val GOAL_NOTIFICATION_ID = 1003

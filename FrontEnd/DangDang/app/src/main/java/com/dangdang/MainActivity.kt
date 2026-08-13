@@ -5,22 +5,21 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.AppRoute
-import com.dangdang.di.SessionManager
+import com.dangdang.data.manager.SessionManager
 import com.dangdang.ui.navhost.AppNavHost
 import com.dangdang.ui.theme.DangDangTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -32,10 +31,16 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        enableEdgeToEdge()
+
+        CoroutineScope(
+            SupervisorJob() + Dispatchers.IO
+        ).launch {
+            sessionManager.initialize()
+        }
+
         setContent {
             DangDangTheme {
-                enableEdgeToEdge()
-
                 val navController = rememberNavController()
 
                 //로그인 콜백 시

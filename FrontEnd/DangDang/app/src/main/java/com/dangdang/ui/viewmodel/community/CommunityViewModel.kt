@@ -1,7 +1,10 @@
 package com.dangdang.ui.viewmodel.community
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dangdang.common.utils.applyResponse
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamInfoModel
@@ -30,23 +33,12 @@ class CommunityViewModel @Inject constructor(
     //사용자가 속한 팀 정보 가져오기
     fun getUserTeamInfo(){
         viewModelScope.launch {
-            val response = communityRepository.getUserTeamInfo()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _teamInfo.value = _teamInfo.value.copy(
-                    data = responseBody,
-                    loadingState = LoadingState.Success
-                )
-            }else{
-                _teamInfo.value = _teamInfo.value.copy(
-                    loadingState = LoadingState.Error
-                )
-            }
+            _teamInfo.applyResponse(communityRepository.getUserTeamInfo())
         }
     }
 
     //팀 나가기
-    fun outTeam(){
+    fun outTeam(context: Context){
         viewModelScope.launch {
             val response = communityRepository.outTeam()
             if(response.isSuccessful){
@@ -54,6 +46,8 @@ class CommunityViewModel @Inject constructor(
                     data = null,
                     loadingState = LoadingState.Success
                 )
+            }else{
+                Toast.makeText(context, "팀 나가기 요청이 실패했습니다.", Toast.LENGTH_SHORT).show()
             }
         }
     }

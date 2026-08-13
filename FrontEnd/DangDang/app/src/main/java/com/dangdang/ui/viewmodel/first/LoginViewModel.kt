@@ -34,6 +34,9 @@ class LoginViewModel @Inject constructor(
 
                 appPrefs.setAutoLogin(true)
 
+                // 로그인 성공 후 상세 정보(알림 설정 등) 동기화
+                syncUserInfo()
+
                 onLoginSuccess()
             }else{
                 Toast.makeText(
@@ -59,6 +62,9 @@ class LoginViewModel @Inject constructor(
                 val isSignUp = responseBody?.user?.isSignUp
 
                 appPrefs.setAutoLogin(isSignUp != true)
+
+                // 로그인 성공 후 상세 정보(알림 설정 등) 동기화
+                syncUserInfo()
 
                 onLoginSuccess(isSignUp == true)
             }else{
@@ -121,6 +127,9 @@ class LoginViewModel @Inject constructor(
 
                         appPrefs.setAutoLogin(isSignUp != true)
 
+                        // 로그인 성공 후 상세 정보(알림 설정 등) 동기화
+                        syncUserInfo()
+
                         onLoginSuccess(isSignUp == true)
                     }else{
                         Toast.makeText(
@@ -152,6 +161,17 @@ class LoginViewModel @Inject constructor(
                 } else if (token != null) {
                     // 로그인 성공
                     onLoginSuccess(token.accessToken)
+                }
+            }
+        }
+    }
+
+    private fun syncUserInfo() {
+        viewModelScope.launch {
+            val response = userRepository.getUserInfoDetail()
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    appPrefs.setNotificationEnabled(it.notification_enabled)
                 }
             }
         }

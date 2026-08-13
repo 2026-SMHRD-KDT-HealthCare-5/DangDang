@@ -71,7 +71,7 @@ fun AIRecommendWalkChallengeBox(
                     )
             ){
                 Image(
-                    painter = painterResource(R.mipmap.walk_challenge_icon),
+                    painter = painterResource(R.drawable.walk_challenge_icon),
                     contentDescription = "walk challenge icon",
                     modifier = Modifier
                         .size(50.dp)

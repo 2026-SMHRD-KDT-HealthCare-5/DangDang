@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.isValidPostPrandialGlucose
 import com.dangdang.common.utils.regular
 import com.dangdang.component.text.textfield.TextField
 import com.dangdang.data.enums.LayoutSize
@@ -48,7 +49,9 @@ fun GoalGlucoseTextField(
             isBorder = true,
             value = value,
             onValueChange = onValueChange,
-            placeholderText = "mg/dL 단위로 숫자만 입력해주세요",
+            isError = !isValidPostPrandialGlucose(value),
+            errorText = "80~300 범위여야 합니다.",
+            placeholderText = "mg/dL 단위로 숫자만 입력해주세요(80~300)",
             maxLength = 3,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number

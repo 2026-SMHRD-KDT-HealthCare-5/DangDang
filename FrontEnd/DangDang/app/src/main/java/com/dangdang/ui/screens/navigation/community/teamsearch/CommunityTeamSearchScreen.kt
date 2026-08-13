@@ -23,6 +23,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -37,6 +38,8 @@ import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.community.teamsearch.TeamSearchInfoBox
 import com.dangdang.component.text.textfield.TextField
 import com.dangdang.data.enums.LayoutSize
+import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamSearchInfoModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
@@ -49,7 +52,7 @@ fun CommunityTeamSearchScreenPreview(){
     CommunityTeamSearchScreenContent(
         searchValue = "",
         onSearchValueChange = {},
-        teamList = listOf(
+        teamList = PendingModel(listOf(
             TeamSearchInfoModel(
                 id = 1,
                 profileImageUrl = ExamplePictureUrl,
@@ -100,7 +103,7 @@ fun CommunityTeamSearchScreenPreview(){
                 targetDistance = 150f,
                 introduction = "주말에 함께 러닝과 걷기!"
             )
-        ),
+        ), LoadingState.Success),
         onSearchClick = {},
         onTeamMakeMove = {},
         onJoinClick = {}
@@ -113,6 +116,7 @@ fun CommunityTeamSearchScreen(
     communityTeamSearchViewModel: CommunityTeamSearchViewModel = hiltViewModel(),
     onTeamMakeMove: () -> Unit
 ) {
+    val context = LocalContext.current
     var searchValue by remember { mutableStateOf("") }
     val teamList by
         communityTeamSearchViewModel.teamList.collectAsState()
@@ -128,6 +132,7 @@ fun CommunityTeamSearchScreen(
         onTeamMakeMove = onTeamMakeMove,
         onJoinClick = {
             communityTeamSearchViewModel.joinTeam(
+                context = context,
                 teamId = it.id,
                 onJoinSuccess = {
                     communityViewModel?.getUserTeamInfo()
@@ -145,7 +150,7 @@ fun CommunityTeamSearchScreenContent(
     onSearchClick: () -> Unit,
     onTeamMakeMove: () -> Unit,
     onJoinClick: (TeamSearchInfoModel) -> Unit,
-    teamList: List<TeamSearchInfoModel>,
+    teamList: PendingModel<List<TeamSearchInfoModel>>,
 ){
     val scrollState = rememberScrollState()
     
@@ -177,7 +182,7 @@ fun CommunityTeamSearchScreenContent(
                         isMaxLengthView = false,
                         rightIcon = {
                             Icon(
-                                painter = painterResource(R.mipmap.search),
+                                painter = painterResource(R.drawable.search),
                                 contentDescription = "검색",
                                 modifier = Modifier
                                     .size(24.dp)
@@ -202,27 +207,37 @@ fun CommunityTeamSearchScreenContent(
 
             Spacer(Modifier.height(20.dp))
 
-            Text(
-                text = "검색 결과(${teamList.size})",
-                style = AppTypography.labelLarge.medium,
-                color = Black,
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                teamList.forEach { team ->
-                    TeamSearchInfoBox(
-                        teamSearchInfoModel = team,
-                        onJoinClick = onJoinClick
+            if(teamList.loadingState == LoadingState.Success){
+                teamList.data?.let{
+                    Text(
+                        text = "검색 결과(${it.size})",
+                        style = AppTypography.labelLarge.medium,
+                        color = Black,
                     )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(scrollState),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        it.forEach { team ->
+                            TeamSearchInfoBox(
+                                teamSearchInfoModel = team,
+                                onJoinClick = onJoinClick
+                            )
+                        }
+                    }
                 }
+            }else if(teamList.loadingState == LoadingState.Error){
+                Text(
+                    text = "팀 검색 결과를 불러오는데 실패했습니다.",
+                    style = AppTypography.labelLarge.medium,
+                    color = Black,
+                )
             }
         }
     }

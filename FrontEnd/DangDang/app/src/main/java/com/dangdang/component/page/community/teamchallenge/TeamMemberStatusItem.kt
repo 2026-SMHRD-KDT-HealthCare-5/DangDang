@@ -122,7 +122,7 @@ fun TeamMemberStatusItem(
 
                 if(teamMemberChallengeStatus.rank == 1 && isGraph){
                     Image(
-                        painter = painterResource(R.mipmap.crown),
+                        painter = painterResource(R.drawable.crown),
                         contentDescription = "왕관 이미지",
                         modifier = Modifier
                             .size(20.dp)

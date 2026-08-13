@@ -2,16 +2,19 @@ package com.dangdang.data.repository
 
 import android.content.Context
 import com.dangdang.Application.Companion.ExamplePictureUrl
+import com.dangdang.common.utils.deleteSafely
 import com.dangdang.common.utils.toMultipart
 import com.dangdang.common.utils.toRequestBody
 import com.dangdang.common.utils.uriToFile
 import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.data.model.community.TeamMakeForm
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
+import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.data.model.community.TeamSearchInfoModel
 import com.dangdang.data.model.user.TokenResponse
 import com.dangdang.data.model.user.User
 import retrofit2.Response
+import java.io.File
 import javax.inject.Inject
 
 class CommunityRepository @Inject constructor(
@@ -22,9 +25,13 @@ class CommunityRepository @Inject constructor(
         val response = TeamInfoModel(
             isLeader = false,
             name = "우리팀 5월 걷기 챌린지",
+            currentMemberCount = 4,
+            maxMemberCount = 5,
             targetDistance = 150f,
             currentDistance = 20f,
-            currentTeamDistance = 30f
+            currentTeamDistance = 30f,
+            profileImageUrl = ExamplePictureUrl,
+            introduction = "하루 7천보 이상 함께 걸어요!"
         )
 
         return Response.success(response)
@@ -73,13 +80,51 @@ class CommunityRepository @Inject constructor(
         return Response.success(response)
     }
 
+    //팀 랭킹 가져오기
+    suspend fun getTeamRankingStatusList(): Response<List<TeamRankingStatusModel>>{
+        val response = listOf(
+            TeamRankingStatusModel(
+                rank = 1,
+                profileImageUrl = ExamplePictureUrl,
+                name = "팀명",
+                currentDistance = 32.56f,
+            ),
+            TeamRankingStatusModel(
+                rank = 2,
+                profileImageUrl = ExamplePictureUrl,
+                name = "팀명2",
+                currentDistance = 20.56f,
+            ),
+            TeamRankingStatusModel(
+                rank = 3,
+                profileImageUrl = ExamplePictureUrl,
+                name = "팀명3",
+                currentDistance = 10.56f,
+            ),
+            TeamRankingStatusModel(
+                rank = 4,
+                profileImageUrl = ExamplePictureUrl,
+                name = "팀명4",
+                currentDistance = 5.56f,
+            ),
+            TeamRankingStatusModel(
+                rank = 5,
+                profileImageUrl = ExamplePictureUrl,
+                name = "팀명5",
+                currentDistance = 3.56f,
+            )
+        )
+
+        return Response.success(response)
+    }
+
     //팀 나가기
     suspend fun outTeam(): Response<String>{
         return Response.success("success")
     }
 
     //팀 리스트 가져오기
-    suspend fun getTeamList(): Response<List<TeamSearchInfoModel>>{
+    suspend fun getTeamList(keyword:String): Response<List<TeamSearchInfoModel>>{
         val response = listOf(
             TeamSearchInfoModel(
                 id = 1,
@@ -131,7 +176,9 @@ class CommunityRepository @Inject constructor(
                 targetDistance = 150f,
                 introduction = "주말에 함께 러닝과 걷기!"
             )
-        )
+        ).filter {
+            it.name.contains(keyword)
+        }
 
         return Response.success(response)
     }
@@ -143,13 +190,21 @@ class CommunityRepository @Inject constructor(
 
     //팀 만들기
     suspend fun makeTeam(context: Context, teamMakeForm: TeamMakeForm): Response<String>{
-        val imagePart = teamMakeForm.uri?.let {
-            context.uriToFile(it).toMultipart()
-        }
-        val namePart = teamMakeForm.name.toRequestBody()
-        val introductionPart = teamMakeForm.introduction.toRequestBody()
-        val targetDistancePart = teamMakeForm.targetDistance.toRequestBody()
+        var uploadFile: File? = null
 
-        return Response.success("success")
+        try{
+            val imagePart = teamMakeForm.uri?.let { uri->
+                uploadFile = context.uriToFile(uri)
+
+                uploadFile.toMultipart()
+            }
+            val namePart = teamMakeForm.name.toRequestBody()
+            val introductionPart = teamMakeForm.introduction.toRequestBody()
+            val targetDistancePart = teamMakeForm.targetDistance.toRequestBody()
+
+            return Response.success("success")
+        } finally {
+            uploadFile?.deleteSafely()
+        }
     }
 }

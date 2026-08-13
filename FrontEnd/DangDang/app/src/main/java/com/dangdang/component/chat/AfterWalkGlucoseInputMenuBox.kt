@@ -11,6 +11,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.common.utils.bold
+import com.dangdang.common.utils.isValidPostPrandialGlucose
 import com.dangdang.common.utils.regular
 import com.dangdang.component.button.PrimaryButton
 import com.dangdang.component.text.textfield.TextField
@@ -58,14 +59,17 @@ fun AfterWalkGlucoseInputMenuBox(
             keyboardType = KeyboardType.Number,
             value = afterWalkGlucoseValue,
             onValueChange = onAfterWalkGlucoseValueChange,
-            placeholderText = "예) 165",
+            isError = !isValidPostPrandialGlucose(afterWalkGlucoseValue),
+            errorText = "80~300 범위여야 합니다.",
+            placeholderText = "예) 165(범위 : 80~300)",
             maxLength = 5,
             sizeType = LayoutSize.FillMaxSize
         )
 
         PrimaryButton(
             text = "기록 저장하기",
-            enabled = afterWalkGlucoseValue.isNotEmpty(),
+            enabled = afterWalkGlucoseValue.isNotEmpty() &&
+                    isValidPostPrandialGlucose(afterWalkGlucoseValue),
             sizeType = LayoutSize.FillMaxSize,
             onClick = onGlucoseInputCompleteClick
         )

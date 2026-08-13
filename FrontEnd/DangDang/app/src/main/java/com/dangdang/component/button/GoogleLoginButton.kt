@@ -70,7 +70,7 @@ fun GoogleLoginButton(
         verticalAlignment = Alignment.CenterVertically
     ) {
         Image(
-            painter = painterResource(id = R.mipmap.google_login),
+            painter = painterResource(id = R.drawable.google_login),
             contentDescription = "로그인 아이콘",
             modifier = Modifier.size(24.dp)
         )

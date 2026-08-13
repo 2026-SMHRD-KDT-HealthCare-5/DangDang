@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.isValidPostPrandialGlucose
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.component.button.PrimaryButton
@@ -99,7 +100,9 @@ fun BeginGlucoseInputMenuBox(
                     keyboardType = KeyboardType.Number,
                     value = glucoseValue,
                     onValueChange = onGlucoseValueChange,
-                    placeholderText = "",
+                    isError = !isValidPostPrandialGlucose(glucoseValue),
+                    errorText = "80~300 범위여야 합니다.",
+                    placeholderText = "80~300",
                     maxLength = 5,
                     sizeType = LayoutSize.FillMaxSize
                 )
@@ -107,7 +110,7 @@ fun BeginGlucoseInputMenuBox(
 
             PrimaryButton(
                 text = "확인",
-                enabled = glucoseValue.isNotEmpty(),
+                enabled = glucoseValue.isNotEmpty() && isValidPostPrandialGlucose(glucoseValue),
                 onClick = onGlucoseInputCompleteClick
             )
         }

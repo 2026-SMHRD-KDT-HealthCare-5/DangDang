@@ -18,10 +18,12 @@ import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.regular
 import com.dangdang.component.chart.GlucoseTrendChart
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.home.HomeGuideBox
 import com.dangdang.component.page.home.HomeTeamChallengeStatus
 import com.dangdang.component.page.home.WeeklyCheckListBox
+import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
@@ -74,9 +76,13 @@ fun HomeScreenPreview(
         teamInfo = TeamInfoModel(
             isLeader = false,
             name = "우리팀 5월 걷기 챌린지",
+            currentMemberCount = 4,
+            maxMemberCount = 5,
             targetDistance = 150f,
             currentDistance = 20f,
-            currentTeamDistance = 30f
+            currentTeamDistance = 30f,
+            profileImageUrl = ExamplePictureUrl,
+            introduction = "하루 7천보 이상 함께 걸어요!"
         ),
         teamChallengeStatusList = listOf(
             TeamMemberChallengeStatusModel(
@@ -136,14 +142,34 @@ fun HomeScreen(
     val teamChallengeStatusList by
         homeViewModel.teamChallengeStatusList.collectAsState()
 
-    HomeScreenContent(
-        onFoodInputClick = onFoodInputClick,
-        onTeamChallengeMoreClick = onTeamChallengeMoreClick,
-        weeklyGlucoseCheckList = weeklyGlucoseCheckList,
-        afterMealGlucoseStatus = afterMealGlucoseStatus,
-        teamInfo = teamInfo,
-        teamChallengeStatusList = teamChallengeStatusList
-    )
+    if(weeklyGlucoseCheckList.loadingState == LoadingState.Success
+        && afterMealGlucoseStatus.loadingState == LoadingState.Success
+        && teamInfo.loadingState == LoadingState.Success
+        && teamChallengeStatusList.loadingState == LoadingState.Success){
+        
+        HomeScreenContent(
+            onFoodInputClick = onFoodInputClick,
+            onTeamChallengeMoreClick = onTeamChallengeMoreClick,
+            weeklyGlucoseCheckList = weeklyGlucoseCheckList.data?:emptyList(),
+            afterMealGlucoseStatus = afterMealGlucoseStatus.data,
+            teamInfo = teamInfo.data,
+            teamChallengeStatusList = teamChallengeStatusList.data
+        )
+    }else{
+        ErrorView(
+            loadingState = if(
+                weeklyGlucoseCheckList.loadingState == LoadingState.Error
+                 || afterMealGlucoseStatus.loadingState == LoadingState.Error
+                 || teamInfo.loadingState == LoadingState.Error
+                 || teamChallengeStatusList.loadingState == LoadingState.Error
+            ){
+                LoadingState.Error
+            }else{
+                LoadingState.Loading
+            },
+            message = "홈 화면 데이터 불러오기를 실패했습니다."
+        )
+    }
 }
 
 @Composable

@@ -6,8 +6,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.data.repository.WalkRepository
-import com.dangdang.di.StepCounterManager
-import com.dangdang.di.StepCounterService
+import com.dangdang.data.manager.StepCounterManager
+import com.dangdang.data.service.StepCounterService
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -61,7 +61,8 @@ class WalkViewModel @Inject constructor(
     }
 
     fun stopStepCounting(
-        context: Context
+        context: Context,
+        missionNo: Int = 1
     ) {
 
         val intent =
@@ -73,9 +74,16 @@ class WalkViewModel @Inject constructor(
                 action =
                     StepCounterService.ACTION_STOP
             }
+        intent.putExtra("missionNo", missionNo)
 
         context.startService(
             intent
         )
+    }
+
+    fun endWalkMission(missionNo: Int){
+        viewModelScope.launch {
+            walkRepository.endWalkMission(missionNo)
+        }
     }
 }

@@ -4,14 +4,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.common.utils.activityLevelList
-import com.dangdang.component.text.selector.Selector
+import com.dangdang.common.utils.isValidBirthDate
+import com.dangdang.common.utils.isValidEmail
+import com.dangdang.common.utils.isValidHeight
+import com.dangdang.common.utils.isValidPassword
+import com.dangdang.common.utils.isValidWeight
 import com.dangdang.component.text.textfield.TextField
 import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.LayoutSize
@@ -32,13 +35,16 @@ fun SignUpFormContentPreview(
             password = "",
             passwordCheck = "",
             gender = Gender.Male,
-            birthday = "",
+            birth_date = "",
             height = "",
             weight = "",
-            hemoglobin = "",
+            hba1c = "",
             isHemoglobinRecentResultUnknown = false,
-            goalGlucose = "",
-            activityLevel = "거의 안함"
+            target_glucose = "",
+            activity_level = "거의 안함",
+            joined_at = "",
+            profileImageUrl = "",
+            notification_enabled = false
         ),
         onFormChange = {}
     )
@@ -82,6 +88,8 @@ fun SignUpFormContent(
             isRequired = false,
             isBorder = true,
             value = signUpForm.email,
+            isError = !isValidEmail(signUpForm.email),
+            errorText = "이메일 형식이 아닙니다.",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(email = it)
@@ -99,6 +107,8 @@ fun SignUpFormContent(
             isRequired = false,
             isBorder = true,
             value = signUpForm.password,
+            isError = !isValidPassword(signUpForm.password),
+            errorText = "비밀번호는 8자 이상이어야 합니다.",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(password = it)
@@ -117,6 +127,8 @@ fun SignUpFormContent(
             isRequired = false,
             isBorder = true,
             value = signUpForm.passwordCheck,
+            isError = signUpForm.password != signUpForm.passwordCheck,
+            errorText = "비밀번호가 일치하지 않습니다.",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(passwordCheck = it)
@@ -142,10 +154,12 @@ fun SignUpFormContent(
             isMaxLengthView = false,
             isRequired = false,
             isBorder = true,
-            value = signUpForm.birthday,
+            value = signUpForm.birth_date,
+            isError = !isValidBirthDate(signUpForm.birth_date),
+            errorText = "만 14세 이상이어야 하며, 유효한 날짜여야 합니다.",
             onValueChange = {
                 onFormChange(
-                    signUpForm.copy(birthday = it)
+                    signUpForm.copy(birth_date = it)
                 )
             },
             placeholderText = "YYYY.MM.DD",
@@ -159,12 +173,14 @@ fun SignUpFormContent(
             isRequired = false,
             isBorder = true,
             value = signUpForm.height,
+            isError = !isValidHeight(signUpForm.height),
+            errorText = "키를 숫자로 입력해주세요(50~500)",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(height = it)
                 )
             },
-            placeholderText = "키를 숫자로 입력해주세요",
+            placeholderText = "키를 숫자로 입력해주세요(50~500)",
             maxLength = 3,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
@@ -176,22 +192,24 @@ fun SignUpFormContent(
             isRequired = false,
             isBorder = true,
             value = signUpForm.weight,
+            isError = !isValidWeight(signUpForm.weight),
+            errorText = "몸무게를 숫자로 입력해주세요(20~300)",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(weight = it)
                 )
             },
-            placeholderText = "몸무게를 숫자로 입력해주세요",
-            maxLength = 3,
+            placeholderText = "몸무게를 숫자로 입력해주세요(20~300)",
+            maxLength = 5,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
         )
 
         HemoglobinTextField(
-            value = signUpForm.hemoglobin,
+            value = signUpForm.hba1c,
             onValueChange = {
                 onFormChange(
-                    signUpForm.copy(hemoglobin = it)
+                    signUpForm.copy(hba1c = it)
                 )
             },
             isUnknown = signUpForm.isHemoglobinRecentResultUnknown,
@@ -203,10 +221,10 @@ fun SignUpFormContent(
         )
 
         GoalGlucoseTextField(
-            value = signUpForm.goalGlucose,
+            value = signUpForm.target_glucose,
             onValueChange = {
                 onFormChange(
-                    signUpForm.copy(goalGlucose = it)
+                    signUpForm.copy(target_glucose = it)
                 )
             }
         )
@@ -214,12 +232,12 @@ fun SignUpFormContent(
         ActivityLevelCheckView(
             checkedActivityLevel =
                 activityLevelList.find {
-                    it.title == signUpForm.activityLevel
+                    it.title == signUpForm.activity_level
                 }
                 ?: activityLevelList[0],
             onCheckedActivityLevelChange = {
                 onFormChange(
-                    signUpForm.copy(activityLevel = it.title)
+                    signUpForm.copy(activity_level = it.title)
                 )
             }
         )

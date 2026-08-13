@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Patterns
+import android.webkit.MimeTypeMap
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -20,6 +22,7 @@ import androidx.navigation.NavHostController
 import com.dangdang.data.enums.LayoutSize
 import androidx.core.net.toUri
 import com.dangdang.Application.Companion.InquiryEmail
+import com.dangdang.data.model.community.CameraImage
 import com.dangdang.ui.theme.DarkGreen
 import com.dangdang.ui.theme.HotPink
 import com.dangdang.ui.theme.Orange
@@ -33,6 +36,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 import java.io.File
 import java.text.DecimalFormat
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.ResolverStyle
 import java.util.Locale
 
 //화면마다 공통으로 사용하는 modifier
@@ -115,26 +120,38 @@ fun sendMail(context: Context){
 }
 
 fun Context.uriToFile(uri: Uri): File {
+    val mimeType = contentResolver.getType(uri)
 
-    val input = contentResolver.openInputStream(uri)
+    val extension = MimeTypeMap.getSingleton()
+        .getExtensionFromMimeType(mimeType)
+        ?.let { ".$it" }
+        ?: ".jpg"
 
     val file = File.createTempFile(
-        "upload",
-        ".png",
+        "upload_",
+        extension,
         cacheDir
     )
 
-    file.outputStream().use {
-        input?.copyTo(it)
+    contentResolver.openInputStream(uri)?.use { input ->
+        file.outputStream().use { output ->
+            input.copyTo(output)
+        }
     }
 
     return file
 }
 
 fun File.toMultipart(): MultipartBody.Part {
+    val mimeType = MimeTypeMap.getSingleton()
+        .getMimeTypeFromExtension(
+            extension.lowercase()
+        )
+        ?: "application/octet-stream"
 
-    val requestBody =
-        asRequestBody("image/*".toMediaType())
+    val requestBody = asRequestBody(
+        mimeType.toMediaType()
+    )
 
     return MultipartBody.Part.createFormData(
         "image",
@@ -143,22 +160,91 @@ fun File.toMultipart(): MultipartBody.Part {
     )
 }
 
+fun File.deleteSafely(): Boolean {
+    return try {
+        if (exists()) {
+            delete()
+        } else {
+            true
+        }
+    } catch (e: Exception) {
+        false
+    }
+}
+
 fun String.toRequestBody() =
     toRequestBody("text/plain".toMediaType())
 
-fun Context.createImageUri(): Uri {
+fun Context.createImage(): CameraImage {
 
     val file = File.createTempFile(
-        "camera",
+        "camera_",
         ".jpg",
         cacheDir
     )
 
-    return FileProvider.getUriForFile(
+    val uri = FileProvider.getUriForFile(
         this,
         "$packageName.provider",
         file
     )
+
+    return CameraImage(
+        file = file,
+        uri = uri
+    )
+}
+
+//생년월일 유효성 확인
+fun isValidBirthDate(dateStr: String): Boolean {
+    if (dateStr.length != 10) return false
+
+    return try {
+        val formatter = DateTimeFormatter.ofPattern("uuuu.MM.dd")
+            .withResolverStyle(ResolverStyle.STRICT)
+
+        val parsedDate = LocalDate.parse(dateStr, formatter)
+
+        !parsedDate.isAfter(LocalDate.now()) &&
+                !parsedDate.isAfter(LocalDate.now().minusYears(14))
+    } catch (e: Exception) {
+        false
+    }
+}
+
+//이메일 유효성 확인
+fun isValidEmail(email: String): Boolean {
+    return Patterns.EMAIL_ADDRESS
+        .matcher(email)
+        .matches()
+}
+
+fun isValidPassword(password: String): Boolean{
+    return password.length >= 8
+}
+
+//키 유효성 확인
+fun isValidHeight(input: String): Boolean {
+    val value = input.toIntOrNull() ?: return false
+    return value in 50..500
+}
+
+//몸무게 유효성 확인
+fun isValidWeight(input: String): Boolean {
+    val value = input.toFloatOrNull() ?: return false
+    return value in 20f..300f
+}
+
+//당화혈색소 유효성 확인
+fun isValidHbA1c(input: String): Boolean {
+    val value = input.toFloatOrNull() ?: return false
+    return value in 4f..15f
+}
+
+// 식후 2시간 목표 혈당 유효성 확인
+fun isValidPostPrandialGlucose(input: String): Boolean {
+    val value = input.toIntOrNull() ?: return false
+    return value in 80..300
 }
 
 val GuageColorList = listOf(

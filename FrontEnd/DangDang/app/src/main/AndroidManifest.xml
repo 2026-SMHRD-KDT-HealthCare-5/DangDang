@@ -50,7 +50,7 @@
         </activity>
 
         <service
-            android:name=".di.StepCounterService"
+            android:name=".data.service.StepCounterService"
             android:exported="false"
             android:foregroundServiceType="health" />
 

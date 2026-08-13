@@ -26,6 +26,7 @@ import com.dangdang.common.utils.regular
 import com.dangdang.component.image.Avatar
 import com.dangdang.data.enums.AvatarSize
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
+import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.KakaoYellow
@@ -44,32 +45,29 @@ fun RankingIn3ItemPreview(){
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         RankingIn3Item(
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 1,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임",
+                name = "팀명",
                 currentDistance = 32.56f,
-                targetDistance = 150f
             )
         )
 
         RankingIn3Item(
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 2,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임2",
+                name = "팀명2",
                 currentDistance = 20.56f,
-                targetDistance = 150f
             )
         )
 
         RankingIn3Item(
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 3,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임3",
+                name = "팀명3",
                 currentDistance = 10.56f,
-                targetDistance = 150f
             )
         )
     }
@@ -77,7 +75,7 @@ fun RankingIn3ItemPreview(){
 
 @Composable
 fun RankingIn3Item(
-    teamMemberChallengeStatus: TeamMemberChallengeStatusModel
+    teamRankingStatus: TeamRankingStatusModel
 ){
     Column(
         modifier = Modifier
@@ -89,7 +87,7 @@ fun RankingIn3Item(
     ) {
         Avatar(
             avatarSize = AvatarSize.Small,
-            imageUrl = teamMemberChallengeStatus.profileImageUrl,
+            imageUrl = teamRankingStatus.profileImageUrl,
         )
 
         Box(
@@ -98,7 +96,7 @@ fun RankingIn3Item(
                 .height(44.dp)
                 .background(
                     color =
-                        when (teamMemberChallengeStatus.rank) {
+                        when (teamRankingStatus.rank) {
                             1 -> {
                                 KakaoYellowOpacity50
                             }
@@ -118,9 +116,9 @@ fun RankingIn3Item(
                 contentAlignment = Alignment.Center
             ){
                 Text(
-                    text = teamMemberChallengeStatus.rank.toString(),
+                    text = teamRankingStatus.rank.toString(),
                     style = AppTypography.titleLarge.regular,
-                    color = when (teamMemberChallengeStatus.rank) {
+                    color = when (teamRankingStatus.rank) {
                         1 -> {
                             Orange
                         }
@@ -152,7 +150,7 @@ fun RankingIn3Item(
         }
 
         Text(
-            text = teamMemberChallengeStatus.nickname,
+            text = teamRankingStatus.name,
             style = AppTypography.labelMedium.medium,
             color = Black,
         )
@@ -161,7 +159,7 @@ fun RankingIn3Item(
             text = "${String.format(
                 LocalLocale.current.platformLocale,
                 "%.2f",
-                teamMemberChallengeStatus.currentDistance
+                teamRankingStatus.currentDistance
             )} km",
             style = AppTypography.labelMedium.medium,
             color = Black,

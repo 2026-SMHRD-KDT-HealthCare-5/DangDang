@@ -1,6 +1,7 @@
 package com.dangdang.ui.screens.navigation.community.tab
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -18,51 +19,51 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.regular
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.page.community.ranking.RankingIn3Box
+import com.dangdang.component.page.community.ranking.TeamRankingStatusBox
 import com.dangdang.component.page.community.teamchallenge.TeamMemberStatusBox
+import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
+import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.viewmodel.community.CommunityTeamChallengeViewModel
+import com.dangdang.ui.viewmodel.community.CommunityTeamRankingViewModel
 
 @Preview
 @Composable
 fun CommunityRankingTabScreenPreview(){
     CommunityRankingTabScreenContent(
-        teamChallengeStatusList = listOf(
-            TeamMemberChallengeStatusModel(
+        teamRankingStatusList = listOf(
+            TeamRankingStatusModel(
                 rank = 1,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임",
+                name = "팀명",
                 currentDistance = 32.56f,
-                targetDistance = 150f
             ),
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 2,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임2",
+                name = "팀명2",
                 currentDistance = 20.56f,
-                targetDistance = 150f
             ),
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 3,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임3",
+                name = "팀명3",
                 currentDistance = 10.56f,
-                targetDistance = 150f
             ),
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 4,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임4",
+                name = "팀명4",
                 currentDistance = 5.56f,
-                targetDistance = 150f
             ),
-            TeamMemberChallengeStatusModel(
+            TeamRankingStatusModel(
                 rank = 5,
                 profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임5",
+                name = "팀명5",
                 currentDistance = 3.56f,
-                targetDistance = 150f
             )
         )
     )
@@ -70,19 +71,26 @@ fun CommunityRankingTabScreenPreview(){
 
 @Composable
 fun CommunityRankingTabScreen(
-    communityTeamChallengeViewModel: CommunityTeamChallengeViewModel = hiltViewModel(),
+    communityTeamRankingViewModel: CommunityTeamRankingViewModel = hiltViewModel(),
 ) {
-    val teamChallengeStatusList by
-        communityTeamChallengeViewModel.teamChallengeStatusList.collectAsState()
+    val teamRankingStatusList by
+        communityTeamRankingViewModel.teamRankingStatusList.collectAsState()
 
-    CommunityRankingTabScreenContent(
-        teamChallengeStatusList = teamChallengeStatusList ?: emptyList()
-    )
+    if(teamRankingStatusList.loadingState == LoadingState.Success){
+        CommunityRankingTabScreenContent(
+            teamRankingStatusList = teamRankingStatusList.data?:emptyList()
+        )
+    }else{
+        ErrorView(
+            loadingState = teamRankingStatusList.loadingState,
+            message = "팀 랭킹 정보 불러오기를 실패했습니다."
+        )
+    }
 }
 
 @Composable
 fun CommunityRankingTabScreenContent(
-    teamChallengeStatusList: List<TeamMemberChallengeStatusModel>,
+    teamRankingStatusList: List<TeamRankingStatusModel>,
 ){
     val scrollState = rememberScrollState()
 
@@ -95,12 +103,11 @@ fun CommunityRankingTabScreenContent(
     ) {
         Spacer(Modifier.height(0.dp))
         RankingIn3Box(
-            teamMemberChallengeStatusList = teamChallengeStatusList
+            teamRankingStatusList = teamRankingStatusList
         )
 
-        TeamMemberStatusBox(
-            isGraph = false,
-            teamMemberChallengeStatusList = teamChallengeStatusList
+        TeamRankingStatusBox(
+            teamRankingStatusList = teamRankingStatusList
         )
         Spacer(Modifier.height(0.dp))
     }

@@ -1,11 +1,13 @@
 package com.dangdang.component.text.textfield
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -41,6 +43,7 @@ import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.Red
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -67,14 +70,14 @@ fun TextFieldPreview(
             isRequired = false,
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
             },
             rightIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -93,14 +96,14 @@ fun TextFieldPreview(
             isRequired = true,
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
             },
             rightIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -110,6 +113,8 @@ fun TextFieldPreview(
             onValueChange = {},
             placeholderText = "이메일 주소를 입력해주세요",
             maxLength = 50,
+            isError = true,
+            errorText = "이메일 형식이 아닙니다.",
             sizeType = LayoutSize.FillMaxSize
         )
 
@@ -120,14 +125,14 @@ fun TextFieldPreview(
             isRequired = true,
             leftIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
             },
             rightIcon = {
                 Icon(
-                    painter = painterResource(R.mipmap.kakao_login),
+                    painter = painterResource(R.drawable.kakao_login),
                     contentDescription = "left icon",
                     modifier = Modifier.size(24.dp)
                 )
@@ -156,12 +161,14 @@ fun TextField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholderText: String,
+    isError: Boolean = false,
+    errorText: String? = null,
     maxLength: Int,
     fixWidth: Dp? = null,
     sizeType: LayoutSize = LayoutSize.DefaultSize,
 ) {
     Column(
-        modifier = Modifier
+        modifier = modifier
             .background(White),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
@@ -184,7 +191,7 @@ fun TextField(
                 imeAction = ImeAction.Done
             ),
             singleLine = true,
-            modifier = modifier
+            modifier = Modifier
                 .componentWidthModifier(
                     fixWidth = fixWidth,
                     sizeType = sizeType
@@ -224,15 +231,40 @@ fun TextField(
             }
         )
 
-        if(isMaxLengthView){
-            Text(
-                text = "${value.length}/${maxLength}",
-                style = AppTypography.labelMedium.medium,
-                color = Black,
+        if(
+            isMaxLengthView ||
+            (value.isNotEmpty() && isError && errorText != null)
+        ){
+            Row(
                 modifier = Modifier
                     .fillMaxWidth(),
-                textAlign = TextAlign.End
-            )
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                if(value.isNotEmpty() && isError && errorText != null){
+                    Image(
+                        painter = painterResource(R.drawable.wrong_round_red),
+                        contentDescription = "error icon",
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = errorText,
+                        style = AppTypography.labelMedium.medium,
+                        color = Red
+                    )
+                }
+                Spacer(Modifier.weight(1f))
+                if(isMaxLengthView){
+                    Text(
+                        text = "${value.length}/${maxLength}",
+                        style = AppTypography.labelMedium.medium,
+                        color = Black,
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        textAlign = TextAlign.End
+                    )
+                }
+            }
         }
     }
 }

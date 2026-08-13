@@ -2,6 +2,7 @@ package com.dangdang.ui.viewmodel.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dangdang.common.utils.applyResponse
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamInfoModel
@@ -22,18 +23,27 @@ class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val communityRepository: CommunityRepository
 ) : ViewModel() {
-    private val _weeklyGlucoseCheckList = MutableStateFlow<List<WeeklyGlucoseCheckModel>>(emptyList())
-    val weeklyGlucoseCheckList: StateFlow<List<WeeklyGlucoseCheckModel>> = _weeklyGlucoseCheckList.asStateFlow()
+    private val _weeklyGlucoseCheckList = MutableStateFlow<PendingModel<List<WeeklyGlucoseCheckModel>>>(
+        PendingModel(emptyList(), LoadingState.Loading)
+    )
+    val weeklyGlucoseCheckList: StateFlow<PendingModel<List<WeeklyGlucoseCheckModel>>> = _weeklyGlucoseCheckList.asStateFlow()
 
-    private val _afterMealGlucoseStatus = MutableStateFlow<AfterMealGlucoseStatusModel?>(null)
-    val afterMealGlucoseStatus: StateFlow<AfterMealGlucoseStatusModel?> = _afterMealGlucoseStatus.asStateFlow()
+    private val _afterMealGlucoseStatus = MutableStateFlow<PendingModel<AfterMealGlucoseStatusModel>>(
+        PendingModel(null, LoadingState.Loading)
+    )
+    val afterMealGlucoseStatus: StateFlow<PendingModel<AfterMealGlucoseStatusModel>> =
+        _afterMealGlucoseStatus.asStateFlow()
 
-    private val _teamInfo = MutableStateFlow<TeamInfoModel?>(null)
-    val teamInfo: StateFlow<TeamInfoModel?> = _teamInfo.asStateFlow()
+    private val _teamInfo = MutableStateFlow<PendingModel<TeamInfoModel?>>(
+        PendingModel(null, LoadingState.Loading)
+    )
+    val teamInfo: StateFlow<PendingModel<TeamInfoModel?>> = _teamInfo.asStateFlow()
 
     private val _teamChallengeStatusList =
-        MutableStateFlow<List<TeamMemberChallengeStatusModel>?>(null)
-    val teamChallengeStatusList: StateFlow<List<TeamMemberChallengeStatusModel>?> =
+        MutableStateFlow<PendingModel<List<TeamMemberChallengeStatusModel>>>(
+            PendingModel(emptyList(), LoadingState.Loading)
+        )
+    val teamChallengeStatusList: StateFlow<PendingModel<List<TeamMemberChallengeStatusModel>>> =
         _teamChallengeStatusList.asStateFlow()
 
     init {
@@ -45,43 +55,27 @@ class HomeViewModel @Inject constructor(
 
     fun getWeeklyGlucoseCheckList(){
         viewModelScope.launch {
-            val response = userRepository.getWeeklyGlucoseCheckList()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _weeklyGlucoseCheckList.value = responseBody ?: emptyList()
-            }
+            _weeklyGlucoseCheckList.applyResponse(userRepository.getWeeklyGlucoseCheckList())
         }
     }
 
     fun getAfterMealGlucoseStatus(){
         viewModelScope.launch {
-            val response = userRepository.getAfterMealGlucoseStatus()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _afterMealGlucoseStatus.value = responseBody
-            }
+            _afterMealGlucoseStatus.applyResponse(userRepository.getAfterMealGlucoseStatus())
         }
     }
 
     //사용자가 속한 팀 정보 가져오기
     fun getUserTeamInfo(){
         viewModelScope.launch {
-            val response = communityRepository.getUserTeamInfo()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _teamInfo.value = responseBody
-            }
+            _teamInfo.applyResponse(communityRepository.getUserTeamInfo())
         }
     }
 
     //팀원들 걷기 현황 가져오기
     fun getTeamChallengeStatusList(){
         viewModelScope.launch {
-            val response = communityRepository.getTeamChallengeStatusList()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _teamChallengeStatusList.value = responseBody
-            }
+            _teamChallengeStatusList.applyResponse(communityRepository.getTeamChallengeStatusList())
         }
     }
 }
