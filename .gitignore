@@ -13,7 +13,7 @@ zNex~$*
 # === FrontEnd (Android) ===
 *.iml
 .gradle/
-local.properties
+local.properties a
 .idea/
 build/
 captures/
@@ -21,11 +21,12 @@ captures/
 .cxx/
 
 # 저작권 있는 논문 원문 (당당이 챗봇 RAG용)
-AIServer/Chatbot/rag/papers/
-AIServer/Chatbot/rag/papers_combined.txt
-AIServer/Chatbot/rag/ocr_cache/
-AIServer/Chatbot/rag/.paper_cache_name
+# 2026-08 재구성: AIServer/Chatbot/rag/ -> AIServer/fastapi_app/services/rag/ 로 이동
+AIServer/fastapi_app/services/rag/papers/
+AIServer/fastapi_app/services/rag/papers_combined.txt
+AIServer/fastapi_app/services/rag/ocr_cache/
+AIServer/fastapi_app/services/rag/.paper_cache_name
 
 # 개인 작업 문서 (Claude 세션용, 팀 공유 불필요)
-AIServer/Chatbot/CLAUDE.md
-AIServer/Chatbot/README.md
+AIServer/fastapi_app/CLAUDE.md
+AIServer/fastapi_app/README.md
