@@ -20,6 +20,8 @@ class Application : Application(){
         const val GoogleLoginKey = BuildConfig.GoogleLoginKey
 
         const val InquiryEmail = BuildConfig.InquiryEmail
+
+        const val AuthPath = "/api/auth"
     }
 
     override fun onCreate() {

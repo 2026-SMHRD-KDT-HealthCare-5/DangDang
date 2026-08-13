@@ -34,14 +34,14 @@ fun SignUpFormContentPreview(
             email = "",
             password = "",
             passwordCheck = "",
-            gender = Gender.Male.name,
-            birth_date = "",
+            gender = Gender.male.name,
+            birthDate = "",
             height = "",
             weight = "",
             hba1c = "",
             isHemoglobinRecentResultUnknown = false,
-            target_glucose = "",
-            activity_level = "거의 안함",
+            targetGlucose = "",
+            activityLevel = "거의 안함",
             joined_at = "",
             profileImageUrl = "",
             notification_enabled = false
@@ -154,12 +154,12 @@ fun SignUpFormContent(
             isMaxLengthView = false,
             isRequired = false,
             isBorder = true,
-            value = signUpForm.birth_date,
-            isError = !isValidBirthDate(signUpForm.birth_date),
+            value = signUpForm.birthDate,
+            isError = !isValidBirthDate(signUpForm.birthDate),
             errorText = "만 14세 이상이어야 하며, 유효한 날짜여야 합니다.",
             onValueChange = {
                 onFormChange(
-                    signUpForm.copy(birth_date = it)
+                    signUpForm.copy(birthDate = it)
                 )
             },
             placeholderText = "YYYY.MM.DD",
@@ -221,10 +221,10 @@ fun SignUpFormContent(
         )
 
         GoalGlucoseTextField(
-            value = signUpForm.target_glucose,
+            value = signUpForm.targetGlucose,
             onValueChange = {
                 onFormChange(
-                    signUpForm.copy(target_glucose = it)
+                    signUpForm.copy(targetGlucose = it)
                 )
             }
         )
@@ -232,12 +232,12 @@ fun SignUpFormContent(
         ActivityLevelCheckView(
             checkedActivityLevel =
                 activityLevelList.find {
-                    it.title == signUpForm.activity_level
+                    it.title == signUpForm.activityLevel
                 }
                 ?: activityLevelList[0],
             onCheckedActivityLevelChange = {
                 onFormChange(
-                    signUpForm.copy(activity_level = it.title)
+                    signUpForm.copy(activityLevel = it.title)
                 )
             }
         )
