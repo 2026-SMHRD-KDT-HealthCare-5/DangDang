@@ -4,6 +4,16 @@
 
 약물 관련 차단은 LLM 판단에 맡기지 않고 키워드로 확실하게 걸러서
 고정 문구로 응답한다 (services/rag_chat.is_medication_dosage_question에서 사용).
+
+목차
+1. FIXED_KNOWLEDGE — Gemini에게 미리 넣어주는 혈당관리 참고 지식
+2. SYSTEM_PROMPT_TEMPLATE — 당당이 캐릭터의 말투/원칙을 정의하는 시스템 프롬프트
+3. MEDICATION_SAFETY_MESSAGE — 약물 질문이 걸렸을 때 돌려주는 고정 답변 문구
+4. INSULIN_KEYWORDS — "인슐린" 관련 차단 키워드
+5. DRUG_BRAND_KEYWORDS — 당뇨약/인슐린 브랜드명 차단 키워드
+6. MEDICATION_DOSAGE_KEYWORDS — "용량", "몇 알" 같은 복용량 직접 언급 키워드
+7. DOSAGE_ADJUSTMENT_STEMS — "줄이/늘리/바꾸" 같은 복용량 조정 동사 어간
+8. INDIRECT_DRUG_REFERENCE — "이 약", "그 약" 같은 간접 지칭 표현
 """
 
 # ---------------------------------------------------------

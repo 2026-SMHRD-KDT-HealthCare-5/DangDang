@@ -10,6 +10,13 @@ reanalyze()  : 사용자가 "틀려요, AI로 분석하기"를 선택했을 때,
 두 함수 모두 (status_code, content_dict)를 반환한다. 라우터는 이 값을 그대로
 JSONResponse(status_code=status_code, content=content)로 감싸기만 하면 된다 —
 비즈니스 로직과 HTTP 응답 구성을 분리해서, 라우터는 얇게 유지한다.
+
+목차
+1. parse_gemini_json() — Gemini가 ```json 코드블록으로 감싼 응답까지 안전하게 파싱
+2. _resolve_diag_and_baseline() — 진단군/식전혈당이 안 넘어왔을 때 기본값 채우기
+3. _build_recognize_response() — 인식 결과를 최종 응답 형태로 조립
+4. recognize() — routers/recognize.py가 호출하는 진입점 (음식 인식 2단계 파이프라인)
+5. reanalyze() — routers/reanalyze.py가 호출하는 진입점 (AI 재분석)
 """
 import json
 import re

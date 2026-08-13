@@ -3,19 +3,43 @@
 음식명 매칭 모듈
 
 Gemini가 사진/자연어로 인식한 음식명(예: "치킨", "제육볶음")을
-실제 서비스 DB 스키마와 동일한 food_for_db.csv에서 가장 유사한 항목과 매칭해서
+DB(food_info 테이블)에서 가장 유사한 항목과 매칭해서
 탄수화물/단백질/지방/식이섬유(100g 기준)를 가져온다.
 
-※ transform_to_db_schema.py로 만든 food_for_db.csv를 그대로 씀.
-   (예전엔 food_db_imputed.csv를 따로 썼는데, DB 적재용 파일과 전처리가 달라서
-    불일치가 생겼음 -> 이제 하나의 소스만 사용해서 그 문제를 없앰)
+※ 매칭 방식이 두 가지로 나뉜다 (서버 시작할 때 DB 연결이 되는지 보고 자동 선택):
+
+
+   1단계. 오프라인 개발  → 로컬 food_for_db.csv를 통째로 읽어서
+     메모리에 올려두고 rapidfuzz로 유사도 매칭 (기존 방식, 폴백용으로 유지).
+   FastAPI는 DB에 읽기(SELECT)만 하고, 쓰기(INSERT/UPDATE/DELETE)는 하지 않는다
+   (Spring 담당).
+
+    2단계.  DB 확장연결 → pg_trgm(문자열 유사도 검색용 PostgreSQL 확장)으로 DB 안에서
+     직접 유사도 검색. 요청마다 SQL 쿼리 한 번씩 날림 (전체 데이터를 메모리에 안 올림).
+
+   ⚠️ pg_trgm의 similarity() 점수(0~1을 100배한 값)는 rapidfuzz의 WRatio 점수와
+      계산 방식이 달라서, 같은 문자열이어도 나오는 점수가 다를 수 있다.
+      food_recognition.py의 MATCH_SCORE_THRESHOLD(=70)는 원래 rapidfuzz 기준으로
+      잡은 값이라, DB 모드로 실제 서비스하기 전에 실제 검색 결과로 임계값을
+      다시 확인/조정해보는 걸 권장.
 
 매칭 전략
 ---------
 1. 정확히 일치하는 식품명이 있으면 그걸 사용
-2. 없으면 rapidfuzz로 식품명 전체에 대해 유사도 검색 (여러 후보 반환 가능)
+2. 없으면 유사도 검색 (DB 모드: pg_trgm / CSV 모드: rapidfuzz)
 3. brand가 주어지면, food_name에 브랜드가 "비비큐_황금올리브 치킨"처럼
    접두어로 포함되어 있으므로 그 브랜드가 포함된 항목으로 우선 필터링
+
+목차
+1. DEFAULT_CSV_PATH — DB 접속 실패 시 쓸 폴백용 food_for_db.csv 위치
+2. SIZE_KEYWORD_TO_CODE / _extract_size_code() — "라지", "패밀리" 같은 한글 사이즈 단어를 영문 코드로 변환
+3. FoodDB.__init__() — DB 연결 테스트 후 db/csv 모드 결정 (db면 연결만, csv면 전체 로드)
+4. FoodDB.search() — 모드에 따라 _search_db()/_search_csv()로 위임
+5. FoodDB._search_db() — pg_trgm similarity()로 DB에서 직접 유사도 검색
+6. FoodDB._search_csv() — rapidfuzz로 메모리 위에서 유사도 검색 (기존 로직)
+7. FoodDB._rows_to_result() / _row_to_dict() — 결과 행을 응답용 dict로 변환하는 내부 헬퍼
+8. FoodDB.get_best_match() — 가장 유사한 항목 1건만 반환 (브랜드 불일치 시 전체 재검색까지 처리)
+9. food_db — 모듈이 처음 로딩될 때 1회만 만들어지는 싱글턴 (요청마다 새로 안 만듦)
 """
 
 import re
@@ -23,12 +47,19 @@ from pathlib import Path
 
 import pandas as pd
 from rapidfuzz import fuzz, process
+from sqlalchemy import text
 
-# fastapi_app/data/food_for_db.csv 고정 위치.
+from core.config import db_engine
+
+# DB 접속이 안 될 때(오프라인 개발 등)를 대비한 폴백용 CSV.
 # __file__ 기준 상대경로라 uvicorn을 어느 위치에서 실행해도 항상 같은 파일을 찾는다.
-# TODO: 현재는 CSV 기반 텍스트 유사도 매칭 프로토타입. 스펙(백엔드 가이드 5장)상
-#       최종 목표는 PostgreSQL FOOD_INFO 테이블 + pgvector/pg_trgm 유사도 검색으로 교체.
 DEFAULT_CSV_PATH = Path(__file__).resolve().parent.parent / "data" / "food_for_db.csv"
+
+# food_info 테이블/CSV 공통 컬럼 (SELECT 절, DataFrame 컬럼 이름을 이걸로 통일)
+FOOD_TABLE_COLUMNS = [
+    "food_no", "food_name", "calorie", "carb", "protein", "fat",
+    "fiber", "serving_size", "sugar",
+]
 
 # 한글 사이즈 표현 -> 데이터에 실제로 쓰이는 영문 코드 매핑
 # (파파존스 등 피자 프랜차이즈 표기 관례 기준. 브랜드마다 F/P 의미가 조금 다를 수 있어
@@ -57,10 +88,25 @@ def _extract_size_code(query: str):
 
 class FoodDB:
     def __init__(self, csv_path: Path | str = DEFAULT_CSV_PATH):
+        self.mode = "csv"
+        self.df = None
+
+        if db_engine is not None:
+            try:
+                with db_engine.connect() as conn:
+                    conn.execute(text("SELECT 1"))
+                self.mode = "db"
+                print("[food_repo] DB 연결 확인 완료 - pg_trgm 기반 검색 사용 (food_info 테이블)")
+                return
+            except Exception as e:
+                print(f"[food_repo] DB 연결 실패, CSV로 폴백: {e}")
+
+        # DB 접속 정보가 없거나(.env 미설정) 접속 자체가 실패한 경우의 폴백
         try:
             self.df = pd.read_csv(csv_path, encoding="utf-8-sig")
         except UnicodeDecodeError:
             self.df = pd.read_csv(csv_path, encoding="cp949")
+        print(f"[food_repo] CSV({csv_path})에서 {len(self.df)}건 로드 완료 (rapidfuzz 기반 검색)")
 
     def search(self, query: str, brand: str | None = None, top_k: int = 5):
         """
@@ -76,6 +122,55 @@ class FoodDB:
         cleaned_query, size_code = _extract_size_code(query)
         query = cleaned_query if cleaned_query else query
 
+        if self.mode == "db":
+            return self._search_db(query, brand, top_k, size_code)
+        return self._search_csv(query, brand, top_k, size_code)
+
+    def _search_db(self, query: str, brand: str | None, top_k: int, size_code: str | None):
+        """pg_trgm의 similarity()로 DB 안에서 직접 유사도 검색"""
+        columns_sql = ", ".join(FOOD_TABLE_COLUMNS)
+
+        with db_engine.connect() as conn:
+            # 1) 정확 일치 우선
+            sql = f"SELECT {columns_sql} FROM food_info WHERE food_name = :q"
+            params = {"q": query, "k": top_k}
+            if brand:
+                sql += " AND food_name LIKE :brand"
+                params["brand"] = f"%{brand}%"
+            sql += " LIMIT :k"
+            rows = conn.execute(text(sql), params).mappings().all()
+            if rows:
+                return [self._row_to_dict(r, match_type="정확일치", score=100) for r in rows]
+
+            # 2) pg_trgm 유사도 매칭
+            # 사이즈코드가 감지됐으면, food_name이 "(코드)"로 끝나는 항목을 최우선 정렬
+            order_by = "similarity(food_name, :q) DESC"
+            if size_code:
+                order_by = (
+                    f"CASE WHEN food_name ~ '\\({re.escape(size_code)}\\)\\s*$' THEN 0 ELSE 1 END, "
+                    + order_by
+                )
+
+            sql = f"""
+                SELECT {columns_sql}, similarity(food_name, :q) AS score
+                FROM food_info
+                WHERE similarity(food_name, :q) > 0.1
+            """
+            params = {"q": query, "k": top_k}
+            if brand:
+                sql += " AND food_name LIKE :brand"
+                params["brand"] = f"%{brand}%"
+            sql += f" ORDER BY {order_by} LIMIT :k"
+
+            rows = conn.execute(text(sql), params).mappings().all()
+
+        return [
+            self._row_to_dict(r, match_type="유사도매칭", score=r["score"] * 100)
+            for r in rows
+        ]
+
+    def _search_csv(self, query: str, brand: str | None, top_k: int, size_code: str | None):
+        """rapidfuzz로 메모리(CSV로 읽어둔 DataFrame) 위에서 유사도 매칭 (DB 접속 실패 시 폴백)"""
         candidates_df = self.df
         if brand:
             filtered = self.df[self.df["food_name"].astype(str).str.contains(brand, na=False)]

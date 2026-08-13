@@ -10,6 +10,14 @@ PDF를 그대로 첨부하던 이전 방식보다 빠른 이유:
 - Gemini는 PDF를 페이지 이미지처럼 처리(비전 모델 경유)하는데,
   순수 텍스트는 이 과정이 없어 처리 속도/토큰 비용이 크게 줄어듦
 - 파일 7개 대신 텍스트 1개만 다루면 되어 구조도 단순해짐
+
+목차
+1. 상수 — COMBINED_TEXT_PATH/CACHE_NAME_PATH, CACHE_TTL(캐시 유지기간), PAPER_QA_INSTRUCTION(답변 지침 프롬프트)
+2. load_combined_text() — papers_combined.txt를 읽어옴 (없으면 extract_text.py로 자동 생성)
+3. _try_reuse_existing_cache() — 이전에 만든 Gemini 컨텍스트 캐시가 살아있으면 재사용 + TTL 연장
+4. create_paper_cache() — 논문 텍스트를 Gemini 컨텍스트 캐시로 등록 (재사용 실패 시 새로 생성)
+5. answer_with_paper_cache() — 캐시를 이용해 빠르게 답변 생성 (정상 경로)
+6. answer_without_cache() — 캐시를 못 쓸 때, 매번 논문 텍스트 전체를 프롬프트에 직접 넣는 폴백
 """
 
 from pathlib import Path

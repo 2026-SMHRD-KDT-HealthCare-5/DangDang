@@ -3,6 +3,24 @@
 __pycache__/
 *.pyc
 
+# 파이썬 가상환경 (AIServer)
+venv/
+.venv/
+env/
+
+# 파이썬/노트북 캐시, 빌드 산물
+.pytest_cache/
+.mypy_cache/
+.ipynb_checkpoints/
+*.egg-info/
+
+# 테스트 실행 결과 (매번 새로 생성되는 파일이라 git에 안 올림)
+AIServer/scripts/test_results.txt
+
+# OS 잡파일
+.DS_Store
+Thumbs.db
+
 # 엑셀 임시 잠금파일
 ~$*
 zNex~$*

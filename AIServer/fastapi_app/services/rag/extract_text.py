@@ -13,6 +13,15 @@ sources.py의 논문 PDF들을 전부 텍스트로 추출해서,
     python extract_text.py
     (한 번만 실행하면 됨. papers_combined.txt가 이미 있으면 자동으로 재사용됨 -
      새 논문 추가했으면 다시 실행)
+
+목차
+1. 상수 — SCRIPT_DIR/OUTPUT_PATH, STOP_SECTION_MARKERS(참고문헌/부록 등 잘라낼 구간 표시), SECTION_NAME_SET(소제목으로 인식할 이름들)
+2. is_stop_marker_line() / is_resume_marker_line() / smart_trim() — 참고문헌·부록 구간을 건너뛰고, 새 소제목이 나오면 다시 포함시키는 트림 로직
+3. detect_section_header() / split_into_sections() — 텍스트를 "서론/결과/고찰" 같은 소제목 단위로 분할
+4. extract_pdf_text_two_column() / extract_pdf_text() — PDF에서 텍스트 추출 (2단 컬럼용 / 일반용)
+5. get_source_text() — 소스 1건에 대해 OCR 캐시/2단컬럼/구간슬라이스 옵션을 반영해 최종 텍스트 획득
+6. format_paper_with_toc() — 논문 1편을 [목차]+소제목별 본문 형태로 포맷팅
+7. build_combined_text() / main() — sources.py의 논문 전체를 순회하며 합쳐서 papers_combined.txt로 저장
 """
 
 import re

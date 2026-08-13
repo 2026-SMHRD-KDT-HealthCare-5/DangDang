@@ -6,6 +6,15 @@ FEATURE_ORDER는 학습 노트북에서 확인된 실제 순서입니다:
     ['carbs_g', 'protein_g', 'fat_g', 'fiber_g', 'baseline',
      'group_2형당뇨', 'group_건강군', 'group_전당뇨']
 (진단군 원-핫은 pandas get_dummies 알파벳/유니코드 정렬 순서라 '2형당뇨'가 맨 앞으로 옴)
+
+목차
+1. FEATURE_ORDER — 모델에 넣을 입력값 순서 (이 순서가 틀리면 예측이 엉망이 됨)
+2. MAX_RELIABLE_BASELINE — 이 baseline(식전 혈당)을 넘으면 예측 신뢰도가 낮다고 표시
+3. DEFAULT_MODEL_PATH — models/final_risk_model.pkl 위치 (실행 위치와 무관하게 고정)
+4. GlucosePredictor — 모델 로드 + 예측을 담당하는 클래스
+   - build_feature_vector() : 입력값들을 모델이 이해하는 배열 형태로 변환
+   - predict_peak()         : 식후 최고 혈당(peak)과 상승량(rise)을 예측
+5. glucose_predictor — 모듈이 처음 로딩될 때 1회만 만들어지는 싱글턴 (요청마다 새로 안 만듦)
 """
 
 import pickle

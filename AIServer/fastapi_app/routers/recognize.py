@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+POST /rag/intake-logs/recognize 라우터 — 사진/텍스트로 음식을 인식할 때 Spring이 내부 호출한다.
+
+목차
+1. recognize_food() — image/message 필수값 검증 후 services/food_recognition.py의 recognize()에 위임
+"""
 from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 

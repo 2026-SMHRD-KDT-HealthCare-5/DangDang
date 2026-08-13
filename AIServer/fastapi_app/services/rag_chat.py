@@ -4,6 +4,14 @@
 
 음식 인식/혈당 예측은 이 서비스의 역할이 아니다 — 그건 services/food_recognition.py가
 전담한다. 여긴 순수 대화(페르소나 응답, 논문 기반 Q&A)만 처리한다.
+
+목차
+1. chat_sessions, user_diagnosis_groups — 사용자별(user_no 기준) 대화/진단군을 메모리에 저장 (서버 재시작 시 초기화)
+2. combined_papers_text, paper_cache — 모듈이 처음 로딩될 때 1회만 만들어지는 논문 캐시
+3. get_or_create_chat_session() — 사용자 ID별로 대화 세션을 만들거나 가져옴
+4. get_dummy_user_context() — 지금은 더미인 사용자 정보 (추후 DB 연동 예정)
+5. is_medication_dosage_question() — 약물 용량 질문인지 키워드로 판별
+6. answer_chat() — routers/chat.py가 호출하는 실제 진입점, 답변 생성의 전체 흐름
 """
 
 from core.config import client, MODEL_NAME, log_token_usage
@@ -33,29 +41,30 @@ chat_sessions: dict = {}
 
 # 사용자별 진단군 저장 (메모리, 서버 재시작 시 초기화 — 추후 DB로 영속화)
 # 진단군을 아직 모르면 기본값 "건강군"으로 처리
-user_diagnosis_groups: dict[str, str] = {}
+# 키는 user_no(정수, DB의 USER 테이블 PK와 동일 타입)
+user_diagnosis_groups: dict[int, str] = {}
 
 # 모듈 최초 import 시 1회만 로드/생성되어 이후 재사용된다 (Python import 캐싱).
 combined_papers_text = load_combined_text()
 paper_cache = create_paper_cache(client, MODEL_NAME)
 
 
-def get_or_create_chat_session(user_id: str, system_prompt: str):
-    if user_id not in chat_sessions:
-        chat_sessions[user_id] = client.chats.create(
+def get_or_create_chat_session(user_no: int, system_prompt: str):
+    if user_no not in chat_sessions:
+        chat_sessions[user_no] = client.chats.create(
             model=MODEL_NAME,
             config={
                 "system_instruction": system_prompt,
                 "temperature": 0.7,
             },
         )
-    return chat_sessions[user_id]
+    return chat_sessions[user_no]
 
 
-def get_dummy_user_context(user_id: str) -> str:
+def get_dummy_user_context(user_no: int) -> str:
     # 지금은 더미 데이터, 추후 DB 연동
     return f"""
-[사용자 정보: {user_id}]
+[사용자 정보: {user_no}]
 - 최근 식사: 흰쌀밥 + 제육볶음
 - 오늘 걷기 기록: 아직 없음
 - 최근 3일 평균 걷기: 18분
@@ -88,7 +97,7 @@ def is_medication_dosage_question(message: str) -> bool:
     return False
 
 
-def answer_chat(user_id: str, message: str, diagnosis_group: str | None) -> str:
+def answer_chat(user_no: int, message: str, diagnosis_group: str | None) -> str:
     """routers/chat.py의 POST /rag/chat 핸들러가 호출하는 진입점"""
 
     # 인슐린/약물 용량 관련 질문은 Gemini 호출 전에 키워드로 먼저 차단
@@ -96,7 +105,7 @@ def answer_chat(user_id: str, message: str, diagnosis_group: str | None) -> str:
         return MEDICATION_SAFETY_MESSAGE
 
     if diagnosis_group:
-        user_diagnosis_groups[user_id] = diagnosis_group
+        user_diagnosis_groups[user_no] = diagnosis_group
 
     # 논문 기반 지식 질문 -> 논문 텍스트 컨텍스트로 답변
     if paper_cache:
@@ -112,12 +121,12 @@ def answer_chat(user_id: str, message: str, diagnosis_group: str | None) -> str:
         return response.text
 
     # 논문 리소스가 아예 없을 때의 최종 폴백 -> 페르소나 대화 세션
-    user_context = get_dummy_user_context(user_id)
+    user_context = get_dummy_user_context(user_no)
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         knowledge=FIXED_KNOWLEDGE,
         user_context=user_context,
     )
-    chat_session = get_or_create_chat_session(user_id, system_prompt)
+    chat_session = get_or_create_chat_session(user_no, system_prompt)
     response = chat_session.send_message(message)
     log_token_usage(response, label="chat")
     return response.text

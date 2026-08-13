@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
-"""POST /rag/intake-logs/recognize 에서 쓰는 Gemini 프롬프트"""
+"""
+POST /rag/intake-logs/recognize 에서 쓰는 Gemini 프롬프트 — "이 음식이 뭔지 알아맞혀줘" 담당.
+
+목차
+1. FOOD_RECOGNITION_PROMPT — 사진을 보고 음식명을 알아내는 프롬프트
+2. TEXT_FOOD_EXTRACTION_PROMPT — 채팅 텍스트에서 음식명을 뽑아내는 프롬프트
+"""
 
 FOOD_RECOGNITION_PROMPT = """이 사진 속 음식을 인식해서 아래 JSON 형식으로만 답해.
 설명 문장이나 마크다운 코드블록(```json) 없이, 순수 JSON 텍스트만 출력해.

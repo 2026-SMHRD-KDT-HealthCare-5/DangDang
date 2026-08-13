@@ -8,3 +8,7 @@ rapidfuzz
 pandas
 numpy
 pdfplumber
+lightgbm
+scikit-learn
+sqlalchemy
+psycopg2-binary

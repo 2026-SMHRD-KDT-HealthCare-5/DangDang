@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+POST /rag/intake-logs/reanalyze 라우터 — 사용자가 "틀려요, AI로 분석하기"를 눌렀을 때 Spring이 내부 호출한다.
+
+목차
+1. reanalyze_food() — image/food_name 필수값 검증 후 services/food_recognition.py의 reanalyze()에 위임
+"""
 from fastapi import APIRouter, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 

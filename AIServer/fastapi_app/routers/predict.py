@@ -1,4 +1,10 @@
 # -*- coding: utf-8 -*-
+"""
+POST /rag/intake-logs/predict 라우터 — 음식을 최종 확정(portion 반영)할 때 Spring이 내부 호출한다.
+
+목차
+1. predict_with_portion() — diagnosis_group 검증 → portion 배율 적용 → 혈당 재예측 → 걷기 미션 계산까지 한 번에 처리
+"""
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
@@ -44,7 +50,6 @@ def predict_with_portion(req: PortionPredictRequest):
         content={
             "predictedGlucoseRise": prediction["predicted_rise"],
             "predictedPeak": prediction["predicted_peak"],
-            "lowConfidence": prediction["low_confidence"],
             "targetDistance": mission["distance_km"],
             "targetKcal": mission["calories"],
             "nutritionUsed": {

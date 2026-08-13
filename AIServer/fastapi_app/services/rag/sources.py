@@ -6,6 +6,11 @@ RAG(벡터DB, 임베딩 검색) 없이, Gemini에 PDF를 직접 첨부해서
 "이 논문들 내용을 참고해서 답해줘" 방식으로 사용한다.
 
 file_path는 이 파일(sources.py) 기준 상대경로.
+
+목차
+1. SOURCES — 논문/보고서 7건의 메타데이터 목록. 각 항목은 title/authors/published_year/file_path와
+   필요 시 two_column(2단 컬럼 PDF), ocr_override(스캔본이라 OCR 텍스트 대신 사용),
+   slice_start_marker/slice_end_marker(문서 중 일부 구간만 사용) 옵션을 가짐
 """
 
 SOURCES = [

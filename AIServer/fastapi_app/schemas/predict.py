@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""POST /rag/intake-logs/predict 요청 스키마"""
+"""
+POST /rag/intake-logs/predict 요청 스키마 — 음식 최종 확정 직전에 쓰는 요청 형식.
+
+목차
+1. PortionPredictRequest — 영양성분 + 섭취비율(portion) + 식전혈당(baseline) + 진단군
+"""
 
 from pydantic import BaseModel
 

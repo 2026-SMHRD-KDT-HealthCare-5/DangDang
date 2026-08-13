@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-"""예측 peak 혈당(PPG, mg/dL) 기준 걷기 미션(시간/거리/칼로리) 환산"""
+"""
+예측 peak 혈당(PPG, mg/dL) 기준 걷기 미션(시간/거리/칼로리) 환산
+
+목차
+1. calc_walking_mission() — PPG를 걷기 시간(분)/거리(km)/칼로리로 변환하는 유일한 함수
+"""
 
 
 def calc_walking_mission(ppg: float) -> dict:
