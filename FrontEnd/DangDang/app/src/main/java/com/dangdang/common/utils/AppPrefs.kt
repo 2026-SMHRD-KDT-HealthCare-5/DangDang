@@ -43,8 +43,8 @@ class AppPrefs @Inject constructor(
     //리프레시 토큰
     private val refreshTokenKey = stringPreferencesKey("refreshToken")
 
-    //알림설정
-    private val notificationKey = booleanPreferencesKey("notification")
+    //알림 설정 여부
+    private val notificationEnabledKey = booleanPreferencesKey("notificationEnabled")
 
     //로그아웃
     suspend fun logout(){
@@ -60,6 +60,28 @@ class AppPrefs @Inject constructor(
             .map { preferences ->
                 preferences[autoLoginKey] ?: false
             }
+
+    val notificationEnabledFlow: Flow<Boolean> =
+        context.appDataStore.data
+            .map { preferences ->
+                preferences[notificationEnabledKey] ?: true
+            }
+
+    //알림 설정 여부 가져오기
+    suspend fun isNotificationEnabled(): Boolean {
+        return prefs.data
+            .map { preferences ->
+                preferences[notificationEnabledKey] ?: true
+            }
+            .first()
+    }
+
+    //알림 설정 여부 저장
+    suspend fun setNotificationEnabled(enabled: Boolean) {
+        prefs.edit { preferences ->
+            preferences[notificationEnabledKey] = enabled
+        }
+    }
 
     //자동 로그인 여부
     suspend fun isAutoLogin(): Boolean {
@@ -150,32 +172,6 @@ class AppPrefs @Inject constructor(
         prefs.edit { preferences ->
             preferences[accessTokenKey] = encryptedAccessToken
             preferences[refreshTokenKey] = encryptedRefreshToken
-        }
-    }
-
-    //알림설정
-    suspend fun isNotification(): Boolean{
-        return prefs.data
-            .map { preferences ->
-                preferences[notificationKey] ?: false
-            }
-            .first()
-    }
-
-    val notificationFlow: StateFlow<Boolean> =
-        context.appDataStore.data
-            .map { preferences ->
-                preferences[notificationKey] ?: false
-            }
-            .stateIn(
-                scope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
-                started = SharingStarted.Eagerly,
-                initialValue = false
-            )
-
-    suspend fun setNotification(notification: Boolean) {
-        prefs.edit { preferences ->
-            preferences[notificationKey] = notification
         }
     }
 }

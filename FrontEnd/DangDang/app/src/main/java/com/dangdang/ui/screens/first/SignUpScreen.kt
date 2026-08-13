@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,7 @@ fun SignUpScreen(
     isSocial: Boolean? = null,
     isEmailDisable: Boolean
 ){
+    val context = LocalContext.current
     val userInfoDetail by
         signUpViewModel.userInfoDetail.collectAsState()
 
@@ -84,13 +86,18 @@ fun SignUpScreen(
                 navController.popBackStack()
             },
             onSignUpCompleteClick = {
-                signUpViewModel.userInfoUpdate(
-                    //회원정보 수정 성공 시
-                    onSuccess = {
-                        if(isUpdate){
-                            //마이페이지 화면으로 이동
+                if(isUpdate){
+                    signUpViewModel.userInfoUpdate(
+                        context = context,
+                        //회원정보 수정 성공 시
+                        onSuccess = {
                             navController.popBackStack()
-                        }else{
+                        }
+                    )
+                }else{
+                    signUpViewModel.signUp(
+                        context = context,
+                        onSuccess = {
                             //회원가입 완료로 이동
                             navController.navigate(AppRoute.SignUpComplete.route) {
                                 popUpTo(0) {
@@ -99,8 +106,8 @@ fun SignUpScreen(
                                 launchSingleTop = true
                             }
                         }
-                    }
-                )
+                    )
+                }
             },
             isUpdate = isUpdate,
             isEmailDisable = isEmailDisable,

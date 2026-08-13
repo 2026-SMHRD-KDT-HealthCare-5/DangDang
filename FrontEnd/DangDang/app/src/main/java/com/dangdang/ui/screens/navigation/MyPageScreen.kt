@@ -9,9 +9,9 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,18 +23,18 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dangdang.Application.Companion.ExamplePictureUrl
-import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.mainScreen
-import com.dangdang.common.utils.regular
 import com.dangdang.common.utils.sendMail
 import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.image.Profile
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.mypage.MyPageMenu
+import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.LoadingState
-import com.dangdang.data.model.user.User
-import com.dangdang.ui.theme.AppTypography
+import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.ui.viewmodel.navigation.MyPageViewModel
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 @Preview
 @Composable
@@ -42,15 +42,23 @@ fun MyPageScreenPreview(
 
 ){
     MyPageScreenContent(
-        user = User(
-            id = "1",
-            isSignUp = true,
-            nickname = "닉네임",
-            profileImageUrl = ExamplePictureUrl,
+        user = SignUpForm(
+            isSocial = true,
+            nickname = "닉네임8",
             email = "email@gmail.com",
-            sinceDays = 120,
-            createdDt = "2026-07-28",
-            updatedDt = "2026-07-28",
+            password = "",
+            passwordCheck = "",
+            gender = Gender.Male,
+            birth_date = "1997.05.16",
+            height = "170",
+            weight = "70",
+            hba1c = "12",
+            isHemoglobinRecentResultUnknown = false,
+            target_glucose = "180",
+            activity_level = "주 1 ~2회",
+            joined_at = "2026-07-28",
+            profileImageUrl = ExamplePictureUrl,
+            notification_enabled = true
         ),
         onMyInfoUpdateMove = {},
         isSwitchChecked = true,
@@ -64,22 +72,45 @@ fun MyPageScreenPreview(
 @Composable
 fun MyPageScreen(
     myPageViewModel: MyPageViewModel = hiltViewModel(),
-    appPrefs: AppPrefs,
     onMyInfoUpdateMove: ()-> Unit,
     onFaqClick: () -> Unit,
 ){
     val context = LocalContext.current
     val userInfo by myPageViewModel.userInfo.collectAsState()
+    var isGrantedPermission by remember {
+        mutableStateOf(
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            }else{
+                true
+            }
+        )
+    }
 
-    val isNotification by appPrefs.notificationFlow.collectAsState()
+    val isNotification by remember(
+        userInfo,
+        isGrantedPermission
+    ) {
+        derivedStateOf {
+            (userInfo.data?.notification_enabled ?: false)
+            && isGrantedPermission
+        }
+    }
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
         ) { isGranted ->
             if (isGranted) {
+                isGrantedPermission = true
                 // 권한 허용됨
-                myPageViewModel.setNotification(!isNotification)
+                myPageViewModel.setNotification(
+                    context = context,
+                    isNotification = true,
+                )
             }
         }
 
@@ -93,7 +124,10 @@ fun MyPageScreen(
                     //권한 요청
                     permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
                 }else{
-                    myPageViewModel.setNotification(!isNotification)
+                    myPageViewModel.setNotification(
+                        context = context,
+                        isNotification = !isNotification
+                    )
                 }
             },
             onFaqClick = onFaqClick,
@@ -101,7 +135,7 @@ fun MyPageScreen(
                 sendMail(context)
             },
             onLogoutClick = {
-                myPageViewModel.logout()
+                myPageViewModel.logout(context)
             }
         )
     }else{
@@ -114,7 +148,7 @@ fun MyPageScreen(
 
 @Composable
 fun MyPageScreenContent(
-    user: User?,
+    user: SignUpForm?,
     onMyInfoUpdateMove: ()-> Unit,
     isSwitchChecked: Boolean,
     onSwitchCheckChange: () -> Unit,
@@ -139,10 +173,14 @@ fun MyPageScreenContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            val sinceDays = ChronoUnit.DAYS.between(
+                LocalDate.parse(user?.joined_at),
+                LocalDate.now()
+            )
             Profile(
                 profileImageUrl = user?.profileImageUrl,
                 nickname = user?.nickname?: "",
-                sinceDays = user?.sinceDays?: 0,
+                sinceDays = sinceDays.toInt(),
                 onNextClick = onMyInfoUpdateMove
             )
 

@@ -16,6 +16,7 @@ import android.os.IBinder
 import android.os.Looper
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.manager.StepCounterManager
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -23,6 +24,7 @@ import com.google.android.gms.location.LocationRequest
 import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
+import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -30,9 +32,14 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.util.Locale
+import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
 
+@AndroidEntryPoint
 class StepCounterService : Service(), SensorEventListener {
+
+    @Inject
+    lateinit var appPrefs: AppPrefs
 
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
@@ -228,7 +235,9 @@ class StepCounterService : Service(), SensorEventListener {
 
                 // 10분 경과 -> 로컬 알림
                 if (inactiveMillis >= 10 * 60 * 1000L && inactiveMillis < 10 * 60 * 1000L + 1000L) {
-                    showInactivityNotification("계속 걷고 계신가요?")
+                    if (appPrefs.isNotificationEnabled()) {
+                        showInactivityNotification("계속 걷고 계신가요?")
+                    }
                 }
 
                 // 30분 경과 -> 세션 만료 서버 호출
@@ -245,7 +254,7 @@ class StepCounterService : Service(), SensorEventListener {
 
     // --- Mock API Calls ---
 
-    private fun trackWalkMission(no: Int, location: Location?) {
+    private suspend fun trackWalkMission(no: Int, location: Location?) {
         if (no == -1 || location == null) return
 
         Log.d("WalkService", "Tracking mission $no at ${location.latitude}, ${location.longitude}")
@@ -254,7 +263,9 @@ class StepCounterService : Service(), SensorEventListener {
         val goalReached = false // from server response
         if (goalReached && !isGoalReachedNotified) {
             isGoalReachedNotified = true
-            showGoalReachedNotification()
+            if (appPrefs.isNotificationEnabled()) {
+                showGoalReachedNotification()
+            }
         }
     }
 

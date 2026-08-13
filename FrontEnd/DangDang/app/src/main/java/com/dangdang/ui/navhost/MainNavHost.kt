@@ -121,7 +121,6 @@ fun MainNavHost(
             //내 정보
             composable(MainRoute.MyPage.route) {
                 MyPageScreen(
-                    appPrefs = appPrefs,
                     onMyInfoUpdateMove = {
                         navController.navigate(MyPageRoute.MyInfoUpdate.route)
                     },

@@ -92,6 +92,13 @@ class DangDangViewModel @Inject constructor(
         }
     }
 
+    //음식 먹은 양 전송
+    fun ateWeightSend(weightValue: String) {
+        viewModelScope.launch {
+            _chattingList.applyResponse(dangDangRepository.ateWeightSend(weightValue))
+        }
+    }
+
     //음식 직접 입력 전송
     fun sendFoodInputDirectly(foodInputDirectlyForm: FoodInputDirectlyForm) {
         viewModelScope.launch {

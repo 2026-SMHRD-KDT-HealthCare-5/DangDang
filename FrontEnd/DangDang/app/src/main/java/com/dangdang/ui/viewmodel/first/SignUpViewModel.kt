@@ -1,10 +1,11 @@
 package com.dangdang.ui.viewmodel.first
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.SignUpDefault
-import com.dangdang.common.utils.activityLevelList
 import com.dangdang.common.utils.applyResponse
 import com.dangdang.common.utils.isValidBirthDate
 import com.dangdang.common.utils.isValidEmail
@@ -13,11 +14,9 @@ import com.dangdang.common.utils.isValidHeight
 import com.dangdang.common.utils.isValidPassword
 import com.dangdang.common.utils.isValidPostPrandialGlucose
 import com.dangdang.common.utils.isValidWeight
-import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.user.SignUpForm
-import com.dangdang.data.model.user.User
 import com.dangdang.data.repository.UserRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -43,7 +42,13 @@ class SignUpViewModel @Inject constructor(
     fun getUserInfoDetail(isUpdate: Boolean, isSocial: Boolean?){
         viewModelScope.launch {
             if(isUpdate || isSocial == true){
-                _userInfoDetail.applyResponse(userRepository.getUserInfoDetail())
+                val response = userRepository.getUserInfoDetail()
+                _userInfoDetail.applyResponse(response)
+                if(response.isSuccessful){
+                    response.body()?.let {
+                        appPrefs.setNotificationEnabled(it.notification_enabled)
+                    }
+                }
             }else{
                 _userInfoDetail.value = _userInfoDetail.value.copy(
                     data = SignUpDefault,
@@ -82,8 +87,8 @@ class SignUpViewModel @Inject constructor(
                     )
                 )
                 && (
-                    userInfoDetail.birthday.isNotEmpty() &&
-                            isValidBirthDate(userInfoDetail.birthday)
+                    userInfoDetail.birth_date.isNotEmpty() &&
+                            isValidBirthDate(userInfoDetail.birth_date)
                 )
                 && (
                     userInfoDetail.height.isNotEmpty() &&
@@ -95,32 +100,44 @@ class SignUpViewModel @Inject constructor(
                 )
                 && (
                     (
-                            userInfoDetail.hemoglobin.isNotEmpty() &&
-                                    isValidHbA1c(userInfoDetail.hemoglobin)
+                            userInfoDetail.hba1c.isNotEmpty() &&
+                                    isValidHbA1c(userInfoDetail.hba1c)
                     )
                             || userInfoDetail.isHemoglobinRecentResultUnknown
                 )
                 && (
-                    userInfoDetail.goalGlucose.isNotEmpty() &&
-                            isValidPostPrandialGlucose(userInfoDetail.goalGlucose)
+                    userInfoDetail.target_glucose.isNotEmpty() &&
+                            isValidPostPrandialGlucose(userInfoDetail.target_glucose)
                 )
     }
 
-    //회원가입 or 회원정보 수정 완료
-    fun userInfoUpdate(onSuccess: ()-> Unit){
+    //회원정보 수정 완료
+    fun userInfoUpdate(context: Context, onSuccess: ()-> Unit){
         viewModelScope.launch {
             val response = userRepository.userInfoUpdate(
                 _userInfoDetail.value.data
             )
             if(response.isSuccessful){
-                val responseBody = response.body()
-
-                appPrefs.setAccessToken(responseBody?.accessToken?:"")
-                appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
-
-                appPrefs.setAutoLogin(true)
-
+                _userInfoDetail.value.data?.let {
+                    appPrefs.setNotificationEnabled(it.notification_enabled)
+                }
                 onSuccess()
+            }else{
+                Toast.makeText(context, "회원정보 수정 요청이 실패했습니다.", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    //회원가입 api 부르기
+    fun signUp(context: Context, onSuccess: ()-> Unit){
+        viewModelScope.launch {
+            val response = userRepository.signUp(
+                _userInfoDetail.value.data
+            )
+            if(response.isSuccessful){
+                onSuccess()
+            }else{
+                Toast.makeText(context, "회원가입 요청이 실패했습니다.", Toast.LENGTH_SHORT).show()
             }
         }
     }

@@ -91,6 +91,9 @@ fun DangDangScreenPreview(
         ateFoodValue = "",
         onAteFoodValueChange = {},
         onAteFoodSendClick = {},
+        ateWeightValue = "",
+        onAteWeightValueChange = {},
+        onAteWeightSendClick = {},
         afterWalkGlucoseValue = "",
         onAfterWalkGlucoseValueChange = {},
         onAfterWalkGlucoseInputCompleteClick = {},
@@ -143,6 +146,10 @@ fun DangDangScreen(
     }
 
     var ateFoodValue by remember {
+        mutableStateOf("")
+    }
+
+    var ateWeightValue by remember {
         mutableStateOf("")
     }
 
@@ -217,6 +224,15 @@ fun DangDangScreen(
                     ateFoodValue
                 )
             },
+            ateWeightValue = ateWeightValue,
+            onAteWeightValueChange = {
+                ateWeightValue = it
+            },
+            onAteWeightSendClick = {
+                dangDangViewModel.ateWeightSend(
+                    ateWeightValue
+                )
+            },
             afterWalkGlucoseValue = afterWalkGlucoseValue,
             onAfterWalkGlucoseValueChange = {
                 afterWalkGlucoseValue = it
@@ -288,6 +304,9 @@ fun DangDangScreenContent(
     ateFoodValue: String,
     onAteFoodValueChange: (String) -> Unit,
     onAteFoodSendClick: () -> Unit,
+    ateWeightValue: String,
+    onAteWeightValueChange: (String) -> Unit,
+    onAteWeightSendClick: () -> Unit,
     afterWalkGlucoseValue: String,
     onAfterWalkGlucoseValueChange: (String) -> Unit,
     onAfterWalkGlucoseInputCompleteClick: () -> Unit,
@@ -319,6 +338,9 @@ fun DangDangScreenContent(
             ateFoodValue = ateFoodValue,
             onAteFoodValueChange = onAteFoodValueChange,
             onAteFoodSendClick = onAteFoodSendClick,
+            ateWeightValue = ateWeightValue,
+            onAteWeightValueChange = onAteWeightValueChange,
+            onAteWeightSendClick = onAteWeightSendClick,
             afterWalkGlucoseValue = afterWalkGlucoseValue,
             onAfterWalkGlucoseValueChange = onAfterWalkGlucoseValueChange,
             onAfterWalkGlucoseInputCompleteClick = onAfterWalkGlucoseInputCompleteClick,

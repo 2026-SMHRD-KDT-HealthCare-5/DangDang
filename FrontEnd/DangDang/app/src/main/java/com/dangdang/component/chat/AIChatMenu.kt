@@ -4,8 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.common.utils.AIFeedbackStage
@@ -14,8 +16,10 @@ import com.dangdang.common.utils.AnalysisFoodStage
 import com.dangdang.common.utils.AnalysisFoodType
 import com.dangdang.common.utils.BeforeMealGlucoseInputStage
 import com.dangdang.common.utils.InputAteFoodStage
+import com.dangdang.common.utils.InputAteWeightStage
 import com.dangdang.common.utils.RecommendWalkDistanceStage
 import com.dangdang.common.utils.TodayWalkTargetType
+import com.dangdang.common.utils.regular
 import com.dangdang.component.button.PrimaryButton
 import com.dangdang.component.text.textfield.TextField
 import com.dangdang.data.enums.ChatUserType
@@ -26,6 +30,8 @@ import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.FoodInfoModel
 import com.dangdang.data.model.chat.FoodNutritionModel
 import com.dangdang.data.model.chat.GlucoseFeedbackModel
+import com.dangdang.ui.theme.AppTypography
+import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.White
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -329,6 +335,9 @@ fun AIChatMenu(
     ateFoodValue: String = "",
     onAteFoodValueChange: (String) -> Unit = {},
     onAteFoodSendClick: () -> Unit = {},
+    ateWeightValue: String = "",
+    onAteWeightValueChange: (String) -> Unit = {},
+    onAteWeightSendClick: () -> Unit = {},
     afterWalkGlucoseValue: String = "",
     onAfterWalkGlucoseValueChange: (String) -> Unit = {},
     onAfterWalkGlucoseInputCompleteClick: () -> Unit = {},
@@ -393,6 +402,32 @@ fun AIChatMenu(
                                     enabled = ateFoodValue.isNotEmpty(),
                                     sizeType = LayoutSize.FillMaxSize,
                                     onClick = onAteFoodSendClick
+                                )
+                            }
+                        }
+                        InputAteWeightStage ->{
+                            if(!chatModel.isInputComplete){
+                                TextField(
+                                    isMaxLengthView = false,
+                                    value = ateWeightValue,
+                                    onValueChange = onAteWeightValueChange,
+                                    placeholderText = "예)150",
+                                    maxLength = 20,
+                                    sizeType = LayoutSize.FillMaxSize,
+                                    keyboardType = KeyboardType.Number,
+                                    rightIcon = {
+                                        Text(
+                                            text = "g",
+                                            style = AppTypography.labelLarge.regular,
+                                            color = Gray,
+                                        )
+                                    }
+                                )
+                                PrimaryButton(
+                                    text = "입력 완료",
+                                    enabled = ateWeightValue.isNotEmpty(),
+                                    sizeType = LayoutSize.FillMaxSize,
+                                    onClick = onAteWeightSendClick
                                 )
                             }
                         }

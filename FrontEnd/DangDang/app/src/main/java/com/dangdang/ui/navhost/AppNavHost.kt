@@ -16,10 +16,6 @@ import com.dangdang.ui.screens.first.SignUpCompleteScreen
 import com.dangdang.ui.screens.first.SignUpScreen
 import com.dangdang.ui.screens.first.SplashScreen
 import com.dangdang.ui.screens.main.MainScreen
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.launch
 
 @Composable
 fun AppNavHost(
@@ -120,9 +116,9 @@ fun AppNavHost(
         //회원가입 완료화면
         composable(AppRoute.SignUpComplete.route) {
             SignUpCompleteScreen(
-                onHomeMove = {
-                    //메인화면으로 이동
-                    navController.navigate(AppRoute.Main.route) {
+                onLoginMove = {
+                    //로그인화면으로 이동
+                    navController.navigate(AppRoute.Login.route) {
                         popUpTo(0) {
                             inclusive = true
                         }
