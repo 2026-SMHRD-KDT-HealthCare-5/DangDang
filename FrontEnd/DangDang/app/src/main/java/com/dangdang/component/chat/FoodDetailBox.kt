@@ -38,11 +38,13 @@ import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.LavenderPurple
 import com.dangdang.ui.theme.LightPurple
 import com.dangdang.ui.theme.LightSlateGray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.PrimaryBlue
 import com.dangdang.ui.theme.PrimaryBlueOpacity13
 import com.dangdang.ui.theme.SlateGray
 import com.dangdang.ui.theme.SlateGrayOpacity13
 import com.dangdang.ui.theme.StoneGray
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -105,12 +107,12 @@ fun FoodDetailBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = SlateGray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -158,12 +160,12 @@ fun FoodDetailBox(
                 .fillMaxWidth()
                 .background(
                     color = White,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MediumRoundShape
                 )
                 .border(
-                    width = 1.dp,
+                    width = ThinLineDp,
                     color = Gray,
-                    shape = RoundedCornerShape(12.dp)
+                    shape = MediumRoundShape
                 )
                 .padding(
                     horizontal = 12.dp,

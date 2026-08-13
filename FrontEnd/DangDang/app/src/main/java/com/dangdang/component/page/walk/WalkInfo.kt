@@ -18,6 +18,8 @@ import com.dangdang.data.enums.DividerPosition
 import com.dangdang.data.model.walk.WalkStatus
 import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 
 @Preview
 @Composable
@@ -44,9 +46,9 @@ fun WalkInfo(
         modifier = Modifier
             .fillMaxWidth()
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
     ) {
         KakaoMap(

@@ -24,8 +24,10 @@ import com.dangdang.common.utils.regular
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.PrimaryBlue
 import com.dangdang.ui.theme.SkyBlueOpacity30
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -64,12 +66,12 @@ fun RadioSelectBox(
             .fillMaxWidth()
             .background(
                 color = if(checked) SkyBlueOpacity30 else White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .clickable(
                 onClick = onCheckedChange

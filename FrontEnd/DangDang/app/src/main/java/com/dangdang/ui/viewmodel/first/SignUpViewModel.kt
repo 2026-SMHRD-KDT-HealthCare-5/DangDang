@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.SignUpDefault
 import com.dangdang.common.utils.applyResponse
+import com.dangdang.common.utils.getResponseError
 import com.dangdang.common.utils.isValidBirthDate
 import com.dangdang.common.utils.isValidEmail
 import com.dangdang.common.utils.isValidHbA1c
@@ -137,7 +138,7 @@ class SignUpViewModel @Inject constructor(
             if(response.isSuccessful){
                 onSuccess()
             }else{
-                Toast.makeText(context, "회원가입 요청이 실패했습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getResponseError(response).message, Toast.LENGTH_SHORT).show()
             }
         }
     }

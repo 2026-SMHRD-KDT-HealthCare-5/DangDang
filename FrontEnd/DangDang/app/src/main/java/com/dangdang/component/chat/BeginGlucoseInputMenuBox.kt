@@ -16,6 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.GlucoseMaxValue
+import com.dangdang.common.utils.GlucoseMinValue
 import com.dangdang.common.utils.isValidPostPrandialGlucose
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
@@ -28,6 +30,8 @@ import com.dangdang.data.enums.LayoutSize
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 //식전 혈당 입력 박스
@@ -54,12 +58,12 @@ fun BeginGlucoseInputMenuBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Black,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(
                 horizontal = 15.dp,
@@ -101,8 +105,8 @@ fun BeginGlucoseInputMenuBox(
                     value = glucoseValue,
                     onValueChange = onGlucoseValueChange,
                     isError = !isValidPostPrandialGlucose(glucoseValue),
-                    errorText = "80~300 범위여야 합니다.",
-                    placeholderText = "80~300",
+                    errorText = "${GlucoseMinValue}~${GlucoseMaxValue} 범위여야 합니다.",
+                    placeholderText = "${GlucoseMinValue}~${GlucoseMaxValue}",
                     maxLength = 5,
                     sizeType = LayoutSize.FillMaxSize
                 )

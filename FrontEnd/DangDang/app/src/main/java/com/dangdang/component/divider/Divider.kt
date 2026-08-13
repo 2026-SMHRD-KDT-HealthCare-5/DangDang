@@ -14,8 +14,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.dividerHeightModifier
+import com.dangdang.common.utils.dividerWidthModifier
 import com.dangdang.data.enums.DividerPosition
 import com.dangdang.ui.theme.LightGray
+import com.dangdang.ui.theme.ThinLineDp
 
 @Preview
 @Composable
@@ -46,33 +49,19 @@ fun Divider(
     size: Dp? = null,
     color: Color = LightGray
 ){
-    val dividerWidthModifier =
-        if(position == DividerPosition.Horizontal){
-            if(size != null){
-                Modifier.width(size)
-            }else{
-                Modifier.fillMaxWidth()
-            }
-        }else{
-            Modifier.width(1.dp)
-        }
 
-    val dividerHeightModifier =
-        if(position == DividerPosition.Vertical){
-            if(size != null){
-                Modifier.height(size)
-            }else{
-                Modifier.fillMaxHeight()
-            }
-        }else{
-            Modifier.height(1.dp)
-        }
 
     Box(
         Modifier
             .background(color)
-            .then(dividerWidthModifier)
-            .then(dividerHeightModifier)
+            .dividerWidthModifier(
+                position = position,
+                size = size
+            )
+            .dividerHeightModifier(
+                position = position,
+                size = size
+            )
     ){
 
     }

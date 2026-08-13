@@ -25,9 +25,11 @@ import com.dangdang.common.utils.medium
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.Navy
 import com.dangdang.ui.theme.PrimaryBlue
 import com.dangdang.ui.theme.SkyBlueOpacity30
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -87,12 +89,12 @@ fun SecondaryOutlinedButton(
         modifier = Modifier
             .background(
                 color = if(selected) SkyBlueOpacity30 else if(enabled) White else Color.Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .clickable(
                 enabled = enabled,

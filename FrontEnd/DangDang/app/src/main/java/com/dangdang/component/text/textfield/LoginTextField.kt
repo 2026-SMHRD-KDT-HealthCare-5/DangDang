@@ -25,6 +25,8 @@ import com.dangdang.component.divider.Divider
 import com.dangdang.data.enums.DividerPosition
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.ui.theme.LightGray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -54,12 +56,12 @@ fun LoginTextField(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = LightGray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)

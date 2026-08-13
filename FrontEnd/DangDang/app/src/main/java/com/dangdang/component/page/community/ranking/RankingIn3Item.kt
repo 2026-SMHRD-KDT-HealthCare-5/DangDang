@@ -20,22 +20,20 @@ import androidx.compose.ui.platform.LocalLocale
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.Application.Companion.ExamplePictureUrl
-import com.dangdang.common.utils.bold
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.component.image.Avatar
 import com.dangdang.data.enums.AvatarSize
-import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
-import com.dangdang.ui.theme.KakaoYellow
 import com.dangdang.ui.theme.KakaoYellowOpacity50
 import com.dangdang.ui.theme.LightRedOpacity30
 import com.dangdang.ui.theme.Navy
 import com.dangdang.ui.theme.Orange
 import com.dangdang.ui.theme.PrimaryBlueOpacity30
 import com.dangdang.ui.theme.Red
+import com.dangdang.ui.theme.SmallRoundShape
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -48,8 +46,8 @@ fun RankingIn3ItemPreview(){
             TeamRankingStatusModel(
                 rank = 1,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명",
-                currentDistance = 32.56f,
+                teamName = "팀명",
+                monthlyDistance = 32.56f,
             )
         )
 
@@ -57,8 +55,8 @@ fun RankingIn3ItemPreview(){
             TeamRankingStatusModel(
                 rank = 2,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명2",
-                currentDistance = 20.56f,
+                teamName = "팀명2",
+                monthlyDistance = 20.56f,
             )
         )
 
@@ -66,8 +64,8 @@ fun RankingIn3ItemPreview(){
             TeamRankingStatusModel(
                 rank = 3,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명3",
-                currentDistance = 10.56f,
+                teamName = "팀명3",
+                monthlyDistance = 10.56f,
             )
         )
     }
@@ -107,7 +105,7 @@ fun RankingIn3Item(
                                 LightRedOpacity30
                             }
                         },
-                    shape = RoundedCornerShape(4.dp)
+                    shape = SmallRoundShape
                 )
         ){
             Box(
@@ -143,14 +141,14 @@ fun RankingIn3Item(
                         .aspectRatio(1f)
                         .background(
                             color = White,
-                            shape = RoundedCornerShape(4.dp)
+                            shape = SmallRoundShape
                         )
                 )
             }
         }
 
         Text(
-            text = teamRankingStatus.name,
+            text = teamRankingStatus.teamName,
             style = AppTypography.labelMedium.medium,
             color = Black,
         )
@@ -159,7 +157,7 @@ fun RankingIn3Item(
             text = "${String.format(
                 LocalLocale.current.platformLocale,
                 "%.2f",
-                teamRankingStatus.currentDistance
+                teamRankingStatus.monthlyDistance
             )} km",
             style = AppTypography.labelMedium.medium,
             color = Black,

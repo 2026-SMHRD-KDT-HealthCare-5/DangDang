@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.ui.theme.CapsuleRoundShape
 import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.Navy
 import com.dangdang.ui.theme.White
@@ -51,7 +52,7 @@ fun Switch(
             .width(48.dp)
             .background(
                 color = if(isCheck) Navy else Gray,
-                shape = RoundedCornerShape(100.dp)
+                shape = CapsuleRoundShape
             )
             .clickable(
                 onClick = onCheckChange

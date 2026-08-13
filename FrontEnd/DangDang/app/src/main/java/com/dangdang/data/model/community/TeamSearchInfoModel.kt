@@ -4,12 +4,12 @@ import androidx.annotation.Keep
 
 @Keep
 data class TeamSearchInfoModel(
-    val id: Long,
+    val teamNo: Long,
     val profileImageUrl: String,
-    val name: String,
-    val currentMemberCount: Int,
-    val maxMemberCount: Int,
+    val teamName: String,
+    val memberCount: Int,
+    val capacity: Int,
     val currentDistance: Float,
     val targetDistance: Float,
-    val introduction: String,
+    val teamIntro: String,
 )

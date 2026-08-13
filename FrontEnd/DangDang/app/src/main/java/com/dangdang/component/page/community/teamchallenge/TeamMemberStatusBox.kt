@@ -18,6 +18,8 @@ import com.dangdang.component.divider.Divider
 import com.dangdang.data.enums.DividerPosition
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -106,12 +108,12 @@ fun TeamMemberStatusBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)

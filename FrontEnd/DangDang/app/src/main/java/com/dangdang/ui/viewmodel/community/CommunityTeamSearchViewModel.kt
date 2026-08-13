@@ -5,6 +5,7 @@ import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.applyResponse
+import com.dangdang.common.utils.getResponseError
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamSearchInfoModel
@@ -40,7 +41,7 @@ class CommunityTeamSearchViewModel @Inject constructor(
             if (response.isSuccessful) {
                 onJoinSuccess()
             }else{
-                Toast.makeText(context, "팀 가입 요청이 실패했습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getResponseError(response).message, Toast.LENGTH_SHORT).show()
             }
         }
     }

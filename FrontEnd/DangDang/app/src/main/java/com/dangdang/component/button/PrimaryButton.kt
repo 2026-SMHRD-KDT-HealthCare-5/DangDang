@@ -22,6 +22,7 @@ import com.dangdang.common.utils.componentWidthModifier
 import com.dangdang.common.utils.regular
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.ui.theme.AppTypography
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.PrimaryBlue
 import com.dangdang.ui.theme.White
 
@@ -59,7 +60,7 @@ fun PrimaryButton(
         modifier = Modifier
             .background(
                 color = if(enabled) PrimaryBlue else Color.Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp)
             .componentWidthModifier(

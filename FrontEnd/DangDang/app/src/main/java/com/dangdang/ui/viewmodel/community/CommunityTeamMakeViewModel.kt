@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dangdang.common.utils.getResponseError
 import com.dangdang.data.model.community.TeamMakeForm
 import com.dangdang.data.repository.CommunityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +22,7 @@ class CommunityTeamMakeViewModel @Inject constructor(
             if(response.isSuccessful){
                 onMakeSuccess()
             }else{
-                Toast.makeText(context, "팀 만들기 요청이 실패했습니다.", Toast.LENGTH_SHORT).show()
+                Toast.makeText(context, getResponseError(response).message, Toast.LENGTH_SHORT).show()
             }
         }
     }

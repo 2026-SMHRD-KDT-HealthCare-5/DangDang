@@ -16,7 +16,9 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.R
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumLineDp
 import com.dangdang.ui.theme.PrimaryBlue
+import com.dangdang.ui.theme.SmallRoundShape
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -46,12 +48,12 @@ fun CheckBox(
             .size(24.dp)
             .background(
                 color = White,
-                shape = RoundedCornerShape(4.dp)
+                shape = SmallRoundShape
             )
             .border(
-                width = 2.dp,
+                width = MediumLineDp,
                 color = if(checked) PrimaryBlue else Gray,
-                shape = RoundedCornerShape(4.dp)
+                shape = SmallRoundShape
             )
             .clickable(
                 onClick = onCheckedChange

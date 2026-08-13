@@ -18,6 +18,8 @@ import com.dangdang.common.utils.regular
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.LightScarlet
+import com.dangdang.ui.theme.MediumLineDp
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.Scarlet
 
 //예상 혈당 상승량 박스
@@ -40,12 +42,12 @@ fun PredictedGlucoseRiseBox(
             .fillMaxWidth()
             .background(
                 color = LightScarlet,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 2.dp,
+                width = MediumLineDp,
                 color = Scarlet,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(
                 vertical = 28.dp

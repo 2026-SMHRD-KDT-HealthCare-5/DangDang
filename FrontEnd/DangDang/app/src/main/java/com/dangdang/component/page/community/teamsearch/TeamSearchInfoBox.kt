@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.Application.Companion.ExamplePictureUrl
-import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.component.button.outlined.PrimaryOutlinedButton
 import com.dangdang.component.guage.GuageBar
@@ -30,7 +29,9 @@ import com.dangdang.data.model.community.TeamSearchInfoModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.PrimaryBlue
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -38,14 +39,14 @@ import com.dangdang.ui.theme.White
 fun TeamSearchInfoBoxPreview(){
     TeamSearchInfoBox(
         teamSearchInfoModel = TeamSearchInfoModel(
-            id = 1,
+            teamNo = 1,
             profileImageUrl = ExamplePictureUrl,
-            name = "건강한 습관 만들기",
-            currentMemberCount = 3,
-            maxMemberCount = 5,
+            teamName = "건강한 습관 만들기",
+            memberCount = 3,
+            capacity = 5,
             currentDistance = 32.56f,
             targetDistance = 150f,
-            introduction = "하루 7천보 이상 함께 걸어요!"
+            teamIntro = "하루 7천보 이상 함께 걸어요!"
         ),
         onJoinClick = {}
     )
@@ -62,12 +63,12 @@ fun TeamSearchInfoBox(
             .height(IntrinsicSize.Min)
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(
                 vertical = 14.dp,
@@ -86,7 +87,7 @@ fun TeamSearchInfoBox(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Text(
-                text = teamSearchInfoModel.name,
+                text = teamSearchInfoModel.teamName,
                 style = AppTypography.labelMedium.regular,
                 color = Black,
             )
@@ -95,9 +96,9 @@ fun TeamSearchInfoBox(
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "${teamSearchInfoModel.currentMemberCount}" +
+                    text = "${teamSearchInfoModel.memberCount}" +
                             "/" +
-                            "${teamSearchInfoModel.maxMemberCount}명",
+                            "${teamSearchInfoModel.capacity}명",
                     style = AppTypography.caption.regular,
                     color = Black,
                 )
@@ -116,7 +117,7 @@ fun TeamSearchInfoBox(
             }
 
             Text(
-                text = teamSearchInfoModel.introduction,
+                text = teamSearchInfoModel.teamIntro,
                 style = AppTypography.caption.regular,
                 color = Black,
             )

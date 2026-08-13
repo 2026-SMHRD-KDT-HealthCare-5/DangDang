@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,7 +30,6 @@ import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.R
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.medium
-import com.dangdang.common.utils.regular
 import com.dangdang.component.button.PrimaryButton
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.community.teamsearch.TeamSearchInfoBox
@@ -54,54 +51,54 @@ fun CommunityTeamSearchScreenPreview(){
         onSearchValueChange = {},
         teamList = PendingModel(listOf(
             TeamSearchInfoModel(
-                id = 1,
+                teamNo = 1,
                 profileImageUrl = ExamplePictureUrl,
-                name = "건강한 습관 만들기",
-                currentMemberCount = 4,
-                maxMemberCount = 5,
+                teamName = "건강한 습관 만들기",
+                memberCount = 4,
+                capacity = 5,
                 currentDistance = 30.2f,
                 targetDistance = 150f,
-                introduction = "하루 7천보 이상 함께 걸어요!"
+                teamIntro = "하루 7천보 이상 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 2,
+                teamNo = 2,
                 profileImageUrl = ExamplePictureUrl,
-                name = "매일 만보 걷기",
-                currentMemberCount = 3,
-                maxMemberCount = 5,
+                teamName = "매일 만보 걷기",
+                memberCount = 3,
+                capacity = 5,
                 currentDistance = 60.2f,
                 targetDistance = 150f,
-                introduction = "만보 걷기 습관을 만들어요!"
+                teamIntro = "만보 걷기 습관을 만들어요!"
             ),
             TeamSearchInfoModel(
-                id = 3,
+                teamNo = 3,
                 profileImageUrl = ExamplePictureUrl,
-                name = "아침 걷기 챌린지",
-                currentMemberCount = 2,
-                maxMemberCount = 5,
+                teamName = "아침 걷기 챌린지",
+                memberCount = 2,
+                capacity = 5,
                 currentDistance = 40.2f,
                 targetDistance = 150f,
-                introduction = "아침에 함께 걸어요!"
+                teamIntro = "아침에 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 4,
+                teamNo = 4,
                 profileImageUrl = ExamplePictureUrl,
-                name = "건강한 습관 만들기",
-                currentMemberCount = 1,
-                maxMemberCount = 5,
+                teamName = "건강한 습관 만들기",
+                memberCount = 1,
+                capacity = 5,
                 currentDistance = 10.2f,
                 targetDistance = 150f,
-                introduction = "하루 7천보 이상 함께 걸어요!"
+                teamIntro = "하루 7천보 이상 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 5,
+                teamNo = 5,
                 profileImageUrl = ExamplePictureUrl,
-                name = "주말 러닝 & 걷기",
-                currentMemberCount = 1,
-                maxMemberCount = 5,
+                teamName = "주말 러닝 & 걷기",
+                memberCount = 1,
+                capacity = 5,
                 currentDistance = 50.2f,
                 targetDistance = 150f,
-                introduction = "주말에 함께 러닝과 걷기!"
+                teamIntro = "주말에 함께 러닝과 걷기!"
             )
         ), LoadingState.Success),
         onSearchClick = {},
@@ -133,7 +130,7 @@ fun CommunityTeamSearchScreen(
         onJoinClick = {
             communityTeamSearchViewModel.joinTeam(
                 context = context,
-                teamId = it.id,
+                teamId = it.teamNo,
                 onJoinSuccess = {
                     communityViewModel?.getUserTeamInfo()
                 }

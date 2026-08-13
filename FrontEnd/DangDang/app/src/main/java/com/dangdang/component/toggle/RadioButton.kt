@@ -19,6 +19,7 @@ import com.dangdang.R
 import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.Navy
 import com.dangdang.ui.theme.PrimaryBlue
+import com.dangdang.ui.theme.ThickLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -51,7 +52,7 @@ fun RadioButton(
                 shape = CircleShape
             )
             .border(
-                width = 3.dp,
+                width = ThickLineDp,
                 color = if(checked) Navy else Gray,
                 shape = CircleShape
             )

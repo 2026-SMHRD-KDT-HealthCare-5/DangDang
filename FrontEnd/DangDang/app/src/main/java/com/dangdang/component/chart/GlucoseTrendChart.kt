@@ -19,11 +19,14 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.CHART_TIMES
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
@@ -56,12 +59,6 @@ fun GlucoseTrendChart(
     values: List<Float>,
     goal: Float
 ) {
-    val times = ArrayList<String>()
-
-    for (i in 6..24){
-        times.add("${i}시")
-    }
-
     val modelProducer = remember { CartesianChartModelProducer() }
 
     LaunchedEffect(values) {
@@ -75,12 +72,12 @@ fun GlucoseTrendChart(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -115,7 +112,7 @@ fun GlucoseTrendChart(
                     itemPlacer = VerticalAxis.ItemPlacer.step({ 20.0 })
                 ),
                 bottomAxis = HorizontalAxis.rememberBottom(
-                    valueFormatter = { _, x, _ -> times.getOrElse(x.toInt()) { "" } },
+                    valueFormatter = { _, x, _ -> CHART_TIMES.getOrElse(x.toInt()) { "" } },
                 ),
                 decorations = listOf(
                     HorizontalLine(
