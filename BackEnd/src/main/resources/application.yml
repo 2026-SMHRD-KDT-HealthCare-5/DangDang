@@ -28,6 +28,12 @@ spring:
         format_sql: true
     open-in-view: false # 트랜잭션 범위를 명확히 하기 위한 권장 설정(성능/설계상 이유)
 
+  # [각주 AJ] 백엔드 가이드 8.5절 — JSON으로 내려가는 시각(LocalDateTime 등)을 KST 기준으로 다루게 합니다.
+  # 이것만으론 부족하고 JVM 자체 타임존도 맞춰야 해서 DangdangServerApplication에도 설정을 추가했습니다.
+  # PostgreSQL 쪽 타임존(`SHOW timezone;`)도 Asia/Seoul인지 별도로 확인이 필요합니다(서버에서 직접 확인 불가).
+  jackson:
+    time-zone: Asia/Seoul
+
 
   flyway:
     enabled: true
