@@ -6,9 +6,12 @@ import com.dangdang.BuildConfig
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.LoginRetrofit
 import com.dangdang.common.utils.RefreshRetrofit
+import com.dangdang.data.api.ChatApiService
+import com.dangdang.data.api.CommunityApiService
 import com.dangdang.data.api.LoginApiService
 import com.dangdang.data.api.RefreshApiService
 import com.dangdang.data.api.UserApiService
+import com.dangdang.data.api.WalkApiService
 import com.dangdang.data.manager.SessionManager
 import com.dangdang.data.network.ApiAuthenticator
 import com.dangdang.data.network.ApiInterceptor
@@ -133,6 +136,24 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideWalkApiService(retrofit: Retrofit): WalkApiService {
+        return retrofit.create(WalkApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideCommunityApiService(retrofit: Retrofit): CommunityApiService {
+        return retrofit.create(CommunityApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatApiService(retrofit: Retrofit): ChatApiService {
+        return retrofit.create(ChatApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideUserRepository(
         userApiService: UserApiService,
         loginApiService: LoginApiService
@@ -142,19 +163,19 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun providerWalkRepository(): WalkRepository{
-        return WalkRepository()
+    fun providerWalkRepository(walkApiService: WalkApiService): WalkRepository{
+        return WalkRepository(walkApiService)
     }
 
     @Provides
     @Singleton
-    fun providerCommunityRepository(): CommunityRepository{
-        return CommunityRepository()
+    fun providerCommunityRepository(communityApiService: CommunityApiService): CommunityRepository{
+        return CommunityRepository(communityApiService)
     }
 
     @Provides
     @Singleton
-    fun providerDangDangRepository(): DangDangRepository {
-        return DangDangRepository()
+    fun providerDangDangRepository(chatApiService: ChatApiService): DangDangRepository {
+        return DangDangRepository(chatApiService)
     }
 }

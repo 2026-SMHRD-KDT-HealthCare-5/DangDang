@@ -6,6 +6,7 @@ import com.dangdang.common.utils.deleteSafely
 import com.dangdang.common.utils.toMultipart
 import com.dangdang.common.utils.toRequestBody
 import com.dangdang.common.utils.uriToFile
+import com.dangdang.data.api.CommunityApiService
 import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.data.model.community.TeamMakeForm
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
@@ -16,7 +17,7 @@ import java.io.File
 import javax.inject.Inject
 
 class CommunityRepository @Inject constructor(
-
+    private val communityApiService: CommunityApiService
 ){
     //사용자가 속한 팀 정보 가져오기
     suspend fun getUserTeamInfo(): Response<TeamInfoModel?>{

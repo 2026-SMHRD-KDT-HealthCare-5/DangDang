@@ -18,6 +18,7 @@ import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.manager.StepCounterManager
+import com.dangdang.data.repository.WalkRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -28,6 +29,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,6 +43,13 @@ class StepCounterService : Service(), SensorEventListener {
 
     @Inject
     lateinit var appPrefs: AppPrefs
+
+    @Inject
+    lateinit var walkRepository: WalkRepository
+
+    private val serviceScope = CoroutineScope(
+        SupervisorJob() + Dispatchers.IO
+    )
 
     private lateinit var sensorManager: SensorManager
     private var stepSensor: Sensor? = null
@@ -211,6 +221,7 @@ class StepCounterService : Service(), SensorEventListener {
 
     override fun onDestroy() {
         timerJob?.cancel()
+        serviceScope.cancel()
         sensorManager.unregisterListener(this)
         fusedLocationClient.removeLocationUpdates(locationCallback)
         StepCounterManager.updateWalkingState(false)

@@ -10,6 +10,7 @@ import com.dangdang.common.utils.InputAteFoodStage
 import com.dangdang.common.utils.InputAteWeightStage
 import com.dangdang.common.utils.RecommendWalkDistanceStage
 import com.dangdang.common.utils.TodayWalkTargetType
+import com.dangdang.data.api.ChatApiService
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.model.chat.AIRecommendWalkModel
 import com.dangdang.data.model.chat.AnalysisFoodModel
@@ -26,7 +27,7 @@ import java.time.LocalTime
 import javax.inject.Inject
 
 class DangDangRepository @Inject constructor(
-
+    private val chatApiService: ChatApiService
 ){
     //채팅 리스트 호출하기
     suspend fun getChattingList(): Response<List<ChatModel>>{
