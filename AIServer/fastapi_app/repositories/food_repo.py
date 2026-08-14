@@ -235,19 +235,26 @@ class FoodDB:
         1. 브랜드가 DB에 접두어로 존재하면(KFC_, 비비큐_ 등) → 브랜드 결과 반환
            (점수가 threshold 미만이면 main.py에서 matched=false 처리)
         2. 브랜드가 접두어로 없으면(BBQ→비비큐 등 불일치) → 전체 데이터에서 재검색
+        3. 브랜드 필터 자체가 0건이면(=검색어와 매칭되는 항목이 그 브랜드 안에
+           아예 없음) → best가 None이라 위 2번 분기를 못 타므로, 이 경우도
+           전체 재검색으로 넘어가도록 별도 처리 (2026-08-13: brand and best 조건이라
+           best=None일 때 전체 재검색 자체가 스킵되던 버그 수정)
         """
         results = self.search(query, brand=brand, top_k=1)
         best = results[0] if results else None
 
-        if brand and best:
-            brand_upper = brand.upper()
-            name_upper = best["food_name"].upper()
-            brand_confirmed = name_upper.startswith(brand_upper + "_") or name_upper.startswith(brand_upper)
+        if brand:
+            brand_confirmed = False
+            if best:
+                brand_upper = brand.upper()
+                name_upper = best["food_name"].upper()
+                brand_confirmed = name_upper.startswith(brand_upper + "_") or name_upper.startswith(brand_upper)
 
             if not brand_confirmed:
-                # 브랜드 불일치 (예: "BBQ" → "비비큐") → 전체에서 재검색
+                # 브랜드 필터 결과가 아예 없거나(best=None), 브랜드 불일치
+                # (예: "BBQ" → "비비큐")인 경우 → 전체에서 재검색
                 full_results = self.search(query, brand=None, top_k=1)
-                if full_results and full_results[0]["match_score"] > best["match_score"]:
+                if full_results and (best is None or full_results[0]["match_score"] > best["match_score"]):
                     best = full_results[0]
 
         return best
