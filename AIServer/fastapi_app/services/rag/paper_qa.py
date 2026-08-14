@@ -22,6 +22,14 @@ PDF를 그대로 첨부하던 이전 방식보다 빠른 이유:
 
 from pathlib import Path
 
+from prompts.persona import (
+    DANGDANGI_IDENTITY,
+    DANGDANGI_SAFETY_RULES,
+    DANGDANGI_SCOPE_RULES,
+    DANGDANGI_SOURCE_ATTRIBUTION_RULE,
+    DANGDANGI_TONE_RULES,
+)
+
 SCRIPT_DIR = Path(__file__).parent
 COMBINED_TEXT_PATH = SCRIPT_DIR / "papers_combined.txt"
 CACHE_NAME_PATH = SCRIPT_DIR / ".paper_cache_name"  # 재시작 시 캐시 재사용을 위한 기록 파일
@@ -29,15 +37,24 @@ CACHE_NAME_PATH = SCRIPT_DIR / ".paper_cache_name"  # 재시작 시 캐시 재�
 # 캐시 유지 기간. TTL은 상한이 없어서 원하는 만큼 길게 잡을 수 있지만,
 # 저장해두는 동안 비용이 계속 나가니 "무한대"보다는 프로젝트 기간에 맞춰 설정하는 게 합리적임.
 # 발표 전까지 계속 켜둘 거면 이 값을 늘리면 됨 (예: 30일 = "2592000s")
+# ※ 2026-08-13부터 지식 소스가 요약본(6,446토큰)으로 작아져서 캐시 자체를
+#   안 쓰기로 함(services/rag_chat.py 참고) — 이 상수는 캐시 재도입 대비용으로 유지.
 CACHE_TTL = "2592000s"  # 30일
 
 PAPER_QA_INSTRUCTION = (
-    "아래는 여러 학술논문/정부보고서를 텍스트로 추출해서 합쳐놓은 자료야. "
-    "각 논문은 '[논문 제목] ... [저자] ... [발행연도] ...' 헤더로 구분되어 있어. "
-    "사용자 질문에 답할 때 이 자료들의 내용을 근거로 답하되, "
-    "원문을 그대로 베끼지 말고 네 말투로 자연스럽게 풀어서 설명해줘. "
-    "의학적 확진처럼 단정하지 말고, 필요하면 전문의 상담을 권유해. "
-    "답변 끝에는 참고한 논문 제목을 간단히 한 줄로 밝혀줘."
+    DANGDANGI_IDENTITY + "\n\n" +
+    DANGDANGI_TONE_RULES + "\n\n" +
+    DANGDANGI_SCOPE_RULES + "\n\n"
+    "[참고 자료 안내]\n"
+    "아래는 여러 학술논문/정부보고서에서 이 서비스(음식 사진 기반 혈당예측 + 식후 "
+    "걷기미션)에 실제로 쓸 수 있는 내용만 추린 요약 자료야. 각 섹션은 "
+    "'[출처: ...]' 형식으로 원 논문을 표시해뒀어. 질문이 이 자료와 관련 있을 때만 "
+    "내용을 근거로 답하되, 원문을 그대로 베끼지 말고 네 말투로 자연스럽게 풀어서 "
+    "설명해줘. " + DANGDANGI_SOURCE_ATTRIBUTION_RULE + "\n\n"
+    "[답변 원칙]\n" +
+    DANGDANGI_SAFETY_RULES + "\n"
+    "- 실제로 위 자료 내용을 근거로 답했을 때만, 답변 끝에 참고한 논문 제목을 "
+    "간단히 한 줄로 밝혀줘 (질문이 자료와 무관해서 안 썼으면 생략)"
 )
 
 
