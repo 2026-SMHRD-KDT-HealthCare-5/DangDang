@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import com.dangdang.Application.Companion.ExamplePictureUrl
+import com.dangdang.common.utils.diagnosisGroupList
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.sendMail
 import com.dangdang.component.errorview.ErrorView
@@ -58,7 +59,8 @@ fun MyPageScreenPreview(
             activityLevel = "주 1 ~2회",
             joined_at = "2026-07-28",
             profileImageUrl = ExamplePictureUrl,
-            notification_enabled = true
+            notification_enabled = true,
+            diagnosisGroup = diagnosisGroupList[0]
         ),
         onMyInfoUpdateMove = {},
         isSwitchChecked = true,

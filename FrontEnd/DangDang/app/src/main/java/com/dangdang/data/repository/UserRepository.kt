@@ -1,7 +1,9 @@
 package com.dangdang.data.repository
 
 import com.dangdang.Application.Companion.ExamplePictureUrl
+import com.dangdang.common.utils.diagnosisGroupList
 import com.dangdang.common.utils.safeApiCall
+import com.dangdang.data.api.LoginApiService
 import com.dangdang.data.api.UserApiService
 import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.WeeklyAttendanceStatus
@@ -18,11 +20,12 @@ import retrofit2.Response
 import javax.inject.Inject
 
 class UserRepository @Inject constructor(
-    private val userApiService: UserApiService
+    private val userApiService: UserApiService,
+    private val loginApiService: LoginApiService
 ){
     //이메일 로그인 api 부르기
     suspend fun emailLogin(email: String, password: String): Response<TokenResponse> = safeApiCall {
-        userApiService.login(
+        loginApiService.login(
             LoginForm(
                 email = email,
                 password = password
@@ -68,7 +71,8 @@ class UserRepository @Inject constructor(
             activityLevel = "주 1 ~2회",
             joined_at = "2026-07-28",
             profileImageUrl = ExamplePictureUrl,
-            notification_enabled = true
+            notification_enabled = true,
+            diagnosisGroup = diagnosisGroupList[0]
         )
 
         return Response.success(data)
@@ -92,7 +96,7 @@ class UserRepository @Inject constructor(
 
     //회원가입 api 부르기
     suspend fun signUp(signUpForm: SignUpForm?): Response<SignUpResponse> = safeApiCall {
-        userApiService.signUp(signUpForm?.copy(
+        loginApiService.signUp(signUpForm?.copy(
             birthDate = signUpForm.birthDate.replace(".", "-")
         ))
     }

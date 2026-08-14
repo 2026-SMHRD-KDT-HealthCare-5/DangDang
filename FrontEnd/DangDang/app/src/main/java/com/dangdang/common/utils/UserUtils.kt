@@ -29,6 +29,12 @@ val activityLevelList = listOf(
     )
 )
 
+val diagnosisGroupList = listOf(
+    "정상",
+    "전당뇨",
+    "제2형당뇨"
+)
+
 val SignUpDefault = SignUpForm(
     isSocial = false,
     nickname = "",
@@ -39,6 +45,7 @@ val SignUpDefault = SignUpForm(
     birthDate = "",
     height = "",
     weight = "",
+    diagnosisGroup = diagnosisGroupList[0],
     hba1c = "",
     isHemoglobinRecentResultUnknown = false,
     targetGlucose = "",

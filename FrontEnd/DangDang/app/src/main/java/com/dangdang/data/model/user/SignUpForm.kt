@@ -22,6 +22,8 @@ data class SignUpForm(
     var height: String,
     //몸무게
     var weight: String,
+    //당뇨 유형
+    var diagnosisGroup: String,
     //당화혈색소
     var hba1c: String,
     var isHemoglobinRecentResultUnknown: Boolean,

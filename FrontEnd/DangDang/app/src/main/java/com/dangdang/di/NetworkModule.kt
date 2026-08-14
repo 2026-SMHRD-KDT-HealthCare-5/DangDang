@@ -4,7 +4,9 @@ import android.content.Context
 import com.dangdang.Application.Companion.API_BASE_URL
 import com.dangdang.BuildConfig
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.LoginRetrofit
 import com.dangdang.common.utils.RefreshRetrofit
+import com.dangdang.data.api.LoginApiService
 import com.dangdang.data.api.RefreshApiService
 import com.dangdang.data.api.UserApiService
 import com.dangdang.data.manager.SessionManager
@@ -76,12 +78,41 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    @LoginRetrofit
+    fun provideLoginRetrofit(): Retrofit {
+
+        val client =
+            OkHttpClient.Builder()
+                .build()
+
+        return Retrofit.Builder()
+            .baseUrl(API_BASE_URL)
+            .client(client)
+            .addConverterFactory(
+                GsonConverterFactory.create()
+            )
+            .build()
+    }
+
+    @Provides
+    @Singleton
     fun provideRefreshApiService(
         @RefreshRetrofit retrofit: Retrofit
     ): RefreshApiService {
 
         return retrofit.create(
             RefreshApiService::class.java
+        )
+    }
+
+    @Provides
+    @Singleton
+    fun provideLoginApiService(
+        @LoginRetrofit retrofit: Retrofit
+    ): LoginApiService {
+
+        return retrofit.create(
+            LoginApiService::class.java
         )
     }
 
@@ -102,8 +133,11 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideUserRepository(userApiService: UserApiService): UserRepository{
-        return UserRepository(userApiService)
+    fun provideUserRepository(
+        userApiService: UserApiService,
+        loginApiService: LoginApiService
+    ): UserRepository{
+        return UserRepository(userApiService, loginApiService)
     }
 
     @Provides

@@ -15,11 +15,13 @@ import com.dangdang.common.utils.PasswordMinLength
 import com.dangdang.common.utils.WeightMaxValue
 import com.dangdang.common.utils.WeightMinValue
 import com.dangdang.common.utils.activityLevelList
+import com.dangdang.common.utils.diagnosisGroupList
 import com.dangdang.common.utils.isValidBirthDate
 import com.dangdang.common.utils.isValidEmail
 import com.dangdang.common.utils.isValidHeight
 import com.dangdang.common.utils.isValidPassword
 import com.dangdang.common.utils.isValidWeight
+import com.dangdang.component.text.selector.Selector
 import com.dangdang.component.text.textfield.TextField
 import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.LayoutSize
@@ -49,7 +51,8 @@ fun SignUpFormContentPreview(
             activityLevel = "거의 안함",
             joined_at = "",
             profileImageUrl = "",
-            notification_enabled = false
+            notification_enabled = false,
+            diagnosisGroup = diagnosisGroupList[0]
         ),
         onFormChange = {}
     )
@@ -212,6 +215,18 @@ fun SignUpFormContent(
             maxLength = 5,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
+        )
+
+        Selector(
+            title = "당뇨 유형",
+            items = diagnosisGroupList,
+            selectedItem = signUpForm.diagnosisGroup,
+            itemText = { it },
+            onSelected = {
+                onFormChange(
+                    signUpForm.copy(diagnosisGroup = it)
+                )
+            }
         )
 
         HemoglobinTextField(
