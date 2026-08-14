@@ -5,12 +5,13 @@ POST /rag/intake-logs/recognize 라우터 — 사진/텍스트로 음식을 인�
 목차
 1. recognize_food() — image/message 필수값 검증 후 services/food_recognition.py의 recognize()에 위임
 """
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 
+from core.security import verify_internal_api_key
 from services.food_recognition import recognize
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_internal_api_key)])
 
 
 @router.post("/rag/intake-logs/recognize")

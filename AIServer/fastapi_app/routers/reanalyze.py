@@ -5,12 +5,13 @@ POST /rag/intake-logs/reanalyze 라우터 — 사용자가 "틀려요, AI로 분
 목차
 1. reanalyze_food() — image/food_name 필수값 검증 후 services/food_recognition.py의 reanalyze()에 위임
 """
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from fastapi.responses import JSONResponse
 
+from core.security import verify_internal_api_key
 from services.food_recognition import reanalyze
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_internal_api_key)])
 
 
 @router.post("/rag/intake-logs/reanalyze")

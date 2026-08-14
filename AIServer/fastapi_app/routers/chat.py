@@ -5,13 +5,14 @@ POST /rag/chat 라우터 — Spring이 사용자 채팅 메시지를 받으면 �
 목차
 1. chat() — 요청을 받아 services/rag_chat.py의 answer_chat()에 위임하고 결과를 JSON으로 반환
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
+from core.security import verify_internal_api_key
 from schemas.chat import ChatRequest
 from services.rag_chat import answer_chat
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_internal_api_key)])
 
 
 @router.post("/rag/chat")

@@ -5,15 +5,16 @@ POST /rag/intake-logs/predict 라우터 — 음식을 최종 확정(portion 반�
 목차
 1. predict_with_portion() — diagnosis_group 검증 → portion 배율 적용 → 혈당 재예측 → 걷기 미션 계산까지 한 번에 처리
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
 from core.config import DIAGNOSIS_GROUPS
+from core.security import verify_internal_api_key
 from schemas.predict import PortionPredictRequest
 from services.glucose_predictor import glucose_predictor
 from services.mission_calculator import calc_walking_mission
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(verify_internal_api_key)])
 
 
 @router.post("/rag/intake-logs/predict")

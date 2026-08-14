@@ -10,6 +10,12 @@
 $ErrorActionPreference = "Continue"
 $base = "http://localhost:8000"
 
+# Spring -> FastAPI 내부 호출 인증 헤더. /rag/* 라우터 전부 이 헤더 없으면 401.
+# (2026-08-13 추가된 인증이라, 이 스크립트가 그전에 만들어져서 헤더가 빠져있었음)
+# fastapi_app/.env의 INTERNAL_API_KEY와 같은 값이어야 함.
+$internalApiKey = "adlQ7E2D3n576Bo9q8oEWeb0D6UO9upZCN4lx56nx"
+$authHeaders = @{ "X-Internal-Api-Key" = $internalApiKey }
+
 # curl.exe 등 외부 프로세스 출력을 캡처할 때 한글이 깨지지 않도록
 # 콘솔 입출력 인코딩을 스크립트 시작 시점에 UTF-8로 고정
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -18,7 +24,7 @@ $OutputEncoding = [System.Text.Encoding]::UTF8
 function Invoke-Utf8Post($uri, $bodyObj) {
     $json = $bodyObj | ConvertTo-Json -Depth 5 -Compress
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($json)
-    return Invoke-RestMethod -Uri $uri -Method Post -ContentType "application/json; charset=utf-8" -Body $bytes
+    return Invoke-RestMethod -Uri $uri -Method Post -Headers $authHeaders -ContentType "application/json; charset=utf-8" -Body $bytes
 }
 
 # recognize/reanalyze 엔드포인트는 FastAPI에서 File(...)/Form(...)으로 받기 때문에
@@ -31,7 +37,7 @@ function Invoke-Utf8FormPost($uri, $bodyObj) {
     }
     $form = $pairs -join "&"
     $bytes = [System.Text.Encoding]::UTF8.GetBytes($form)
-    return Invoke-RestMethod -Uri $uri -Method Post -ContentType "application/x-www-form-urlencoded" -Body $bytes
+    return Invoke-RestMethod -Uri $uri -Method Post -Headers $authHeaders -ContentType "application/x-www-form-urlencoded" -Body $bytes
 }
 
 Write-Host "`n========== 1. 헬스체크 ==========" -ForegroundColor Cyan
@@ -93,7 +99,7 @@ Write-Host $r7.reply
 Write-Host "`n========== 8. 음식 사진 인식 (image가 있을 때만 실행) ==========" -ForegroundColor Cyan
 $imagePath = "C:\Users\smhrd1\Desktop\food.png"
 if (Test-Path $imagePath) {
-    $r8 = curl.exe -s -X POST "$base/rag/intake-logs/recognize" -F "image=@$imagePath" -F "diagnosis_group=전당뇨"
+    $r8 = curl.exe -s -X POST "$base/rag/intake-logs/recognize" -H "X-Internal-Api-Key: $internalApiKey" -F "image=@$imagePath" -F "diagnosis_group=전당뇨"
     $r8 | ConvertFrom-Json | ConvertTo-Json -Depth 5
 } else {
     Write-Host "이미지 파일을 찾을 수 없음: $imagePath (건너뜀)" -ForegroundColor Yellow
