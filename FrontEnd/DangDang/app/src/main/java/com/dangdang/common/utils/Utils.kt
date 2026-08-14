@@ -81,16 +81,16 @@ fun Modifier.dividerWidthModifier(
     size: Dp? = null,
 ) = this
     .then(
-    if(position == DividerPosition.Horizontal){
-        if(size != null){
-            Modifier.width(size)
+        if(position == DividerPosition.Horizontal){
+            if(size != null){
+                Modifier.width(size)
+            }else{
+                Modifier.fillMaxWidth()
+            }
         }else{
-            Modifier.fillMaxWidth()
+            Modifier.width(ThinLineDp)
         }
-    }else{
-        Modifier.width(ThinLineDp)
-    }
-)
+    )
 
 
 fun Modifier.dividerHeightModifier(

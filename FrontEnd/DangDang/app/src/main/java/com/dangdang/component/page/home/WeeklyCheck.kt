@@ -23,6 +23,7 @@ import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -84,7 +85,7 @@ fun WeeklyCheck(
                         shape = CircleShape
                     )
                     .border(
-                        width = 2.dp,
+                        width = MediumLineDp,
                         color = Gray,
                         shape = CircleShape
                     )

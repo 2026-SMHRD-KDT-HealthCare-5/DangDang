@@ -59,17 +59,9 @@ fun RankingIn3Box(
     //2위, 1위, 3위 순서대로 나오게 섞는다.
     val mixedTeamMemberChallengeStatusList =
         listOf(
-            if(teamRankingStatusList.size >= 2){
-                teamRankingStatusList[1]
-            }else{
-                null
-            },
-            teamRankingStatusList[0],
-            if(teamRankingStatusList.size >= 3){
-                teamRankingStatusList[2]
-            }else{
-                null
-            }
+            teamRankingStatusList.getOrNull(1),
+            teamRankingStatusList.getOrNull(0),
+            teamRankingStatusList.getOrNull(2)
         )
 
     Row(
