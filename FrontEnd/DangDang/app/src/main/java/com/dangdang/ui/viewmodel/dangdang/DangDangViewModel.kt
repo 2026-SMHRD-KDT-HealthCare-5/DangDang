@@ -1,5 +1,7 @@
 package com.dangdang.ui.viewmodel.dangdang
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.AnalysisFoodType
@@ -79,16 +81,22 @@ class DangDangViewModel @Inject constructor(
     }
 
     //식전 혈당 전송
-    fun sendBeforeMealGlucose(glucoseValue: String) {
+    fun sendBeforeMealGlucose(glucoseValue: String?) {
         viewModelScope.launch {
             _chattingList.applyResponse(dangDangRepository.sendBeforeMealGlucose(glucoseValue))
         }
     }
 
     //음식 입력 전송
-    fun ateFoodSend(ateFoodValue: String) {
+    fun ateFoodSend(context: Context, ateFoodValue: String, ateFoodImageUri: Uri?) {
         viewModelScope.launch {
-            _chattingList.applyResponse(dangDangRepository.ateFoodSend(ateFoodValue))
+            _chattingList.applyResponse(
+                dangDangRepository.ateFoodSend(
+                    context = context,
+                    ateFoodValue = ateFoodValue,
+                    ateFoodImageUri = ateFoodImageUri
+                )
+            )
         }
     }
 

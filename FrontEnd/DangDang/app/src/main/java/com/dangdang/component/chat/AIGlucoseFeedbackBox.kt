@@ -121,19 +121,6 @@ fun AIGlucoseFeedbackBox(
                 style = AppTypography.labelMedium.bold,
                 color = Black,
             )
-
-            Image(
-                painter = painterResource(
-                    if(isSuccess){
-                        R.drawable.green_checkbox
-                    }else{
-                        R.drawable.failed_icon
-                    }
-                ),
-                contentDescription = "green checkbox",
-                modifier = Modifier
-                    .size(12.dp)
-            )
         }
     }
 }

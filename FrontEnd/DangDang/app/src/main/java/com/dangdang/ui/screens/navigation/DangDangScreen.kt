@@ -1,6 +1,9 @@
 package com.dangdang.ui.screens.navigation
 
+import android.net.Uri
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -21,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -91,6 +95,8 @@ fun DangDangScreenPreview(
         ateFoodValue = "",
         onAteFoodValueChange = {},
         onAteFoodSendClick = {},
+        ateFoodImageUri = null,
+        onAteFoodImageSelectClick = {},
         ateWeightValue = "",
         onAteWeightValueChange = {},
         onAteWeightSendClick = {},
@@ -116,6 +122,7 @@ fun DangDangScreen(
     onFoodInputDirectlyClick: () -> Unit,
     navController: NavController,
 ){
+    val context = LocalContext.current
     val savedStateHandle =
         navController.currentBackStackEntry?.savedStateHandle
 
@@ -157,6 +164,10 @@ fun DangDangScreen(
         mutableStateOf("")
     }
 
+    var ateFoodImageUri by remember {
+        mutableStateOf<Uri?>(null)
+    }
+
     //걷기 완료하고 왔을 경우
     val isWalkCompleteByHandle by savedStateHandle
         ?.getStateFlow("isWalkComplete", false)
@@ -196,6 +207,13 @@ fun DangDangScreen(
         }
     }
 
+    val galleryLauncher =
+        rememberLauncherForActivityResult(
+            ActivityResultContracts.GetContent()
+        ) { uri ->
+            ateFoodImageUri = uri
+        }
+
     if(chattingList.loadingState == LoadingState.Success
         && recommendQuestionList.loadingState == LoadingState.Success){
         DangDangScreenContent(
@@ -221,8 +239,14 @@ fun DangDangScreen(
             },
             onAteFoodSendClick = {
                 dangDangViewModel.ateFoodSend(
-                    ateFoodValue
+                    context = context,
+                    ateFoodValue = ateFoodValue,
+                    ateFoodImageUri = ateFoodImageUri
                 )
+            },
+            ateFoodImageUri = ateFoodImageUri,
+            onAteFoodImageSelectClick = {
+                galleryLauncher.launch("image/*")
             },
             ateWeightValue = ateWeightValue,
             onAteWeightValueChange = {
@@ -252,7 +276,7 @@ fun DangDangScreen(
             },
             onGlucoseInputCancelClick = {
                 dangDangViewModel.sendBeforeMealGlucose(
-                    "모르겠어요"
+                    null
                 )
             },
             onFoodCheckClick = {
@@ -260,7 +284,9 @@ fun DangDangScreen(
             },
             onFoodAIAnalysisClick = {
                 dangDangViewModel.ateFoodSend(
-                    ateFoodValue
+                    context = context,
+                    ateFoodValue = ateFoodValue,
+                    ateFoodImageUri = ateFoodImageUri
                 )
             },
             onFoodKeywordInputClick = {
@@ -304,6 +330,8 @@ fun DangDangScreenContent(
     ateFoodValue: String,
     onAteFoodValueChange: (String) -> Unit,
     onAteFoodSendClick: () -> Unit,
+    ateFoodImageUri: Uri?,
+    onAteFoodImageSelectClick: () -> Unit,
     ateWeightValue: String,
     onAteWeightValueChange: (String) -> Unit,
     onAteWeightSendClick: () -> Unit,
@@ -338,6 +366,8 @@ fun DangDangScreenContent(
             ateFoodValue = ateFoodValue,
             onAteFoodValueChange = onAteFoodValueChange,
             onAteFoodSendClick = onAteFoodSendClick,
+            ateFoodImageUri = ateFoodImageUri,
+            onAteFoodImageSelectClick = onAteFoodImageSelectClick,
             ateWeightValue = ateWeightValue,
             onAteWeightValueChange = onAteWeightValueChange,
             onAteWeightSendClick = onAteWeightSendClick,

@@ -1,5 +1,7 @@
 package com.dangdang.data.repository
 
+import android.content.Context
+import android.net.Uri
 import com.dangdang.common.utils.AIFeedbackStage
 import com.dangdang.common.utils.AfterWalkGlucoseInputStage
 import com.dangdang.common.utils.AnalysisFoodStage
@@ -10,6 +12,11 @@ import com.dangdang.common.utils.InputAteFoodStage
 import com.dangdang.common.utils.InputAteWeightStage
 import com.dangdang.common.utils.RecommendWalkDistanceStage
 import com.dangdang.common.utils.TodayWalkTargetType
+import com.dangdang.common.utils.deleteSafely
+import com.dangdang.common.utils.safeApiCall
+import com.dangdang.common.utils.toMultipart
+import com.dangdang.common.utils.toRequestBody
+import com.dangdang.common.utils.uriToFile
 import com.dangdang.data.api.ChatApiService
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.model.chat.AIRecommendWalkModel
@@ -20,7 +27,9 @@ import com.dangdang.data.model.chat.FoodInfoModel
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
 import com.dangdang.data.model.chat.FoodNutritionModel
 import com.dangdang.data.model.chat.GlucoseFeedbackModel
+import com.dangdang.data.model.chat.PreGlucoseInputForm
 import retrofit2.Response
+import java.io.File
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -149,7 +158,15 @@ class DangDangRepository @Inject constructor(
     }
 
     //식전 혈당 전송
-    suspend fun sendBeforeMealGlucose(glucoseValue: String): Response<List<ChatModel>>{
+    suspend fun sendBeforeMealGlucose(glucoseValue: String?): Response<List<ChatModel>>{
+        val chatResponse = safeApiCall {
+            chatApiService.preGlucose(
+                PreGlucoseInputForm(
+                    preGlucose = glucoseValue?.toIntOrNull()
+                )
+            )
+        }
+        val chatResponseBody = chatResponse.body()
         val response = listOf(
             ChatModel(
                 chatUserType = ChatUserType.AI,
@@ -172,7 +189,7 @@ class DangDangRepository @Inject constructor(
             ),
             ChatModel(
                 chatUserType = ChatUserType.User,
-                message = glucoseValue,
+                message = if(glucoseValue == null) "모르겠어요" else "$glucoseValue mg/dL",
                 date = LocalDateTime.of(
                     LocalDate.now(),
                     LocalTime.of(8, 30)
@@ -189,7 +206,7 @@ class DangDangRepository @Inject constructor(
                 chatUserType = ChatUserType.AI,
                 message = "알겠어요!\n" +
                         "회원님의 상태(당뇨)에 맞는\n" +
-                        "140mg/dL 적용할게요.",
+                        "${chatResponseBody?.preGlucose?:""}mg/dL 적용할게요.",
                 date = LocalDateTime.of(
                     LocalDate.now(),
                     LocalTime.of(8, 30)
@@ -224,108 +241,120 @@ class DangDangRepository @Inject constructor(
     }
 
     //음식 입력 전송
-    suspend fun ateFoodSend(ateFoodValue: String): Response<List<ChatModel>>{
-        val response = listOf(
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "식전 혈당을 알고 계신가요?\n" +
-                        "(음식을 먹기 전 혈당이에요)\n" +
-                        "\n" +
-                        "입력해주시면 예측이\n" +
-                        "더 정확해져요!",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+    suspend fun ateFoodSend(context: Context, ateFoodValue: String, ateFoodImageUri: Uri?): Response<List<ChatModel>>{
+        var uploadFile: File? = null
+
+        try{
+            val ateFoodImagePart = ateFoodImageUri?.let { uri->
+                uploadFile = context.uriToFile(uri)
+
+                uploadFile.toMultipart()
+            }
+
+            val response = listOf(
+                ChatModel(
+                    chatUserType = ChatUserType.AI,
+                    message = "식전 혈당을 알고 계신가요?\n" +
+                            "(음식을 먹기 전 혈당이에요)\n" +
+                            "\n" +
+                            "입력해주시면 예측이\n" +
+                            "더 정확해져요!",
+                    date = LocalDateTime.of(
+                        LocalDate.now(),
+                        LocalTime.of(8, 30)
+                    ),
+                    chatType = AnalysisFoodType,
+                    isChatAble = false,
+                    isInputComplete = true,
+                    chatStageType = BeforeMealGlucoseInputStage,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "모르겠어요",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+                ChatModel(
+                    chatUserType = ChatUserType.User,
+                    message = "모르겠어요",
+                    date = LocalDateTime.of(
+                        LocalDate.now(),
+                        LocalTime.of(8, 30)
+                    ),
+                    chatType = AnalysisFoodType,
+                    isChatAble = false,
+                    isInputComplete = false,
+                    chatStageType = BeforeMealGlucoseInputStage,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "알겠어요!\n" +
-                        "회원님의 상태(당뇨)에 맞는\n" +
-                        "140mg/dL 적용할게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+                ChatModel(
+                    chatUserType = ChatUserType.AI,
+                    message = "알겠어요!\n" +
+                            "회원님의 상태(당뇨)에 맞는\n" +
+                            "140mg/dL 적용할게요.",
+                    date = LocalDateTime.of(
+                        LocalDate.now(),
+                        LocalTime.of(8, 30)
+                    ),
+                    chatType = AnalysisFoodType,
+                    isChatAble = false,
+                    isInputComplete = true,
+                    chatStageType = BeforeMealGlucoseInputStage,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "먹은 음식을 알려주세요!\n" +
-                        "음식의 영양성분과 예상 혈당 상승량을 알려드릴게요.\n" +
-                        "그리고 혈당 스파이크를 막기 위한 걷기 미션을 생성해드릴게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+                ChatModel(
+                    chatUserType = ChatUserType.AI,
+                    message = "먹은 음식을 알려주세요!\n" +
+                            "음식의 영양성분과 예상 혈당 상승량을 알려드릴게요.\n" +
+                            "그리고 혈당 스파이크를 막기 위한 걷기 미션을 생성해드릴게요.",
+                    date = LocalDateTime.of(
+                        LocalDate.now(),
+                        LocalTime.of(8, 30)
+                    ),
+                    chatType = AnalysisFoodType,
+                    isChatAble = false,
+                    isInputComplete = true,
+                    chatStageType = InputAteFoodStage,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = InputAteFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = ateFoodValue,
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+                ChatModel(
+                    chatUserType = ChatUserType.User,
+                    message = ateFoodValue,
+                    date = LocalDateTime.of(
+                        LocalDate.now(),
+                        LocalTime.of(8, 30)
+                    ),
+                    chatType = AnalysisFoodType,
+                    isChatAble = false,
+                    isInputComplete = false,
+                    chatStageType = InputAteFoodStage,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = InputAteFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "몇 g 정도 드셨는지 입력해주세요",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = InputAteWeightStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
+                ChatModel(
+                    chatUserType = ChatUserType.AI,
+                    message = "몇 g 정도 드셨는지 입력해주세요",
+                    date = LocalDateTime.of(
+                        LocalDate.now(),
+                        LocalTime.of(8, 30)
+                    ),
+                    chatType = AnalysisFoodType,
+                    isChatAble = false,
+                    isInputComplete = false,
+                    chatStageType = InputAteWeightStage,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
+                )
             )
-        )
-        return Response.success(response)
+            return Response.success(response)
+        } finally {
+            uploadFile?.deleteSafely()
+        }
     }
 
     //음식 먹은 양 전송

@@ -22,6 +22,7 @@ class Application : Application(){
         const val InquiryEmail = BuildConfig.InquiryEmail
 
         const val AuthPath = "/api/auth"
+        const val ChatPath = "/api/intake-logs"
     }
 
     override fun onCreate() {

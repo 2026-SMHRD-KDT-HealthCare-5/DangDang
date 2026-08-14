@@ -1,15 +1,27 @@
 package com.dangdang.component.chat
 
+import android.net.Uri
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.dangdang.R
 import com.dangdang.common.utils.AIFeedbackStage
 import com.dangdang.common.utils.AfterWalkGlucoseInputStage
 import com.dangdang.common.utils.AnalysisFoodStage
@@ -32,6 +44,7 @@ import com.dangdang.data.model.chat.FoodNutritionModel
 import com.dangdang.data.model.chat.GlucoseFeedbackModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.White
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -332,9 +345,11 @@ fun AIChatMenu(
     chatModel: ChatModel,
     glucoseValue: String = "",
     onGlucoseValueChange: (String) -> Unit = {},
+    ateFoodImageUri: Uri? = null,
     ateFoodValue: String = "",
     onAteFoodValueChange: (String) -> Unit = {},
     onAteFoodSendClick: () -> Unit = {},
+    onAteFoodImageSelectClick: () -> Unit = {},
     ateWeightValue: String = "",
     onAteWeightValueChange: (String) -> Unit = {},
     onAteWeightSendClick: () -> Unit = {},
@@ -389,17 +404,40 @@ fun AIChatMenu(
                         }
                         InputAteFoodStage -> {
                             if(!chatModel.isInputComplete){
+                                if(ateFoodImageUri != null){
+                                    AsyncImage(
+                                        model = ateFoodImageUri,
+                                        contentDescription = null,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                            .clip(MediumRoundShape),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
                                 TextField(
                                     isMaxLengthView = false,
                                     value = ateFoodValue,
                                     onValueChange = onAteFoodValueChange,
                                     placeholderText = "예) 김치찌개, 닭가슴살 샐러드",
                                     maxLength = 100,
-                                    sizeType = LayoutSize.FillMaxSize
+                                    sizeType = LayoutSize.FillMaxSize,
+                                    rightIcon = {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.image_send),
+                                            contentDescription = "카메라",
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clickable(
+                                                    onClick = onAteFoodImageSelectClick
+                                                )
+                                        )
+                                    }
                                 )
                                 PrimaryButton(
                                     text = "확인",
-                                    enabled = ateFoodValue.isNotEmpty(),
+                                    enabled = ateFoodValue.isNotEmpty() ||
+                                        ateFoodImageUri != null,
                                     sizeType = LayoutSize.FillMaxSize,
                                     onClick = onAteFoodSendClick
                                 )

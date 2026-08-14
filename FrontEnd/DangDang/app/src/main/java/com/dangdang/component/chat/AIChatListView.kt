@@ -1,5 +1,6 @@
 package com.dangdang.component.chat
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
@@ -45,9 +46,11 @@ fun AIChatListView(
     chattingList: List<ChatModel>,
     glucoseValue: String = "",
     onGlucoseValueChange: (String) -> Unit = {},
+    ateFoodImageUri: Uri? = null,
     ateFoodValue: String = "",
     onAteFoodValueChange: (String) -> Unit = {},
     onAteFoodSendClick: () -> Unit = {},
+    onAteFoodImageSelectClick: () -> Unit = {},
     ateWeightValue: String = "",
     onAteWeightValueChange: (String) -> Unit = {},
     onAteWeightSendClick: () -> Unit = {},
@@ -81,6 +84,8 @@ fun AIChatListView(
                 ateFoodValue = ateFoodValue,
                 onAteFoodValueChange = onAteFoodValueChange,
                 onAteFoodSendClick = onAteFoodSendClick,
+                ateFoodImageUri = ateFoodImageUri,
+                onAteFoodImageSelectClick = onAteFoodImageSelectClick,
                 ateWeightValue = ateWeightValue,
                 onAteWeightValueChange = onAteWeightValueChange,
                 onAteWeightSendClick = onAteWeightSendClick,
