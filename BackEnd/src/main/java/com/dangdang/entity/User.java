@@ -59,6 +59,10 @@ public class User {
     @Column(name = "activity_level")
     private Integer activityLevel;
 
+    // "건강군" / "전당뇨" / "2형당뇨" — DiagnosisGroup enum 참고. FastAPI 호출 시 그대로 전달됨.
+    @Column(name = "diagnosis_group", length = 10)
+    private String diagnosisGroup;
+
     @Column(name = "target_glucose")
     private Integer targetGlucose; // 식후 2시간 목표 혈당 (mg/dL, 정수)
 
@@ -71,7 +75,8 @@ public class User {
     @Builder
     private User(String email, String password, String nickname, String gender,
                  LocalDate birthDate, BigDecimal height, BigDecimal weight,
-                 BigDecimal hba1c, Integer activityLevel, Integer targetGlucose) {
+                 BigDecimal hba1c, Integer activityLevel, String diagnosisGroup,
+                 Integer targetGlucose) {
         this.email = email;
         this.password = password;
         this.nickname = nickname;
@@ -81,6 +86,7 @@ public class User {
         this.weight = weight;
         this.hba1c = hba1c;
         this.activityLevel = activityLevel;
+        this.diagnosisGroup = diagnosisGroup;
         this.targetGlucose = targetGlucose;
         this.notificationEnabled = true; // 기획서 3.1: 알림 설정 기본값은 ON
     }

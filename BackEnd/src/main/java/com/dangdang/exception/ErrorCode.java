@@ -18,7 +18,15 @@ public enum ErrorCode {
     AUTHENTICATION_REQUIRED(HttpStatus.UNAUTHORIZED, "AUTH_401_REQUIRED", "로그인이 필요합니다."),
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "AUTH_404_USER_NOT_FOUND", "존재하지 않는 사용자입니다."),
     INVALID_ACTIVITY_LEVEL(HttpStatus.BAD_REQUEST, "AUTH_400_INVALID_ACTIVITY_LEVEL",
-            "평소 활동량 값이 올바르지 않습니다. (거의 안함 / 주 1~2회 / 주 3~5회 / 매일 중 하나여야 합니다)");
+            "평소 활동량 값이 올바르지 않습니다. (거의 안함 / 주 1~2회 / 주 3~5회 / 매일 중 하나여야 합니다)"),
+    INVALID_DIAGNOSIS_GROUP(HttpStatus.BAD_REQUEST, "AUTH_400_INVALID_DIAGNOSIS_GROUP",
+            "진단군 값이 올바르지 않습니다. (건강군 / 전당뇨 / 2형당뇨 중 하나여야 합니다)"),
+
+    // --- 음식 인식(intake-logs) 관련 ---
+    MISSING_FOOD_INPUT(HttpStatus.BAD_REQUEST, "FOOD_400_MISSING_INPUT",
+            "image 또는 message 중 하나는 필수입니다."),
+    AI_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "FOOD_502_AI_SERVER_ERROR",
+            "AI 서버 호출에 실패했습니다.");
 
     private final HttpStatus status;
     private final String code;

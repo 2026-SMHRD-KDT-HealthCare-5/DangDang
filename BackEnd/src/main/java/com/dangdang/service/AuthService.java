@@ -7,6 +7,7 @@ import com.dangdang.dto.response.RefreshResponse;
 import com.dangdang.dto.response.SignUpResponse;
 import com.dangdang.dto.response.TokenResponse;
 import com.dangdang.entity.ActivityLevel;
+import com.dangdang.entity.DiagnosisGroup;
 import com.dangdang.entity.RefreshToken;
 import com.dangdang.entity.User;
 import com.dangdang.exception.BusinessException;
@@ -54,6 +55,12 @@ public class AuthService {
                 ? null
                 : ActivityLevel.fromRawText(request.activityLevel()).getCode();
 
+        // [각주 V] activityLevel과 동일한 패턴: 값이 오면 셋 중 하나인지 검증하고,
+        // 안 왔으면(선택 입력) null로 둡니다.
+        String diagnosisGroup = request.diagnosisGroup() == null
+                ? null
+                : DiagnosisGroup.fromRawText(request.diagnosisGroup()).getApiValue();
+
         User user = User.builder()
                 .email(request.email())
                 .password(encodedPassword)
@@ -64,6 +71,7 @@ public class AuthService {
                 .weight(request.weight())
                 .hba1c(request.hba1c())
                 .activityLevel(activityLevelCode)
+                .diagnosisGroup(diagnosisGroup)
                 .targetGlucose(request.targetGlucose())
                 .build();
 
