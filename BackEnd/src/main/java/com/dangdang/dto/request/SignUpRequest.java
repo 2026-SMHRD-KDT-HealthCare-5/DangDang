@@ -57,6 +57,13 @@ public record SignUpRequest(
          */
         String activityLevel,
 
+        /*
+         * [각주 V] 당뇨 진단군. "건강군" / "전당뇨" / "2형당뇨" 문자열을 그대로 받습니다.
+         * 검증은 AuthService에서 DiagnosisGroup.fromRawText()가 담당합니다.
+         * (문자열이 셋 중 하나가 아니면 400 INVALID_DIAGNOSIS_GROUP)
+         */
+        String diagnosisGroup,
+
         // 식후 2시간 목표 혈당 (mg/dL, 정수)
         Integer targetGlucose
 ) {
