@@ -1,23 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-논문 기반 답변 모듈 (텍스트 통합본 + 컨텍스트 캐시, RAG/PDF업로드 없음)
+논문 기반 답변 모듈 (요약 텍스트 직접 첨부 방식, 캐시/RAG/PDF업로드 없음)
 
-extract_text.py로 미리 만들어둔 papers_combined.txt(논문 7개를 텍스트로
-추출해서 헤더로 구분해 하나로 합친 파일)를 컨텍스트 캐시에 등록해두고,
-일반 건강 질문이 오면 캐시를 참조해서 빠르게 답한다.
+사람이 미리 추려서 만들어둔 papers_combined.txt(논문 7편에서 서비스에
+실제로 쓸 내용만 골라 정리한 요약본, ~6,446토큰)를 매번 질문과 함께
+프롬프트에 그대로 넣어서 답한다.
 
-PDF를 그대로 첨부하던 이전 방식보다 빠른 이유:
-- Gemini는 PDF를 페이지 이미지처럼 처리(비전 모델 경유)하는데,
-  순수 텍스트는 이 과정이 없어 처리 속도/토큰 비용이 크게 줄어듦
-- 파일 7개 대신 텍스트 1개만 다루면 되어 구조도 단순해짐
+※ 2026-08-13 이전에는 논문 원문 전체(202,938자 ≈ 125,875토큰)를 Gemini
+컨텍스트 캐시에 올려두고 재사용하는 방식이었는데, 요약본으로 지식
+소스를 교체하면서 컨텍스트 자체가 작아져 캐시 저장비용/무효화 관리
+부담을 감수할 이유가 없어졌다 (게다가 캐시 삭제를 로컬 기록 파일만
+지우고 서버 쪽 캐시 객체는 안 지워서 저장비용이 새는 사고도 있었음).
+그래서 캐싱 관련 코드는 전부 제거하고 answer_without_cache() 방식만
+남겼다. papers_combined.txt는 여전히 pdf가 아니라 텍스트라서, PDF를
+비전 모델로 처리하던 방식보다 처리 속도/토큰 비용이 낮다.
 
 목차
-1. 상수 — COMBINED_TEXT_PATH/CACHE_NAME_PATH, CACHE_TTL(캐시 유지기간), PAPER_QA_INSTRUCTION(답변 지침 프롬프트)
-2. load_combined_text() — papers_combined.txt를 읽어옴 (없으면 extract_text.py로 자동 생성)
-3. _try_reuse_existing_cache() — 이전에 만든 Gemini 컨텍스트 캐시가 살아있으면 재사용 + TTL 연장
-4. create_paper_cache() — 논문 텍스트를 Gemini 컨텍스트 캐시로 등록 (재사용 실패 시 새로 생성)
-5. answer_with_paper_cache() — 캐시를 이용해 빠르게 답변 생성 (정상 경로)
-6. answer_without_cache() — 캐시를 못 쓸 때, 매번 논문 텍스트 전체를 프롬프트에 직접 넣는 폴백
+1. 상수 — COMBINED_TEXT_PATH, PAPER_QA_INSTRUCTION(답변 지침 프롬프트)
+2. load_combined_text() — papers_combined.txt를 읽어옴
+3. answer_without_cache() — 매번 논문 요약 텍스트 전체를 프롬프트에 직접 넣어 답변 생성
 """
 
 from pathlib import Path
@@ -32,14 +33,6 @@ from prompts.persona import (
 
 SCRIPT_DIR = Path(__file__).parent
 COMBINED_TEXT_PATH = SCRIPT_DIR / "papers_combined.txt"
-CACHE_NAME_PATH = SCRIPT_DIR / ".paper_cache_name"  # 재시작 시 캐시 재사용을 위한 기록 파일
-
-# 캐시 유지 기간. TTL은 상한이 없어서 원하는 만큼 길게 잡을 수 있지만,
-# 저장해두는 동안 비용이 계속 나가니 "무한대"보다는 프로젝트 기간에 맞춰 설정하는 게 합리적임.
-# 발표 전까지 계속 켜둘 거면 이 값을 늘리면 됨 (예: 30일 = "2592000s")
-# ※ 2026-08-13부터 지식 소스가 요약본(6,446토큰)으로 작아져서 캐시 자체를
-#   안 쓰기로 함(services/rag_chat.py 참고) — 이 상수는 캐시 재도입 대비용으로 유지.
-CACHE_TTL = "2592000s"  # 30일
 
 PAPER_QA_INSTRUCTION = (
     DANGDANGI_IDENTITY + "\n\n" +
@@ -60,106 +53,25 @@ PAPER_QA_INSTRUCTION = (
 
 def load_combined_text() -> str:
     """
-    papers_combined.txt를 읽어옴. 없으면 extract_text.py를 자동으로 돌려서 생성.
-    (최초 1회는 PDF 추출 때문에 시간이 좀 걸릴 수 있음. 그다음부터는 파일 재사용)
+    papers_combined.txt(사람이 미리 추린 논문 요약본)를 읽어옴.
+
+    2026-08-14: 예전엔 이 파일이 없으면 extract_text.py로 원문 PDF를 자동
+    추출해서 만드는 폴백이 있었는데, 요약본 방식으로 완전히 굳히면서
+    원문 추출 체인(extract_text.py/sources.py/papers/ocr_cache) 자체를
+    지웠다. 이제 이 파일이 없으면 그냥 빈 문자열을 반환하고, 호출부
+    (services/rag_chat.py)가 페르소나 전용 폴백으로 넘어간다.
     """
     if not COMBINED_TEXT_PATH.exists():
-        print("[paper_qa] papers_combined.txt 없음 -> 자동 생성 시도")
-        try:
-            try:
-                from .extract_text import build_combined_text
-            except ImportError:
-                from extract_text import build_combined_text
-            combined = build_combined_text()
-            COMBINED_TEXT_PATH.write_text(combined, encoding="utf-8")
-            print(f"[paper_qa] 생성 완료: {COMBINED_TEXT_PATH}")
-        except Exception as e:
-            print(f"[paper_qa] 자동 생성 실패: {e}")
-            return ""
+        print(f"[paper_qa] {COMBINED_TEXT_PATH} 없음 — 논문 요약본을 팀원에게 받아서 이 경로에 두세요")
+        return ""
 
     return COMBINED_TEXT_PATH.read_text(encoding="utf-8")
 
 
-def _try_reuse_existing_cache(client):
-    """
-    이전 실행에서 만들어둔 캐시가 아직 살아있으면(TTL 안 지났으면) 그걸 재사용.
-    재사용할 때 TTL도 같이 연장해서, 서버를 계속 껐다 켜는 동안은
-    사실상 만료 걱정 없이 계속 쓸 수 있게 함.
-    """
-    from google.genai import types
-
-    if not CACHE_NAME_PATH.exists():
-        return None
-
-    cache_name = CACHE_NAME_PATH.read_text(encoding="utf-8").strip()
-    if not cache_name:
-        return None
-
-    try:
-        cache = client.caches.get(name=cache_name)
-        cache = client.caches.update(
-            name=cache_name,
-            config=types.UpdateCachedContentConfig(ttl=CACHE_TTL),
-        )
-        print(f"[paper_qa] 기존 캐시 재사용 + TTL 연장: {cache.name} (새로 안 만듦, 토큰 절약)")
-        return cache
-    except Exception:
-        # 캐시가 만료됐거나 삭제된 경우 -> 새로 만들어야 함
-        print("[paper_qa] 기존 캐시가 만료/삭제됨 -> 새로 생성")
-        return None
-
-
-def create_paper_cache(client, model_name: str):
-    """
-    합쳐진 논문 텍스트를 Gemini 컨텍스트 캐시로 등록.
-    이전에 만들어둔 캐시가 아직 유효하면 재사용하고, 없으면 새로 만듦.
-    반환: cache 객체 (실패하면 None -> 호출부에서 캐시 없이 폴백)
-    """
-    from google.genai import types
-
-    existing = _try_reuse_existing_cache(client)
-    if existing:
-        return existing
-
-    combined_text = load_combined_text()
-    if not combined_text:
-        print("[paper_qa] 논문 텍스트가 비어있어 캐시를 만들지 않음")
-        return None
-
-    try:
-        cache = client.caches.create(
-            model=model_name,
-            config=types.CreateCachedContentConfig(
-                display_name="dangdangi_papers_text_cache",
-                contents=[combined_text],
-                system_instruction=PAPER_QA_INSTRUCTION,
-                ttl=CACHE_TTL,
-            ),
-        )
-        print(f"[paper_qa] 컨텍스트 캐시 새로 생성 완료: {cache.name} (원문 {len(combined_text):,}자)")
-        CACHE_NAME_PATH.write_text(cache.name, encoding="utf-8")
-        return cache
-    except Exception as e:
-        print(f"[paper_qa] 캐시 생성 실패, 매번 텍스트 첨부하는 방식으로 폴백: {e}")
-        return None
-
-
-def answer_with_paper_cache(client, model_name: str, question: str, cache):
-    """캐시된 논문 텍스트를 이용해 빠르게 답변 생성"""
-    from google.genai import types
-
-    response = client.models.generate_content(
-        model=model_name,
-        contents=question,
-        config=types.GenerateContentConfig(cached_content=cache.name),
-    )
-    return response
-
-
 def answer_without_cache(client, model_name: str, question: str, combined_text: str):
     """
-    캐시를 못 쓸 때의 폴백. 매번 논문 텍스트 전체를 프롬프트에 직접 넣어서 호출.
-    (캐시 방식보다 느리고 비용이 더 들지만, 캐시 생성이 실패해도 서비스는 계속 되게 함)
+    매번 논문 요약 텍스트 전체를 프롬프트에 직접 넣어서 호출 (지금 유일하게 쓰는 경로).
+    요약본이라 컨텍스트가 작아서(~6,446토큰) 캐시 없이도 비용 부담이 크지 않음.
     """
     prompt = f"{PAPER_QA_INSTRUCTION}\n\n{combined_text}\n\n사용자 질문: {question}"
     response = client.models.generate_content(model=model_name, contents=prompt)
