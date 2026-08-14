@@ -25,30 +25,19 @@ from prompts.chat import (
     MEDICATION_SAFETY_MESSAGE,
     SYSTEM_PROMPT_TEMPLATE,
 )
+from services.rag.paper_qa import answer_without_cache, load_combined_text
 
 # ---------------------------------------------------------
-# ⚠️ 2026-08-13: 논문 기반 답변(paper_qa) 임시 비활성화
+# 2026-08-13: 논문 지식 소스를 원본 7편 전체(202,938자 ≈ 125,875토큰)에서
+# 서비스 목적(음식 사진 기반 혈당예측 + 식후 걷기미션)에 맞게 미리 추린
+# 요약본(10,398자 ≈ 6,446토큰)으로 교체함. papers_combined.txt 파일
+# 자체를 이 요약본으로 덮어썼음 — load_combined_text()는 코드 안 바꿔도 됨.
 #
-# 무료 티어라 컨텍스트 캐시가 안 되고(limit=0), 캐시 없이 매번 논문 전체
-# (202,938자 ≈ 125,875토큰)를 프롬프트에 통째로 넣어서 보내는 상황이라
-# 토큰/비용 소모가 너무 큼 (질문 1개당 약 22원, 무료 할당량도 금방 소진됨).
-#
-# 라우팅(관련 논문 1~2개만 골라 쓰는 기능, backup-local-2026-08-13 브랜치에
-# 이미 구현/테스트 완료된 상태) 다시 붙이기 전까지 아예 꺼둔다.
-# 지금은 항상 페르소나 전용 폴백(FIXED_KNOWLEDGE 몇 줄만 쓰는, 훨씬 작은
-# 프롬프트)으로만 답한다.
-#
-# 재활성화하려면:
-#   1. 아래 import 주석 풀기
-#   2. combined_papers_text/paper_cache 로드 라인 주석 풀기
-#   3. answer_chat()의 "논문 기반" 분기(주석 처리된 부분) 되살리기
+# 캐시(Gemini context cache)는 이제 안 쓴다 — 컨텍스트가 원래도 작아서
+# (6,446토큰) 캐시 저장비용/무효화 관리 부담을 감수할 만큼의 이득이 없음
+# (어제 캐시 관리 실수로 저장비용이 새던 사고도 있었고). 매번 직접
+# 전송하는 answer_without_cache()만 쓴다.
 # ---------------------------------------------------------
-# from services.rag.paper_qa import (
-#     answer_with_paper_cache,
-#     answer_without_cache,
-#     create_paper_cache,
-#     load_combined_text,
-# )
 
 # ---------------------------------------------------------
 # 사용자별 대화 세션 (멀티턴 메모리)
@@ -62,9 +51,8 @@ chat_sessions: dict = {}
 # 키는 user_no(정수, DB의 USER 테이블 PK와 동일 타입)
 user_diagnosis_groups: dict[int, str] = {}
 
-# 모듈 최초 import 시 1회만 로드/생성되어 이후 재사용된다 (Python import 캐싱).
-# combined_papers_text = load_combined_text()
-# paper_cache = create_paper_cache(client, MODEL_NAME)
+# 모듈 최초 import 시 1회만 로드되어 이후 재사용된다 (Python import 캐싱).
+curated_knowledge_text = load_combined_text()
 
 
 def get_or_create_chat_session(user_no: int, system_prompt: str):
@@ -125,21 +113,13 @@ def answer_chat(user_no: int, message: str, diagnosis_group: str | None) -> str:
     if diagnosis_group:
         user_diagnosis_groups[user_no] = diagnosis_group
 
-    # ⚠️ 논문 기반 답변 임시 비활성화 (토큰 비용 문제, 위 주석 참고)
-    # 라우팅 기능 다시 붙이면 이 분기부터 되살릴 것.
-    # if paper_cache:
-    #     # 캐시가 있으면 논문을 매번 다시 안 보내고 캐시만 참조 (훨씬 빠름)
-    #     response = answer_with_paper_cache(client, MODEL_NAME, message, paper_cache)
-    #     log_token_usage(response, label="chat-paper-cached")
-    #     return response.text
-    #
-    # if combined_papers_text:
-    #     # 캐시 생성이 실패했을 때의 폴백 (느리지만 동작은 함)
-    #     response = answer_without_cache(client, MODEL_NAME, message, combined_papers_text)
-    #     log_token_usage(response, label="chat-paper-nocache")
-    #     return response.text
+    # 논문 요약 지식 기반으로 답변 (요약본이라 컨텍스트가 작아서 캐시 없이도 충분히 저렴함)
+    if curated_knowledge_text:
+        response = answer_without_cache(client, MODEL_NAME, message, curated_knowledge_text)
+        log_token_usage(response, label="chat-paper")
+        return response.text
 
-    # 페르소나 대화 세션으로만 답변 (지금은 이게 유일한 경로)
+    # 요약본 파일이 없을 때의 최종 폴백 -> 페르소나 대화 세션
     user_context = get_dummy_user_context(user_no)
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         knowledge=FIXED_KNOWLEDGE,
