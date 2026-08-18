@@ -20,7 +20,7 @@ router = APIRouter(dependencies=[Depends(verify_internal_api_key)])
 @router.post("/rag/intake-logs/predict")
 def predict_with_portion(req: PortionPredictRequest):
     """
-    음식 최종 확정 시 portion 반영 재예측 엔드포인트
+    음식 portion 반영 재예측 엔드포인트
     Spring이 POST /api/intake-logs(음식 최종 확정) 처리 중 → 여기로 내부 호출
 
     Spring은 food_no/custom_food_no로 이미 알고 있는 영양성분(1 serving_size 기준)에

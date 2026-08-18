@@ -15,9 +15,14 @@ import java.math.BigDecimal;
  * double은 부동소수점이라 미세한 반올림 오차가 생길 수 있어서, User 엔티티의 height/weight/hba1c와
  * 같은 이유로 BigDecimal을 씁니다 (정확한 십진수 계산이 필요한 값에는 BigDecimal이 표준입니다).
  * serving_size는 DB에서 INTEGER 타입이라 Integer로 받습니다.
+ *
+ * [각주 AO] (수정) matched 필드는 뺐습니다. 매칭이 맞는지 최종 판단은 화면의 "맞아요/틀려요/
+ * 검색어 다시 입력/직접 입력" 4버튼으로 사용자가 직접 하는 거라서, 서버가 true/false로 미리
+ * 판정해줄 필요가 없다고 결정했습니다. 매칭 실패 여부는 foodNo(또는 nutrition)가 null인지로
+ * 그대로 판단할 수 있어서 정보 손실도 없습니다 — FastAPI가 여전히 matched를 같이 보내더라도
+ * 여기 필드에 없으면 Jackson이 그냥 무시하고 넘어갑니다(에러 안 남).
  */
 public record FoodRecognitionResponse(
-        boolean matched,
         Integer foodNo,
         String foodName,
         @JsonProperty("serving_size") Integer servingSize,
@@ -26,7 +31,7 @@ public record FoodRecognitionResponse(
         String source,
         String chatbotMessage
 ) {
-    /** food_info 테이블의 "1 serving_size 기준" 영양성분입니다 (100g 기준 아님. matched=false면 nutrition 전체가 null) */
+    /** food_info 테이블의 "1 serving_size 기준" 영양성분입니다 (100g 기준 아님. foodNo가 null이면 nutrition 전체가 null) */
     public record NutritionInfo(
             BigDecimal carb,
             BigDecimal sugar,
