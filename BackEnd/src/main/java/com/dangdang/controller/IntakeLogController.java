@@ -1,11 +1,17 @@
 package com.dangdang.controller;
 
+import com.dangdang.dto.request.IntakeConfirmRequest;
+import com.dangdang.dto.request.PortionPredictRequest;
 import com.dangdang.dto.request.PreGlucoseRequest;
 import com.dangdang.dto.response.FoodRecognitionResponse;
+import com.dangdang.dto.response.IntakeConfirmResponse;
+import com.dangdang.dto.response.PortionPredictResponse;
 import com.dangdang.dto.response.PreGlucoseResponse;
+import com.dangdang.dto.response.ReanalyzeResponse;
 import com.dangdang.exception.BusinessException;
 import com.dangdang.exception.ErrorCode;
 import com.dangdang.service.IntakeLogService;
+import com.dangdang.service.RecognizeProxyService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,6 +30,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class IntakeLogController {
 
     private final IntakeLogService intakeLogService;
+    private final RecognizeProxyService recognizeProxyService;
 
     /**
      * [각주 X] 식전 혈당 입력 (8단계 흐름의 ① 단계, 음식 인식보다 먼저 호출됨).
@@ -73,4 +80,71 @@ public class IntakeLogController {
                 intakeLogService.recognizeFood(userNo, image, message, baseline, diagnosisGroup);
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * [각주 AN] "얼마나 드셨어요?"(portion) 응답 후 호출 — recognize에서 받은 1인분 영양성분을
+     * 그대로 body에 실어 보내면, portion 반영된 예상 혈당 상승량 + 걷기 미션 목표치를 돌려줍니다.
+     * 아직 "맞아요" 최종 확정 전 단계라 DB 저장은 없습니다(recognize와 동일하게 순수 프록시).
+     */
+    @PostMapping("/predict")
+    public ResponseEntity<PortionPredictResponse> predict(
+            Authentication authentication,
+            @RequestBody PortionPredictRequest request
+    ) {
+        Integer userNo = (Integer) authentication.getPrincipal();
+        PortionPredictResponse response = intakeLogService.predictPortion(userNo, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * [각주 BP] 음식 최종 확정("맞아요"). foodNo(식약처 매칭)와 customFood(AI재분석/직접입력
+     * 결과) 중 정확히 하나만 body에 실어 보내야 합니다 — IntakeConfirmRequest 참고.
+     * 여기서만 실제로 DB에 저장됩니다(intake_log/custom_food/walk_mission/ai_chat).
+     *
+     * @lastModified 2026-08-18
+     */
+    @PostMapping
+    public ResponseEntity<IntakeConfirmResponse> confirm(
+            Authentication authentication,
+            @RequestBody IntakeConfirmRequest request
+    ) {
+        Integer userNo = (Integer) authentication.getPrincipal();
+        IntakeConfirmResponse response = intakeLogService.confirmIntake(userNo, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * [각주 BQ] "틀려요, AI로 분석하기" — recognize가 식약처 DB에서 못 찾았거나 사용자가
+     * 결과가 틀렸다고 할 때 호출합니다. image/foodName 중 최소 하나는 필수입니다.
+     * recognize/predict와 동일하게 순수 프록시라 DB에는 아무것도 저장하지 않습니다.
+     * 여기서 나온 결과가 마음에 들면 "맞아요"(confirm)를 눌러야 저장됩니다.
+     *
+     * @lastModified 2026-08-18
+     */
+    @PostMapping(value = "/reanalyze", consumes = "multipart/form-data")
+    public ResponseEntity<ReanalyzeResponse> reanalyze(
+            Authentication authentication,
+            @RequestParam(required = false) MultipartFile image,
+            @RequestParam(required = false) String foodName,
+            @RequestParam(required = false) Double baseline,
+            @RequestParam(required = false) String diagnosisGroup
+    ) {
+        boolean hasImage = image != null && !image.isEmpty();
+        boolean hasFoodName = foodName != null && !foodName.isBlank();
+
+        if (!hasImage && !hasFoodName) {
+            throw new BusinessException(ErrorCode.MISSING_REANALYZE_INPUT);
+        }
+
+        Integer userNo = (Integer) authentication.getPrincipal();
+        ReanalyzeResponse response =
+                recognizeProxyService.reanalyze(userNo, image, foodName, baseline, diagnosisGroup);
+        return ResponseEntity.ok(response);
+    }
+
+    // [각주 BR] (삭제) "직접입력하기" 전용 미리보기(/custom-food)는 뺐습니다 — 직접입력은
+    // 검색어 재입력/AI분석처럼 "결과가 마음에 안 들어서 다시 시도"할 일이 없어서, 미리보기 없이
+    // 프론트가 입력 폼 제출 즉시 confirm(POST /api/intake-logs, customFood.source="사용자입력")을
+    // 바로 호출하면 됩니다. confirm 응답에 predictedGlucoseRise 등이 이미 들어있어서 보여줄
+    // 정보도 그대로 나오고, 저장도 그 한 번의 호출로 끝납니다.
 }

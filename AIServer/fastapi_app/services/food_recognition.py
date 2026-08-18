@@ -203,8 +203,13 @@ async def reanalyze(image, food_name, baseline, diagnosis_group) -> tuple[int, d
         diagnosis_group=diag,
     )
 
+    # 텍스트로 입력한 경우(food_name이 있음)는 사용자가 준 이름을 그대로 신뢰합니다.
+    # Gemini가 못 알아듣고 엉뚱한 진짜 음식 이름으로 바꿔치기(할루시네이션)하는 걸 막기 위함입니다.
+    # 사진만 준 경우(food_name 없음)는 Gemini가 음식 자체를 식별해야 하니 그대로 둡니다.
+    resolved_food_name = food_name if food_name else analysis.get("food_name", "알 수 없는 음식")
+
     return 200, {
-        "foodName": analysis.get("food_name", food_name or "알 수 없는 음식"),
+        "foodName": resolved_food_name,
         "serving_size": analysis.get("serving_size"),
         "nutrition": {
             "carb": nutrition.get("carb"),

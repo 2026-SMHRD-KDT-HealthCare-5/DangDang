@@ -1,12 +1,32 @@
 package com.dangdang.service;
 
+import com.dangdang.dto.request.IntakeConfirmRequest;
+import com.dangdang.dto.request.PortionPredictRequest;
 import com.dangdang.dto.response.FoodRecognitionResponse;
+import com.dangdang.dto.response.IntakeConfirmResponse;
+import com.dangdang.dto.response.PortionPredictResponse;
 import com.dangdang.dto.response.PreGlucoseResponse;
+import com.dangdang.entity.AiChat;
+import com.dangdang.entity.ChatType;
+import com.dangdang.entity.CustomFood;
+import com.dangdang.entity.CustomFoodSource;
 import com.dangdang.entity.DiagnosisGroup;
+import com.dangdang.entity.FoodInfo;
+import com.dangdang.entity.IntakeLog;
 import com.dangdang.entity.User;
+import com.dangdang.entity.WalkMission;
+import com.dangdang.entity.WalkMissionStatus;
 import com.dangdang.exception.BusinessException;
 import com.dangdang.exception.ErrorCode;
+import com.dangdang.repository.AiChatRepository;
+import com.dangdang.repository.CustomFoodRepository;
+import com.dangdang.repository.FoodInfoRepository;
+import com.dangdang.repository.IntakeLogRepository;
 import com.dangdang.repository.UserRepository;
+import com.dangdang.repository.WalkMissionRepository;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -15,6 +35,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestClientException;
@@ -23,10 +44,14 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * [각주 T] 음식 인식/AI 재분석 요청을 FastAPI(AI 서버)로 그대로 전달(프록시)하는 서비스입니다.
- * Spring은 여기서 DB에 아무것도 쓰지 않습니다 — FastAPI 응답을 안드로이드에 그대로 돌려주기만 합니다.
+ * [각주 T] (수정) preglucose/recognize/predict는 FastAPI(AI 서버)로 그대로 전달(프록시)만 하고
+ * DB에 아무것도 안 씁니다. 반면 confirmIntake()("맞아요" 최종 확정)만은 예외적으로 이 서비스
+ * 안에서 직접 DB에 씁니다 — intake_log/custom_food/walk_mission/ai_chat(MISSION_CARD).
  * (기획서 아키텍처 원칙: DB 쓰기는 전부 Spring, AI 추론은 전부 FastAPI가 전담하는데,
  *  "먹은 음식 최종 확정" 시점에야 DB에 저장하고, 인식/재분석 단계는 아직 저장할 대상이 없습니다.)
  */
@@ -43,6 +68,12 @@ public class IntakeLogService {
 
     private final RestTemplate restTemplate;
     private final UserRepository userRepository;
+    private final FoodInfoRepository foodInfoRepository;
+    private final CustomFoodRepository customFoodRepository;
+    private final IntakeLogRepository intakeLogRepository;
+    private final WalkMissionRepository walkMissionRepository;
+    private final AiChatRepository aiChatRepository;
+    private final ObjectMapper objectMapper;
 
     @Value("${fastapi.base-url}")
     private String fastApiBaseUrl;
@@ -60,6 +91,9 @@ public class IntakeLogService {
     private static final int PRE_GLUCOSE_DEFAULT_HEALTHY = 95;
     private static final int PRE_GLUCOSE_DEFAULT_PREDIABETES = 115;
     private static final int PRE_GLUCOSE_DEFAULT_DIABETES = 140;
+
+    // [각주] FastAPI core/config.py의 DIAGNOSIS_GROUPS 기본값과 동일하게 맞춘 값입니다.
+    private static final String DEFAULT_DIAGNOSIS_GROUP = "건강군";
 
     /**
      * [각주 X] POST /api/intake-logs/preglucose 가 호출합니다.
@@ -150,6 +184,229 @@ public class IntakeLogService {
             log.error("FastAPI 호출 실패 (recognize): {}", e.getMessage());
             throw new BusinessException(ErrorCode.AI_SERVER_ERROR);
         }
+    }
+
+    /**
+     * [각주 AN] POST /api/intake-logs/predict 가 호출합니다.
+     * 대화 흐름상 recognize 다음 단계 — "얼마나 드셨어요?"(portion)에 답하면 이걸 호출해서
+     * 1인분 영양성분 x portion 반영된 예상 혈당 상승량/걷기 미션 목표치를 미리 보여줍니다.
+     * (아직 "맞아요" 최종 확정 전이라 DB에는 저장하지 않습니다 — recognizeFood와 같은 순수 프록시)
+     *
+     * FastAPI schemas/predict.py의 PortionPredictRequest는 baseline/diagnosis_group이
+     * 둘 다 필수(기본값 없음)입니다. recognize와 달리 FastAPI가 자동으로 기본값을 채워주지
+     * 않으므로, Spring이 여기서 직접 확실한 값을 만들어 보내야 합니다.
+     */
+    public PortionPredictResponse predictPortion(Integer userNo, PortionPredictRequest request) {
+        if (request.baseline() == null) {
+            throw new BusinessException(ErrorCode.MISSING_BASELINE);
+        }
+
+        String resolvedDiagnosisGroup = (request.diagnosisGroup() != null && !request.diagnosisGroup().isBlank())
+                ? DiagnosisGroup.fromRawText(request.diagnosisGroup()).getApiValue()
+                : userRepository.findById(userNo).map(User::getDiagnosisGroup).orElse(null);
+        if (resolvedDiagnosisGroup == null || resolvedDiagnosisGroup.isBlank()) {
+            // [각주] recognize는 이 경우 null을 보내면 FastAPI가 알아서 "건강군"으로 채워주지만,
+            // predict.py는 diagnosis_group이 DIAGNOSIS_GROUPS(건강군/전당뇨/2형당뇨) 안에 없으면
+            // 그냥 400을 돌려줍니다 — 그래서 여기서 Spring이 직접 기본값을 정해서 보냅니다.
+            resolvedDiagnosisGroup = DEFAULT_DIAGNOSIS_GROUP;
+        }
+
+        FastApiPredictRequest fastApiRequest = new FastApiPredictRequest(
+                request.carb(), request.sugar(), request.protein(), request.fat(),
+                request.fiber(), request.calorie(),
+                request.portion() != null ? request.portion() : 1.0,
+                request.baseline(), resolvedDiagnosisGroup
+        );
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("X-Internal-Api-Key", internalApiKey);
+        HttpEntity<FastApiPredictRequest> requestEntity = new HttpEntity<>(fastApiRequest, headers);
+
+        try {
+            return restTemplate.postForObject(
+                    fastApiBaseUrl + "/rag/intake-logs/predict",
+                    requestEntity,
+                    PortionPredictResponse.class
+            );
+        } catch (RestClientException e) {
+            log.error("FastAPI 호출 실패 (predict): {}", e.getMessage());
+            throw new BusinessException(ErrorCode.AI_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * [각주 BN] POST /api/intake-logs (최종 확정, "맞아요") 가 호출합니다. 여기서만 실제로
+     * DB에 씁니다 — intake_log / (필요하면) custom_food / walk_mission / ai_chat(MISSION_CARD)
+     * 를 한 트랜잭션으로 같이 저장합니다. 중간에 하나라도 실패하면 전부 롤백됩니다.
+     *
+     * 순서:
+     * 1) foodNo XOR customFood 검증 (intake_log의 chk_food_reference와 동일한 규칙)
+     * 2) preGlucose 해결 (recognize와 동일 — 프론트가 안 보내면 hba1c 기본값)
+     * 3) food_no 경로면 food_info에서, customFood 경로면 지금 막 저장한 custom_food에서
+     *    "서버가 신뢰하는" 영양성분을 다시 확보 (프론트가 보낸 값을 그대로 믿지 않음)
+     * 4) FastAPI predict를 다시 호출해서 predictedGlucoseRise/targetDistance/targetKcal 재계산
+     *    (프론트가 /predict로 이미 받은 값을 또 보내더라도 그건 무시하고 서버가 새로 계산합니다)
+     * 5) 이미 활성 미션(READY/IN_PROGRESS)이 있으면 자동 취소(EXPIRED/CANCEL) 후 진행
+     *    — uq_active_mission(부분 유니크 인덱스)이 "유저당 활성 미션 1개"를 DB 레벨에서도 강제합니다
+     * 6) intake_log 저장 → walk_mission 저장 → ai_chat(MISSION_CARD) 저장
+     *
+     * @lastModified 2026-08-18
+     */
+    @Transactional
+    public IntakeConfirmResponse confirmIntake(Integer userNo, IntakeConfirmRequest request) {
+        validateFoodReference(request);
+
+        PreGlucoseResponse resolvedPreGlucose = resolvePreGlucose(userNo, request.preGlucose());
+        Double baseline = resolvedPreGlucose.preGlucose().doubleValue();
+
+        Integer foodNo = null;
+        Integer customFoodNo = null;
+        BigDecimal carb, sugar, protein, fat, fiber, calorie;
+        double portion;
+
+        if (request.foodNo() != null) {
+            // --- "맞아요" (식약처 매칭 그대로 확정) ---
+            FoodInfo foodInfo = foodInfoRepository.findById(request.foodNo())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.FOOD_NOT_FOUND));
+            foodNo = foodInfo.getFoodNo();
+            carb = foodInfo.getCarb();
+            sugar = foodInfo.getSugar();
+            protein = foodInfo.getProtein();
+            fat = foodInfo.getFat();
+            fiber = foodInfo.getFiber();
+            calorie = foodInfo.getCalorie();
+            portion = request.portion() != null ? request.portion() : 1.0;
+        } else {
+            // --- "틀려요→AI로 분석하기" / "직접입력하기" 확정 ---
+            // [각주 BJ-1] CustomFood 저장은 별도 서비스로 안 빼고 여기서 직접 처리합니다
+            // (한때 FoodService에 뒀었는데, 순환 의존 문제 + "직접입력은 미리보기 없이 confirm
+            //  한 번에 끝낸다"는 결정 이후로 FoodService 자체를 삭제했습니다).
+            IntakeConfirmRequest.CustomFoodPayload payload = request.customFood();
+            String validatedSource = CustomFoodSource.validateDbValue(payload.source());
+
+            CustomFood customFood = CustomFood.builder()
+                    .userNo(userNo)
+                    .foodName(payload.foodName())
+                    .servingSize(payload.servingSize())
+                    .carb(payload.carb())
+                    .sugar(payload.sugar())
+                    .protein(payload.protein())
+                    .fat(payload.fat())
+                    .fiber(payload.fiber())
+                    .calorie(payload.calorie())
+                    .source(validatedSource)
+                    .build();
+            CustomFood savedCustomFood = customFoodRepository.save(customFood);
+
+            customFoodNo = savedCustomFood.getCustomFoodNo();
+            carb = savedCustomFood.getCarb();
+            sugar = savedCustomFood.getSugar();
+            protein = savedCustomFood.getProtein();
+            fat = savedCustomFood.getFat();
+            fiber = savedCustomFood.getFiber();
+            calorie = savedCustomFood.getCalorie();
+            // [각주 BK] 직접입력/AI추정 값은 "1인분 기준"이 아니라 "실제 먹은 양 그 자체"라 portion 고정 1.0.
+            portion = 1.0;
+        }
+
+        PortionPredictRequest predictRequest = new PortionPredictRequest(
+                carb, sugar, protein, fat, fiber, calorie,
+                portion, baseline, request.diagnosisGroup()
+        );
+        PortionPredictResponse predicted = predictPortion(userNo, predictRequest);
+
+        // [각주 BO] (시나리오 2: 사용자 답변) 이미 활성 미션이 있는데 또 확정을 시도하면,
+        // 새 확정을 거부하지 않고 기존 것을 자동 취소한 뒤 새 미션으로 진행합니다.
+        // (시나리오 1 — 걷기 도중 앱 종료 후 콜드스타트에서 발견되는 경우는 별도의
+        //  "/api/walk-missions/active" 콜드스타트 체크 API에서 처리할 예정 — 이번 범위 밖)
+        walkMissionRepository.findFirstByUserNoAndStatusIn(
+                userNo, List.of(WalkMissionStatus.READY, WalkMissionStatus.IN_PROGRESS)
+        ).ifPresent(activeMission -> {
+            activeMission.cancelForNewConfirm();
+            walkMissionRepository.save(activeMission);
+        });
+
+        Integer postGlucoseEst = (predicted.predictedGlucoseRise() != null)
+                ? (int) Math.round(baseline + predicted.predictedGlucoseRise())
+                : null;
+
+        IntakeLog intakeLog = IntakeLog.builder()
+                .userNo(userNo)
+                .foodNo(foodNo)
+                .customFoodNo(customFoodNo)
+                .preGlucose(resolvedPreGlucose.preGlucose())
+                .postGlucoseEst(postGlucoseEst)
+                .portion(BigDecimal.valueOf(portion))
+                .build();
+        IntakeLog savedLog = intakeLogRepository.save(intakeLog);
+
+        WalkMission mission = WalkMission.builder()
+                .userNo(userNo)
+                .logNo(savedLog.getLogNo())
+                .targetKcal(predicted.targetKcal() != null ? BigDecimal.valueOf(predicted.targetKcal()) : BigDecimal.ZERO)
+                .targetDistance(predicted.targetDistance() != null ? BigDecimal.valueOf(predicted.targetDistance()) : BigDecimal.ZERO)
+                .build();
+        WalkMission savedMission = walkMissionRepository.save(mission);
+
+        String chatbotMessage = "기록할 음식이 확정되었어요! 이제 식후 30분 이후 걷기를 시작해볼까요?";
+        saveMissionCardChat(userNo, savedLog, savedMission, chatbotMessage);
+
+        return new IntakeConfirmResponse(
+                savedLog.getLogNo(),
+                savedMission.getMissionNo(),
+                predicted.predictedGlucoseRise(),
+                savedMission.getTargetDistance(),
+                savedMission.getTargetKcal(),
+                chatbotMessage
+        );
+    }
+
+    /** intake_log의 chk_food_reference와 정확히 같은 규칙을 자바 코드에서 먼저 검증합니다. */
+    private void validateFoodReference(IntakeConfirmRequest request) {
+        boolean hasFoodNo = request.foodNo() != null;
+        boolean hasCustomFood = request.customFood() != null;
+        if (hasFoodNo == hasCustomFood) { // 둘 다 true(둘 다 옴) 이거나 둘 다 false(둘 다 없음)면 에러
+            throw new BusinessException(ErrorCode.INVALID_CONFIRM_FOOD_REFERENCE);
+        }
+    }
+
+    /** MISSION_CARD 타입 ai_chat row를 저장합니다. cardData는 프론트가 나중에 이력을 다시 그릴 때 쓸 스냅샷입니다. */
+    private void saveMissionCardChat(Integer userNo, IntakeLog intakeLog, WalkMission mission, String chatbotMessage) {
+        Map<String, Object> card = new LinkedHashMap<>();
+        card.put("logNo", intakeLog.getLogNo());
+        card.put("missionNo", mission.getMissionNo());
+        card.put("targetDistance", mission.getTargetDistance());
+        card.put("targetKcal", mission.getTargetKcal());
+
+        String cardDataJson;
+        try {
+            cardDataJson = objectMapper.writeValueAsString(card);
+        } catch (JsonProcessingException e) {
+            // [각주] MISSION_CARD 표시용 스냅샷이 실패해도 확정 자체(intake_log/walk_mission 저장)는
+            // 막을 이유가 없어서, cardData만 null로 두고 넘어갑니다(로그만 남김).
+            log.error("MISSION_CARD cardData 직렬화 실패 (logNo={}): {}", intakeLog.getLogNo(), e.getMessage());
+            cardDataJson = null;
+        }
+
+        AiChat aiChat = AiChat.builder()
+                .userNo(userNo)
+                .aiMessage(chatbotMessage)
+                .chatType(ChatType.MISSION_CARD)
+                .cardData(cardDataJson)
+                .build();
+        aiChatRepository.save(aiChat);
+    }
+
+    /**
+     * FastAPI schemas/predict.py의 PortionPredictRequest와 맞춘 내부 전용 요청 형식입니다.
+     * ChatService의 [각주 AG]와 동일한 이유로 diagnosis_group만 스네이크케이스 매핑이 필요합니다.
+     */
+    private record FastApiPredictRequest(
+            BigDecimal carb, BigDecimal sugar, BigDecimal protein, BigDecimal fat,
+            BigDecimal fiber, BigDecimal calorie, Double portion, Double baseline,
+            @JsonProperty("diagnosis_group") String diagnosisGroup
+    ) {
     }
 
     /**

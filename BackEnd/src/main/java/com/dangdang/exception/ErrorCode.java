@@ -26,7 +26,19 @@ public enum ErrorCode {
     MISSING_FOOD_INPUT(HttpStatus.BAD_REQUEST, "FOOD_400_MISSING_INPUT",
             "image 또는 message 중 하나는 필수입니다."),
     AI_SERVER_ERROR(HttpStatus.BAD_GATEWAY, "FOOD_502_AI_SERVER_ERROR",
-            "AI 서버 호출에 실패했습니다.");
+            "AI 서버 호출에 실패했습니다."),
+    MISSING_BASELINE(HttpStatus.BAD_REQUEST, "FOOD_400_MISSING_BASELINE",
+            "baseline(식전 혈당)은 필수입니다. preglucose 단계에서 받은 값을 그대로 보내주세요."),
+
+    // --- 음식 최종확정(confirm)/틀려요/직접입력 관련 ---
+    MISSING_REANALYZE_INPUT(HttpStatus.BAD_REQUEST, "FOOD_400_MISSING_REANALYZE_INPUT",
+            "image 또는 foodName 중 하나는 필수입니다."),
+    INVALID_CONFIRM_FOOD_REFERENCE(HttpStatus.BAD_REQUEST, "FOOD_400_INVALID_CONFIRM_FOOD_REFERENCE",
+            "foodNo와 customFood 중 정확히 하나만 보내주세요."),
+    INVALID_CUSTOM_FOOD_SOURCE(HttpStatus.BAD_REQUEST, "FOOD_400_INVALID_CUSTOM_FOOD_SOURCE",
+            "source 값이 올바르지 않습니다. (\"AI추정\" 또는 \"사용자입력\" 중 하나여야 합니다)"),
+    FOOD_NOT_FOUND(HttpStatus.NOT_FOUND, "FOOD_404_FOOD_NOT_FOUND",
+            "존재하지 않는 음식입니다. (food_no를 다시 확인해주세요)");
 
     private final HttpStatus status;
     private final String code;
