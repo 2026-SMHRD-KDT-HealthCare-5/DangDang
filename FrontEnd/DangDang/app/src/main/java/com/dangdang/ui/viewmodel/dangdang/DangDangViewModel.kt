@@ -36,8 +36,22 @@ class DangDangViewModel @Inject constructor(
     val recommendQuestionList: StateFlow<PendingModel<List<ChatRecommendQuestionModel>>> =
         _recommendQuestionList.asStateFlow()
 
+    private val _isChatLoading = MutableStateFlow(false)
+    val isChatLoading: StateFlow<Boolean> = _isChatLoading.asStateFlow()
+
     init {
         getRecommendQuestion()
+    }
+
+    fun chatProcess(onChat: suspend ()-> Unit){
+        viewModelScope.launch {
+            _isChatLoading.value = true
+            try{
+                onChat()
+            }finally {
+                _isChatLoading.value = false
+            }
+        }
     }
 
     fun getRecommendQuestion(){
@@ -54,7 +68,7 @@ class DangDangViewModel @Inject constructor(
 
     //채팅 전송
     fun chatSend(message: String) {
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.chatSend(message))
         }
     }
@@ -75,21 +89,21 @@ class DangDangViewModel @Inject constructor(
 
     //음식 분석&걷기 시작
     fun startAnalysisFood(){
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.startAnalysisFood())
         }
     }
 
     //식전 혈당 전송
     fun sendBeforeMealGlucose(glucoseValue: String?) {
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.sendBeforeMealGlucose(glucoseValue))
         }
     }
 
     //음식 입력 전송
     fun ateFoodSend(context: Context, ateFoodValue: String, ateFoodImageUri: Uri?) {
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(
                 dangDangRepository.ateFoodSend(
                     context = context,
@@ -102,48 +116,48 @@ class DangDangViewModel @Inject constructor(
 
     //음식 먹은 양 전송
     fun ateWeightSend(weightValue: String) {
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.ateWeightSend(weightValue))
         }
     }
 
     //음식 직접 입력 전송
     fun sendFoodInputDirectly(foodInputDirectlyForm: FoodInputDirectlyForm) {
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.sendFoodInputDirectly(foodInputDirectlyForm))
         }
     }
 
     //검색어 다시 입력 선택 시
     fun ateFoodReSearch() {
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.ateFoodReSearch())
         }
     }
 
     //음식 확정 선택 시
     fun foodCheck(){
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.foodCheck())
         }
     }
 
     //오늘 걷기 목표 불러오기 선택 시
     fun getRecommendWalkChallenge(){
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.getRecommendWalkChallenge())
         }
     }
 
     //걷기 완료 미션 전송
     fun completeWalkMission() {
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.completeWalkMission())
         }
     }
 
     fun afterWalkGlucoseSend(glucose: Int){
-        viewModelScope.launch {
+        chatProcess {
             _chattingList.applyResponse(dangDangRepository.afterWalkGlucoseSend(glucose))
         }
     }

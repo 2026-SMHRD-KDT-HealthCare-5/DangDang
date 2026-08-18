@@ -133,10 +133,16 @@ fun DangDangScreen(
 
     val chattingList by
         dangDangViewModel.chattingList.collectAsState()
+    
+    val isChatLoading by
+        dangDangViewModel.isChatLoading.collectAsState()
 
-    val isChatAble by remember(chattingList) {
+    val isChatAble by remember(
+        chattingList,
+        isChatLoading
+    ) {
         derivedStateOf{
-            if(chattingList.loadingState == LoadingState.Success){
+            if(chattingList.loadingState == LoadingState.Success && !isChatLoading){
                 if(chattingList.data?.isEmpty() == true){
                     true
                 }else{
