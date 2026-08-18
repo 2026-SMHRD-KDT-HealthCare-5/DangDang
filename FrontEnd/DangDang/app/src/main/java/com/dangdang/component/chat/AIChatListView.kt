@@ -8,12 +8,16 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.model.chat.ChatModel
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -68,12 +72,13 @@ fun AIChatListView(
     onFoodInputDirectlyClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
 
-    // AIChatListView가 최초로 화면에 구성될 때만, 목록 레이아웃이 끝난 뒤 최하단으로 이동한다.
-    // chattingList를 key로 사용하지 않아 이후 메시지 추가/상태 변경으로는 다시 실행되지 않는다.
-    LaunchedEffect(Unit) {
-        withFrameNanos { }
-        scrollState.scrollTo(scrollState.maxValue)
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        scope.launch {
+            withFrameNanos { }
+            scrollState.scrollTo(scrollState.maxValue)
+        }
     }
 
     Column(
