@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -66,6 +68,13 @@ fun AIChatListView(
     onFoodInputDirectlyClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+
+    // AIChatListView가 최초로 화면에 구성될 때만, 목록 레이아웃이 끝난 뒤 최하단으로 이동한다.
+    // chattingList를 key로 사용하지 않아 이후 메시지 추가/상태 변경으로는 다시 실행되지 않는다.
+    LaunchedEffect(Unit) {
+        withFrameNanos { }
+        scrollState.scrollTo(scrollState.maxValue)
+    }
 
     Column(
         modifier = modifier
