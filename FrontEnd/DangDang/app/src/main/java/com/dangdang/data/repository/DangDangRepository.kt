@@ -438,6 +438,8 @@ class DangDangRepository @Inject constructor(
 
             if(chatResponse.isSuccessful){
                 val analyzeFood = chatResponse.body()
+                _analyzeFood.value = analyzeFood
+
                 val predictResponse = safeApiCall{
                     chatApiService.foodPredict(
                         FoodPredictInputForm(
@@ -499,7 +501,6 @@ class DangDangRepository @Inject constructor(
                     }
                     _portion.value = weightValue.toDouble()
                     _foodPredict.value = foodPredict
-                    _analyzeFood.value = analyzeFood
 
                     return Response.success(_analyzeChattingList.value)
                 }else{

@@ -111,7 +111,8 @@ fun DangDangScreenPreview(
         onFoodCheckClick = {},
         onFoodAIAnalysisClick = {},
         onFoodKeywordInputClick = {},
-        onFoodInputDirectlyClick = {}
+        onFoodInputDirectlyClick = {},
+        onAteFoodImageCancelClick = {}
     )
 }
 
@@ -219,6 +220,7 @@ fun DangDangScreen(
             ActivityResultContracts.GetContent()
         ) { uri ->
             ateFoodImageUri = uri
+            ateFoodValue = ""
         }
 
     if(chattingList.loadingState == LoadingState.Success
@@ -255,6 +257,9 @@ fun DangDangScreen(
             ateFoodImageUri = ateFoodImageUri,
             onAteFoodImageSelectClick = {
                 galleryLauncher.launch("image/*")
+            },
+            onAteFoodImageCancelClick = {
+                ateFoodImageUri = null
             },
             ateWeightValue = ateWeightValue,
             onAteWeightValueChange = {
@@ -342,6 +347,7 @@ fun DangDangScreenContent(
     onAteFoodSendClick: () -> Unit,
     ateFoodImageUri: Uri?,
     onAteFoodImageSelectClick: () -> Unit,
+    onAteFoodImageCancelClick: () -> Unit,
     ateWeightValue: String,
     onAteWeightValueChange: (String) -> Unit,
     onAteWeightSendClick: () -> Unit,
@@ -379,6 +385,7 @@ fun DangDangScreenContent(
             onAteFoodSendClick = onAteFoodSendClick,
             ateFoodImageUri = ateFoodImageUri,
             onAteFoodImageSelectClick = onAteFoodImageSelectClick,
+            onAteFoodImageCancelClick = onAteFoodImageCancelClick,
             ateWeightValue = ateWeightValue,
             onAteWeightValueChange = onAteWeightValueChange,
             onAteWeightSendClick = onAteWeightSendClick,

@@ -1,9 +1,11 @@
 package com.dangdang.component.chat
 
 import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +15,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
@@ -368,6 +371,7 @@ fun AIChatMenu(
     onAteFoodValueChange: (String) -> Unit = {},
     onAteFoodSendClick: () -> Unit = {},
     onAteFoodImageSelectClick: () -> Unit = {},
+    onAteFoodImageCancelClick: () -> Unit = {},
     ateWeightValue: String = "",
     onAteWeightValueChange: (String) -> Unit = {},
     onAteWeightSendClick: () -> Unit = {},
@@ -438,18 +442,37 @@ fun AIChatMenu(
                         InputAteFoodStage -> {
                             if(!chatModel.isInputComplete){
                                 if(ateFoodImageUri != null){
-                                    AsyncImage(
-                                        model = ateFoodImageUri,
-                                        contentDescription = null,
+                                    Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
                                             .aspectRatio(1f)
-                                            .clip(MediumRoundShape),
-                                        contentScale = ContentScale.Crop
-                                    )
+                                    ){
+                                        AsyncImage(
+                                            model = ateFoodImageUri,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(1f)
+                                                .clip(MediumRoundShape),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        if(!isChatLoading){
+                                            Image(
+                                                painter = painterResource(R.drawable.wrong_round_red),
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .clickable(
+                                                        onClick = onAteFoodImageCancelClick
+                                                    )
+                                            )
+                                        }
+                                    }
                                 }
                                 TextField(
-                                    isEnabled = !isChatLoading,
+                                    isEnabled = !isChatLoading &&
+                                            ateFoodImageUri == null,
                                     isMaxLengthView = false,
                                     value = ateFoodValue,
                                     onValueChange = onAteFoodValueChange,
