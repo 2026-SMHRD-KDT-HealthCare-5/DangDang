@@ -27,15 +27,15 @@ import com.dangdang.ui.theme.Scarlet
 @Composable
 fun PredictedGlucoseRiseBoxPreview() {
     PredictedGlucoseRiseBox(
-        predictedGlucoseRise = 35,
-        beginGlucose = 140
+        predictedGlucoseRise = 35.0,
+        beginGlucose = 140.0
     )
 }
 
 @Composable
 fun PredictedGlucoseRiseBox(
-    predictedGlucoseRise: Int, //예상 혈당 상승량
-    beginGlucose: Int //식전 혈당
+    predictedGlucoseRise: Double, //예상 혈당 상승량
+    beginGlucose: Double //식전 혈당
 ) {
     Column(
         modifier = Modifier

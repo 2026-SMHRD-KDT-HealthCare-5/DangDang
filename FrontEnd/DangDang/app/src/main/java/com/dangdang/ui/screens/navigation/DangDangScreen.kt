@@ -58,6 +58,7 @@ fun DangDangScreenPreview(
         chatMessageValue = "",
         onChatMessageValueChange = {},
         isChatAble = true,
+        isChatLoading = false,
         recommendQuestionList = listOf(
             ChatRecommendQuestionModel(
                 question = "음식 분석 & 걷기",
@@ -228,6 +229,7 @@ fun DangDangScreen(
                 chatMessageValue = it
             },
             isChatAble = isChatAble,
+            isChatLoading = isChatLoading,
             recommendQuestionList = recommendQuestionList.data?:emptyList(),
             chattingList = chattingList.data?:emptyList(),
             onRecommendQuestionClick = {
@@ -289,10 +291,11 @@ fun DangDangScreen(
                 dangDangViewModel.foodCheck()
             },
             onFoodAIAnalysisClick = {
-                dangDangViewModel.ateFoodSend(
+                dangDangViewModel.reAnalyzeFood(
                     context = context,
                     ateFoodValue = ateFoodValue,
-                    ateFoodImageUri = ateFoodImageUri
+                    ateFoodImageUri = ateFoodImageUri,
+                    weightValue = ateWeightValue
                 )
             },
             onFoodKeywordInputClick = {
@@ -328,6 +331,7 @@ fun DangDangScreenContent(
     chatMessageValue: String,
     onChatMessageValueChange: (String) -> Unit,
     isChatAble: Boolean,
+    isChatLoading: Boolean,
     recommendQuestionList: List<ChatRecommendQuestionModel>,
     chattingList: List<ChatModel>,
     onRecommendQuestionClick: (ChatRecommendQuestionModel) -> Unit,
@@ -366,6 +370,7 @@ fun DangDangScreenContent(
         AIChatListView(
             modifier = Modifier
                 .weight(1f),
+            isChatLoading = isChatLoading,
             chattingList = chattingList,
             glucoseValue = glucoseValue,
             onGlucoseValueChange = onGlucoseValueChange,

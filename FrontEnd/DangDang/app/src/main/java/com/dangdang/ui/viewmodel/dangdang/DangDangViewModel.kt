@@ -121,6 +121,22 @@ class DangDangViewModel @Inject constructor(
         }
     }
 
+    fun reAnalyzeFood(
+        context: Context,
+        ateFoodValue: String,
+        ateFoodImageUri: Uri?,
+        weightValue: String,
+    ){
+        chatProcess {
+            _chattingList.applyResponse(dangDangRepository.reAnalyzeFood(
+                context = context,
+                ateFoodValue = ateFoodValue,
+                ateFoodImageUri = ateFoodImageUri,
+                weightValue = weightValue
+            ))
+        }
+    }
+
     //음식 직접 입력 전송
     fun sendFoodInputDirectly(foodInputDirectlyForm: FoodInputDirectlyForm) {
         chatProcess {

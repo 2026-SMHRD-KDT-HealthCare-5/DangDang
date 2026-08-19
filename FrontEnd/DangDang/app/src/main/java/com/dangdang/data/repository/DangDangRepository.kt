@@ -21,15 +21,23 @@ import com.dangdang.data.api.ChatApiService
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.model.chat.AIRecommendWalkModel
 import com.dangdang.data.model.chat.AnalysisFoodModel
+import com.dangdang.data.model.chat.AnalysisNutritionResponse
 import com.dangdang.data.model.chat.ChatHistory
 import com.dangdang.data.model.chat.ChatInputForm
 import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.ChatRecommendQuestionModel
+import com.dangdang.data.model.chat.FoodAnalysisResponse
+import com.dangdang.data.model.chat.FoodConfirmInputForm
 import com.dangdang.data.model.chat.FoodInfoModel
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
 import com.dangdang.data.model.chat.FoodNutritionModel
+import com.dangdang.data.model.chat.FoodPredictInputForm
+import com.dangdang.data.model.chat.FoodPredictResponse
 import com.dangdang.data.model.chat.GlucoseFeedbackModel
 import com.dangdang.data.model.chat.PreGlucoseInputForm
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import retrofit2.Response
 import java.io.File
 import java.time.LocalDate
@@ -40,6 +48,12 @@ import javax.inject.Inject
 class DangDangRepository @Inject constructor(
     private val chatApiService: ChatApiService
 ){
+    private val _analyzeChattingList = MutableStateFlow<List<ChatModel>>(emptyList())
+    private val _analyzeFood = MutableStateFlow<FoodAnalysisResponse?>(null)
+    private val _foodPredict = MutableStateFlow<FoodPredictResponse?>(null)
+    private val _preGlucose = MutableStateFlow<Double?>(null)
+    private val _portion = MutableStateFlow<Double?>(null)
+
     //채팅 리스트 호출하기
     suspend fun getChattingList(): Response<List<ChatModel>>{
         val chatResponse = safeApiCall {
@@ -117,7 +131,7 @@ class DangDangRepository @Inject constructor(
 
     //음식 분석&걷기 시작
     suspend fun startAnalysisFood(): Response<List<ChatModel>>{
-        val response = listOf(
+        _analyzeChattingList.value = listOf(
             ChatModel(
                 chatUserType = ChatUserType.AI,
                 message = "식전 혈당을 알고 계신가요?\n" +
@@ -125,10 +139,7 @@ class DangDangRepository @Inject constructor(
                         "\n" +
                         "입력해주시면 예측이\n" +
                         "더 정확해져요!",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
+                date = LocalDateTime.now(),
                 chatType = AnalysisFoodType,
                 isChatAble = false,
                 isInputComplete = false,
@@ -138,7 +149,7 @@ class DangDangRepository @Inject constructor(
                 glucoseFeedbackInfo = null
             )
         )
-        return Response.success(response)
+        return Response.success(_analyzeChattingList.value)
     }
 
     //식전 혈당 전송
@@ -154,34 +165,12 @@ class DangDangRepository @Inject constructor(
             val chatResponseBody = chatResponse.body()
             val response = listOf(
                 ChatModel(
-                    chatUserType = ChatUserType.AI,
-                    message = "식전 혈당을 알고 계신가요?\n" +
-                            "(음식을 먹기 전 혈당이에요)\n" +
-                            "\n" +
-                            "입력해주시면 예측이\n" +
-                            "더 정확해져요!",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
+                    chatUserType = ChatUserType.User,
+                    message = if(glucoseValue == null) "모르겠어요" else "$glucoseValue mg/dL",
+                    date = LocalDateTime.now(),
                     chatType = AnalysisFoodType,
                     isChatAble = false,
                     isInputComplete = true,
-                    chatStageType = BeforeMealGlucoseInputStage,
-                    analysisFoodInfo = null,
-                    recommendWalkInfo = null,
-                    glucoseFeedbackInfo = null
-                ),
-                ChatModel(
-                    chatUserType = ChatUserType.User,
-                    message = if(glucoseValue == null) "모르겠어요" else "$glucoseValue mg/dL",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
-                    chatType = AnalysisFoodType,
-                    isChatAble = false,
-                    isInputComplete = false,
                     chatStageType = BeforeMealGlucoseInputStage,
                     analysisFoodInfo = null,
                     recommendWalkInfo = null,
@@ -192,10 +181,7 @@ class DangDangRepository @Inject constructor(
                     message = "알겠어요!\n" +
                             "회원님의 상태(당뇨)에 맞는\n" +
                             "${chatResponseBody?.preGlucose?:""}mg/dL 적용할게요.",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
+                    date = LocalDateTime.now(),
                     chatType = AnalysisFoodType,
                     isChatAble = false,
                     isInputComplete = true,
@@ -209,10 +195,7 @@ class DangDangRepository @Inject constructor(
                     message = "먹은 음식을 알려주세요!\n" +
                             "음식의 영양성분과 예상 혈당 상승량을 알려드릴게요.\n" +
                             "그리고 혈당 스파이크를 막기 위한 걷기 미션을 생성해드릴게요.",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
+                    date = LocalDateTime.now(),
                     chatType = AnalysisFoodType,
                     isChatAble = false,
                     isInputComplete = false,
@@ -222,7 +205,18 @@ class DangDangRepository @Inject constructor(
                     glucoseFeedbackInfo = null
                 )
             )
-            return Response.success(response)
+
+            _analyzeChattingList.update { currentList ->
+                currentList.map {
+                    it.copy(
+                        isInputComplete = true
+                    )
+                } + response
+            }
+
+            _preGlucose.value = chatResponseBody?.preGlucose?.toDouble()
+
+            return Response.success(_analyzeChattingList.value)
         }else{
             return Response.error(chatResponse.code(), chatResponse.errorBody())
         }
@@ -231,7 +225,6 @@ class DangDangRepository @Inject constructor(
     //음식 입력 전송
     suspend fun ateFoodSend(context: Context, ateFoodValue: String, ateFoodImageUri: Uri?): Response<List<ChatModel>>{
         var uploadFile: File? = null
-
         try{
             val ateFoodImagePart = ateFoodImageUri?.let { uri->
                 uploadFile = context.uriToFile(uri)
@@ -239,524 +232,323 @@ class DangDangRepository @Inject constructor(
                 uploadFile.toMultipart()
             }
 
-            val response = listOf(
-                ChatModel(
-                    chatUserType = ChatUserType.AI,
-                    message = "식전 혈당을 알고 계신가요?\n" +
-                            "(음식을 먹기 전 혈당이에요)\n" +
-                            "\n" +
-                            "입력해주시면 예측이\n" +
-                            "더 정확해져요!",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
-                    chatType = AnalysisFoodType,
-                    isChatAble = false,
-                    isInputComplete = true,
-                    chatStageType = BeforeMealGlucoseInputStage,
-                    analysisFoodInfo = null,
-                    recommendWalkInfo = null,
-                    glucoseFeedbackInfo = null
-                ),
-                ChatModel(
-                    chatUserType = ChatUserType.User,
-                    message = "모르겠어요",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
-                    chatType = AnalysisFoodType,
-                    isChatAble = false,
-                    isInputComplete = false,
-                    chatStageType = BeforeMealGlucoseInputStage,
-                    analysisFoodInfo = null,
-                    recommendWalkInfo = null,
-                    glucoseFeedbackInfo = null
-                ),
-                ChatModel(
-                    chatUserType = ChatUserType.AI,
-                    message = "알겠어요!\n" +
-                            "회원님의 상태(당뇨)에 맞는\n" +
-                            "140mg/dL 적용할게요.",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
-                    chatType = AnalysisFoodType,
-                    isChatAble = false,
-                    isInputComplete = true,
-                    chatStageType = BeforeMealGlucoseInputStage,
-                    analysisFoodInfo = null,
-                    recommendWalkInfo = null,
-                    glucoseFeedbackInfo = null
-                ),
-                ChatModel(
-                    chatUserType = ChatUserType.AI,
-                    message = "먹은 음식을 알려주세요!\n" +
-                            "음식의 영양성분과 예상 혈당 상승량을 알려드릴게요.\n" +
-                            "그리고 혈당 스파이크를 막기 위한 걷기 미션을 생성해드릴게요.",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
-                    chatType = AnalysisFoodType,
-                    isChatAble = false,
-                    isInputComplete = true,
-                    chatStageType = InputAteFoodStage,
-                    analysisFoodInfo = null,
-                    recommendWalkInfo = null,
-                    glucoseFeedbackInfo = null
-                ),
-                ChatModel(
-                    chatUserType = ChatUserType.User,
-                    message = ateFoodValue,
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
-                    chatType = AnalysisFoodType,
-                    isChatAble = false,
-                    isInputComplete = false,
-                    chatStageType = InputAteFoodStage,
-                    analysisFoodInfo = null,
-                    recommendWalkInfo = null,
-                    glucoseFeedbackInfo = null
-                ),
-                ChatModel(
-                    chatUserType = ChatUserType.AI,
-                    message = "몇 g 정도 드셨는지 입력해주세요",
-                    date = LocalDateTime.of(
-                        LocalDate.now(),
-                        LocalTime.of(8, 30)
-                    ),
-                    chatType = AnalysisFoodType,
-                    isChatAble = false,
-                    isInputComplete = false,
-                    chatStageType = InputAteWeightStage,
-                    analysisFoodInfo = null,
-                    recommendWalkInfo = null,
-                    glucoseFeedbackInfo = null
-                )
+            val chatResponse = chatApiService.foodRecognize(
+                image = ateFoodImagePart,
+                message = ateFoodValue.toRequestBody(),
+                baseline = _preGlucose.value.toString().toRequestBody()
             )
-            return Response.success(response)
-        } finally {
+
+            if(chatResponse.isSuccessful){
+                val response = listOf(
+                    ChatModel(
+                        chatUserType = ChatUserType.User,
+                        message = ateFoodValue,
+                        messageImageUri = ateFoodImageUri,
+                        date = LocalDateTime.now(),
+                        chatType = AnalysisFoodType,
+                        isChatAble = false,
+                        isInputComplete = true,
+                        chatStageType = InputAteFoodStage,
+                        analysisFoodInfo = null,
+                        recommendWalkInfo = null,
+                        glucoseFeedbackInfo = null
+                    ),
+                    ChatModel(
+                        chatUserType = ChatUserType.AI,
+                        message = "드신 양을 인분 기준으로 알려주세요!\n" +
+                                "(예: 반 인분이면 0.5, 한 그릇 다 드셨으면 1)",
+                        date = LocalDateTime.now(),
+                        chatType = AnalysisFoodType,
+                        isChatAble = false,
+                        isInputComplete = false,
+                        chatStageType = InputAteWeightStage,
+                        analysisFoodInfo = null,
+                        recommendWalkInfo = null,
+                        glucoseFeedbackInfo = null
+                    )
+                )
+
+                _analyzeChattingList.update { currentList ->
+                    currentList.map {
+                        it.copy(
+                            isInputComplete = true
+                        )
+                    } + response
+                }
+
+                _analyzeFood.value = chatResponse.body()
+
+                return Response.success(_analyzeChattingList.value)
+            }else{
+                return Response.error(chatResponse.code(), chatResponse.errorBody())
+            }
+        }finally {
             uploadFile?.deleteSafely()
         }
     }
 
-    //음식 먹은 양 전송
-    suspend fun ateWeightSend(weightValue: String): Response<List<ChatModel>>{
-        val response = listOf(
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "식전 혈당을 알고 계신가요?\n" +
-                        "(음식을 먹기 전 혈당이에요)\n" +
-                        "\n" +
-                        "입력해주시면 예측이\n" +
-                        "더 정확해져요!",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+    fun analyzeFoodToFoodInfoModel(foodName: String, nutrition: AnalysisNutritionResponse?): FoodInfoModel{
+        return FoodInfoModel(
+            name = foodName,
+            nutritionInfo = "총 내용량 ${_analyzeFood.value?.serving_size}g 1인분(1개) / " +
+                    "${_analyzeFood.value?.nutrition?.calorie}kcal",
+            nutritionList = listOf(
+                FoodNutritionModel(
+                    name = "탄수화물",
+                    unit = "g",
+                    value = nutrition?.carb?:0.0
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "모르겠어요",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+                FoodNutritionModel(
+                    name = "식이섬유",
+                    unit = "g",
+                    value = nutrition?.fiber?:0.0
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "알겠어요!\n" +
-                        "회원님의 상태(당뇨)에 맞는\n" +
-                        "140mg/dL 적용할게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+                FoodNutritionModel(
+                    name = "단백질",
+                    unit = "g",
+                    value = nutrition?.protein?:0.0
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "먹은 음식을 알려주세요!\n" +
-                        "음식의 영양성분과 예상 혈당 상승량을 알려드릴게요.\n" +
-                        "그리고 혈당 스파이크를 막기 위한 걷기 미션을 생성해드릴게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
+                FoodNutritionModel(
+                    name = "지방",
+                    unit = "g",
+                    value = nutrition?.fat?:0.0
                 ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = InputAteFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "비빔밥",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = InputAteFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "식약처 데이터에서 찾았어요!\n" +
-                        "이 음식이 맞나요?",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = AnalysisFoodStage,
-                analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
-                    foodInfo = FoodInfoModel(
-                        name = "비빔밥",
-                        nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
-                        nutritionList = listOf(
-                            FoodNutritionModel(
-                                name = "탄수화물",
-                                unit = "g",
-                                value = 15
-                            ),
-                            FoodNutritionModel(
-                                name = "식이섬유",
-                                unit = "g",
-                                value = 2
-                            ),
-                            FoodNutritionModel(
-                                name = "단백질",
-                                unit = "g",
-                                value = 20
-                            ),
-                            FoodNutritionModel(
-                                name = "지방",
-                                unit = "g",
-                                value = 10
-                            ),
-                            FoodNutritionModel(
-                                name = "칼로리",
-                                unit = "kcal",
-                                value = 250
-                            )
-                        )
-                    )
-                ),
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
+                FoodNutritionModel(
+                    name = "칼로리",
+                    unit = "kcal",
+                    value = nutrition?.calorie?:0.0
+                )
             )
         )
-        return Response.success(response)
+    }
+
+    //음식 먹은 양 전송
+    suspend fun ateWeightSend(
+        weightValue: String,
+    ): Response<List<ChatModel>>{
+        val analyzeFood = _analyzeFood.value
+        val chatResponse = chatApiService.foodPredict(
+            FoodPredictInputForm(
+                carb = analyzeFood?.nutrition?.carb?:0.0,
+                sugar = analyzeFood?.nutrition?.sugar?:0.0,
+                protein = analyzeFood?.nutrition?.protein?:0.0,
+                fat = analyzeFood?.nutrition?.fat?:0.0,
+                fiber = analyzeFood?.nutrition?.fiber?:0.0,
+                calorie = analyzeFood?.nutrition?.calorie?:0.0,
+                portion = weightValue.toDouble(),
+                baseline = _preGlucose.value?:0.0
+            )
+        )
+
+        if(chatResponse.isSuccessful){
+            val foodPredict = chatResponse.body()
+
+            val response = listOf(
+                ChatModel(
+                    chatUserType = ChatUserType.User,
+                    message = weightValue+"인분",
+                    date = LocalDateTime.now(),
+                    chatType = AnalysisFoodType,
+                    isChatAble = false,
+                    isInputComplete = true,
+                    chatStageType = InputAteFoodStage,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
+                ),
+                ChatModel(
+                    chatUserType = ChatUserType.AI,
+                    message = analyzeFood?.chatbotMessage?:"",
+                    date = LocalDateTime.now(),
+                    chatType = AnalysisFoodType,
+                    isChatAble = false,
+                    isInputComplete = false,
+                    chatStageType = AnalysisFoodStage,
+                    analysisFoodInfo = AnalysisFoodModel(
+                        predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0.0,
+                        beginGlucose = _preGlucose.value?:0.0,
+                        foodInfo = analyzeFoodToFoodInfoModel(
+                            foodName = analyzeFood?.foodName?:"",
+                            nutrition = foodPredict?.nutritionUsed
+                        )
+                    ),
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
+                )
+            )
+
+            _analyzeChattingList.update { currentList ->
+                currentList.map {
+                    it.copy(
+                        isInputComplete = true
+                    )
+                } + response
+            }
+            _portion.value = weightValue.toDouble()
+            _foodPredict.value = foodPredict
+
+            return Response.success(_analyzeChattingList.value)
+        }else{
+            return Response.error(chatResponse.code(), chatResponse.errorBody())
+        }
+    }
+
+    //ai로 다시 분석하기
+    suspend fun reAnalyzeFood(
+        context: Context,
+        ateFoodValue: String,
+        ateFoodImageUri: Uri?,
+        weightValue: String,
+    ): Response<List<ChatModel>>{
+        var uploadFile: File? = null
+        try{
+            val ateFoodImagePart = ateFoodImageUri?.let { uri->
+                uploadFile = context.uriToFile(uri)
+
+                uploadFile.toMultipart()
+            }
+
+            val chatResponse = chatApiService.foodReAnalyze(
+                image = ateFoodImagePart,
+                foodName = ateFoodValue.toRequestBody(),
+                baseline = _preGlucose.value.toString().toRequestBody()
+            )
+
+            if(chatResponse.isSuccessful){
+                val analyzeFood = chatResponse.body()
+                val predictResponse = chatApiService.foodPredict(
+                    FoodPredictInputForm(
+                        carb = analyzeFood?.nutrition?.carb?:0.0,
+                        sugar = analyzeFood?.nutrition?.sugar?:0.0,
+                        protein = analyzeFood?.nutrition?.protein?:0.0,
+                        fat = analyzeFood?.nutrition?.fat?:0.0,
+                        fiber = analyzeFood?.nutrition?.fiber?:0.0,
+                        calorie = analyzeFood?.nutrition?.calorie?:0.0,
+                        portion = weightValue.toDouble(),
+                        baseline = _preGlucose.value?:0.0
+                    )
+                )
+
+                if(predictResponse.isSuccessful){
+                    val foodPredict = predictResponse.body()
+
+                    val response = listOf(
+                        ChatModel(
+                            chatUserType = ChatUserType.User,
+                            message = "틀린 거 같아. 다시 분석해줘.",
+                            date = LocalDateTime.now(),
+                            chatType = AnalysisFoodType,
+                            isChatAble = false,
+                            isInputComplete = false,
+                            chatStageType = InputAteFoodStage,
+                            analysisFoodInfo = null,
+                            recommendWalkInfo = null,
+                            glucoseFeedbackInfo = null
+                        ),
+                        ChatModel(
+                            chatUserType = ChatUserType.AI,
+                            message = analyzeFood?.chatbotMessage?:"",
+                            date = LocalDateTime.now(),
+                            chatType = AnalysisFoodType,
+                            isChatAble = false,
+                            isInputComplete = false,
+                            chatStageType = AnalysisFoodStage,
+                            analysisFoodInfo = AnalysisFoodModel(
+                                predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0.0,
+                                beginGlucose = _preGlucose.value?:0.0,
+                                foodInfo = analyzeFoodToFoodInfoModel(
+                                    foodName = analyzeFood?.foodName?:"",
+                                    nutrition = foodPredict?.nutritionUsed
+                                )
+                            ),
+                            recommendWalkInfo = null,
+                            glucoseFeedbackInfo = null
+                        )
+                    )
+
+                    _analyzeChattingList.update { currentList ->
+                        currentList.map {
+                            it.copy(
+                                isInputComplete = true
+                            )
+                        } + response
+                    }
+                    _portion.value = weightValue.toDouble()
+                    _foodPredict.value = foodPredict
+                    _analyzeFood.value = analyzeFood
+
+                    return Response.success(_analyzeChattingList.value)
+                }else{
+                    return Response.error(predictResponse.code(), predictResponse.errorBody())
+                }
+            }else{
+                return Response.error(chatResponse.code(), chatResponse.errorBody())
+            }
+        }finally {
+            uploadFile?.deleteSafely()
+        }
     }
 
     //음식 직접 입력 전송
     suspend fun sendFoodInputDirectly(foodInputDirectlyForm: FoodInputDirectlyForm): Response<List<ChatModel>>{
-        val response = listOf(
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "식전 혈당을 알고 계신가요?\n" +
-                        "(음식을 먹기 전 혈당이에요)\n" +
-                        "\n" +
-                        "입력해주시면 예측이\n" +
-                        "더 정확해져요!",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "모르겠어요",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "알겠어요!\n" +
-                        "회원님의 상태(당뇨)에 맞는\n" +
-                        "140mg/dL 적용할게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "먹은 음식을 알려주세요!\n" +
-                        "음식의 영양성분과 예상 혈당 상승량을 알려드릴게요.\n" +
-                        "그리고 혈당 스파이크를 막기 위한 걷기 미션을 생성해드릴게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = InputAteFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "비빔밥",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = InputAteFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "식약처 데이터에서 찾았어요!\n" +
-                        "이 음식이 맞나요?",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = AnalysisFoodStage,
-                analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
-                    foodInfo = FoodInfoModel(
-                        name = "비빔밥",
-                        nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
-                        nutritionList = listOf(
-                            FoodNutritionModel(
-                                name = "탄수화물",
-                                unit = "g",
-                                value = 15
-                            ),
-                            FoodNutritionModel(
-                                name = "식이섬유",
-                                unit = "g",
-                                value = 2
-                            ),
-                            FoodNutritionModel(
-                                name = "단백질",
-                                unit = "g",
-                                value = 20
-                            ),
-                            FoodNutritionModel(
-                                name = "지방",
-                                unit = "g",
-                                value = 10
-                            ),
-                            FoodNutritionModel(
-                                name = "칼로리",
-                                unit = "kcal",
-                                value = 250
-                            )
-                        )
-                    )
-                ),
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "이 영양성분 정보야.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = AnalysisFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "기록할 음식이 확정되었어요!\n" +
-                        "이제 식후 30분 이후\n" +
-                        "걷기를 시작해볼까요?",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = true,
-                isInputComplete = false,
-                chatStageType = RecommendWalkDistanceStage,
-                analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
-                    foodInfo = FoodInfoModel(
-                        name = "비빔밥",
-                        nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
-                        nutritionList = listOf(
-                            FoodNutritionModel(
-                                name = "탄수화물",
-                                unit = "g",
-                                value = 15
-                            ),
-                            FoodNutritionModel(
-                                name = "식이섬유",
-                                unit = "g",
-                                value = 2
-                            ),
-                            FoodNutritionModel(
-                                name = "단백질",
-                                unit = "g",
-                                value = 20
-                            ),
-                            FoodNutritionModel(
-                                name = "지방",
-                                unit = "g",
-                                value = 10
-                            ),
-                            FoodNutritionModel(
-                                name = "칼로리",
-                                unit = "kcal",
-                                value = 250
-                            )
-                        )
-                    )
-                ),
-                recommendWalkInfo = AIRecommendWalkModel(
-                    targetDistance = 2.6f,
-                    minute = 30
-                ),
-                glucoseFeedbackInfo = null
+        val chatResponse = chatApiService.foodConfirm(
+            FoodConfirmInputForm(
+                foodNo = null,
+                customFood = foodInputDirectlyForm,
+                preGlucose = _preGlucose.value,
+                portion = _portion.value
             )
         )
-        return Response.success(response)
+
+        if(chatResponse.isSuccessful){
+            val checkFood = chatResponse.body()
+
+            _analyzeChattingList.value = listOf(
+                ChatModel(
+                    chatUserType = ChatUserType.AI,
+                    message = checkFood?.chatbotMessage?:"",
+                    date = LocalDateTime.now(),
+                    chatType = AnalysisFoodType,
+                    isChatAble = true,
+                    isInputComplete = false,
+                    chatStageType = RecommendWalkDistanceStage,
+                    analysisFoodInfo = AnalysisFoodModel(
+                        predictedGlucoseRise = checkFood?.predictedGlucoseRise?:0.0,
+                        beginGlucose = _preGlucose.value?:0.0,
+                        foodInfo = analyzeFoodToFoodInfoModel(
+                            foodName = foodInputDirectlyForm.foodName,
+                            nutrition = AnalysisNutritionResponse(
+                                carb = foodInputDirectlyForm.carb.toDouble(),
+                                sugar = foodInputDirectlyForm.sugar.toDouble(),
+                                protein = foodInputDirectlyForm.protein.toDouble(),
+                                fat = foodInputDirectlyForm.fat.toDouble(),
+                                fiber = foodInputDirectlyForm.fiber.toDouble(),
+                                calorie = foodInputDirectlyForm.calorie.toDouble()
+                            )
+                        )
+                    ),
+                    recommendWalkInfo = AIRecommendWalkModel(
+                        targetDistance = checkFood?.targetDistance?.toFloat()?:0.0f,
+                        minute = 30
+                    ),
+                    glucoseFeedbackInfo = null
+                )
+            )
+
+            return Response.success(_analyzeChattingList.value)
+        }else{
+            return Response.error(chatResponse.code(), chatResponse.errorBody())
+        }
     }
 
     //검색어 다시 입력 선택 시
     suspend fun ateFoodReSearch(): Response<List<ChatModel>>{
-        val response = listOf(
+        _analyzeChattingList.value = listOf(
             ChatModel(
                 chatUserType = ChatUserType.AI,
-                message = "식전 혈당을 알고 계신가요?\n" +
-                        "(음식을 먹기 전 혈당이에요)\n" +
-                        "\n" +
-                        "입력해주시면 예측이\n" +
-                        "더 정확해져요!",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "모르겠어요",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "알겠어요!\n" +
-                        "회원님의 상태(당뇨)에 맞는\n" +
-                        "140mg/dL 적용할게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "먹은 음식을 알려주세요!\n" +
-                        "음식의 영양성분과 예상 혈당 상승량을 알려드릴게요.\n" +
-                        "그리고 혈당 스파이크를 막기 위한 걷기 미션을 생성해드릴게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
+                message = "어떤 음식인가요?\n" +
+                        "자세히 입력해주시면 더 정확하게 찾아볼게요.",
+                date = LocalDateTime.now(),
                 chatType = AnalysisFoodType,
                 isChatAble = false,
                 isInputComplete = false,
@@ -766,201 +558,52 @@ class DangDangRepository @Inject constructor(
                 glucoseFeedbackInfo = null
             )
         )
-        return Response.success(response)
+        return Response.success(_analyzeChattingList.value)
     }
 
     //음식 확정 선택 시
     suspend fun foodCheck(): Response<List<ChatModel>>{
-        val response = listOf(
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "식전 혈당을 알고 계신가요?\n" +
-                        "(음식을 먹기 전 혈당이에요)\n" +
-                        "\n" +
-                        "입력해주시면 예측이\n" +
-                        "더 정확해져요!",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "모르겠어요",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "알겠어요!\n" +
-                        "회원님의 상태(당뇨)에 맞는\n" +
-                        "140mg/dL 적용할게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = BeforeMealGlucoseInputStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "먹은 음식을 알려주세요!\n" +
-                        "음식의 영양성분과 예상 혈당 상승량을 알려드릴게요.\n" +
-                        "그리고 혈당 스파이크를 막기 위한 걷기 미션을 생성해드릴게요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = InputAteFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.User,
-                message = "비빔밥",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = false,
-                chatStageType = InputAteFoodStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "식약처 데이터에서 찾았어요!\n" +
-                        "이 음식이 맞나요?",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = false,
-                isInputComplete = true,
-                chatStageType = AnalysisFoodStage,
-                analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
-                    foodInfo = FoodInfoModel(
-                        name = "비빔밥",
-                        nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
-                        nutritionList = listOf(
-                            FoodNutritionModel(
-                                name = "탄수화물",
-                                unit = "g",
-                                value = 15
-                            ),
-                            FoodNutritionModel(
-                                name = "식이섬유",
-                                unit = "g",
-                                value = 2
-                            ),
-                            FoodNutritionModel(
-                                name = "단백질",
-                                unit = "g",
-                                value = 20
-                            ),
-                            FoodNutritionModel(
-                                name = "지방",
-                                unit = "g",
-                                value = 10
-                            ),
-                            FoodNutritionModel(
-                                name = "칼로리",
-                                unit = "kcal",
-                                value = 250
-                            )
-                        )
-                    )
-                ),
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = null
-            ),
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "기록할 음식이 확정되었어요!\n" +
-                        "이제 식후 30분 이후\n" +
-                        "걷기를 시작해볼까요?",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = true,
-                isInputComplete = false,
-                chatStageType = RecommendWalkDistanceStage,
-                analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
-                    foodInfo = FoodInfoModel(
-                        name = "비빔밥",
-                        nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
-                        nutritionList = listOf(
-                            FoodNutritionModel(
-                                name = "탄수화물",
-                                unit = "g",
-                                value = 15
-                            ),
-                            FoodNutritionModel(
-                                name = "식이섬유",
-                                unit = "g",
-                                value = 2
-                            ),
-                            FoodNutritionModel(
-                                name = "단백질",
-                                unit = "g",
-                                value = 20
-                            ),
-                            FoodNutritionModel(
-                                name = "지방",
-                                unit = "g",
-                                value = 10
-                            ),
-                            FoodNutritionModel(
-                                name = "칼로리",
-                                unit = "kcal",
-                                value = 250
-                            )
-                        )
-                    )
-                ),
-                recommendWalkInfo = AIRecommendWalkModel(
-                    targetDistance = 2.6f,
-                    minute = 30
-                ),
-                glucoseFeedbackInfo = null
+        val chatResponse = chatApiService.foodConfirm(
+            FoodConfirmInputForm(
+                foodNo = _analyzeFood.value?.foodNo,
+                customFood = null,
+                preGlucose = _preGlucose.value,
+                portion = _portion.value
             )
         )
-        return Response.success(response)
+
+        if(chatResponse.isSuccessful){
+            val checkFood = chatResponse.body()
+
+            _analyzeChattingList.value = listOf(
+                ChatModel(
+                    chatUserType = ChatUserType.AI,
+                    message = checkFood?.chatbotMessage?:"",
+                    date = LocalDateTime.now(),
+                    chatType = AnalysisFoodType,
+                    isChatAble = true,
+                    isInputComplete = false,
+                    chatStageType = RecommendWalkDistanceStage,
+                    analysisFoodInfo = AnalysisFoodModel(
+                        predictedGlucoseRise = checkFood?.predictedGlucoseRise?:0.0,
+                        beginGlucose = _preGlucose.value?:0.0,
+                        foodInfo = analyzeFoodToFoodInfoModel(
+                            foodName = _analyzeFood.value?.foodName?:"",
+                            nutrition = _foodPredict.value?.nutritionUsed
+                        )
+                    ),
+                    recommendWalkInfo = AIRecommendWalkModel(
+                        targetDistance = checkFood?.targetDistance?.toFloat()?:0.0f,
+                        minute = 30
+                    ),
+                    glucoseFeedbackInfo = null
+                )
+            )
+
+            return Response.success(_analyzeChattingList.value)
+        }else{
+            return Response.error(chatResponse.code(), chatResponse.errorBody())
+        }
     }
 
 

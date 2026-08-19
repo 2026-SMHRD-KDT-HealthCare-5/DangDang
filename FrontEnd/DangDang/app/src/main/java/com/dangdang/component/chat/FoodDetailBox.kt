@@ -51,8 +51,8 @@ import com.dangdang.ui.theme.White
 @Composable
 fun FoodDetailBoxPreview() {
     FoodDetailBox(
-        predictedGlucoseRise = 35,
-        beginGlucose = 140,
+        predictedGlucoseRise = 35.0,
+        beginGlucose = 140.0,
         foodInfo = FoodInfoModel(
             name = "비빔밥",
             nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
@@ -60,27 +60,27 @@ fun FoodDetailBoxPreview() {
                 FoodNutritionModel(
                     name = "탄수화물",
                     unit = "g",
-                    value = 15
+                    value = 15.0
                 ),
                 FoodNutritionModel(
                     name = "식이섬유",
                     unit = "g",
-                    value = 2
+                    value = 2.0
                 ),
                 FoodNutritionModel(
                     name = "단백질",
                     unit = "g",
-                    value = 20
+                    value = 20.0
                 ),
                 FoodNutritionModel(
                     name = "지방",
                     unit = "g",
-                    value = 10
+                    value = 10.0
                 ),
                 FoodNutritionModel(
                     name = "칼로리",
                     unit = "kcal",
-                    value = 250
+                    value = 250.0
                 )
             )
         ),
@@ -93,8 +93,8 @@ fun FoodDetailBoxPreview() {
 
 @Composable
 fun FoodDetailBox(
-    predictedGlucoseRise: Int, //예상 혈당 상승량
-    beginGlucose: Int, //식전 혈당
+    predictedGlucoseRise: Double, //예상 혈당 상승량
+    beginGlucose: Double, //식전 혈당
     foodInfo: FoodInfoModel,
     isMenuShow: Boolean = true,
     onCheckClick: () -> Unit = {},

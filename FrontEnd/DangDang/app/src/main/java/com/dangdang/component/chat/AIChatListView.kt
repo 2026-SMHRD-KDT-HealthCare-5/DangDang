@@ -49,6 +49,7 @@ fun AIChatListViewPreview(){
 @Composable
 fun AIChatListView(
     modifier: Modifier = Modifier,
+    isChatLoading: Boolean = false,
     chattingList: List<ChatModel>,
     glucoseValue: String = "",
     onGlucoseValueChange: (String) -> Unit = {},
@@ -92,6 +93,7 @@ fun AIChatListView(
     ) {
         chattingList.forEach { chatting ->
             AIChatMenu(
+                isChatLoading = isChatLoading,
                 chatModel = chatting,
                 glucoseValue = glucoseValue,
                 onGlucoseValueChange = onGlucoseValueChange,

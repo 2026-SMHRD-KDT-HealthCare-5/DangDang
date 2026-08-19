@@ -63,6 +63,23 @@ fun AIChatMenuPreview(){
         //일반 채팅
         AIChatMenu(
             chatModel = ChatModel(
+                chatUserType = ChatUserType.User,
+                message = "안녕하세요!",
+                date = LocalDateTime.of(
+                    LocalDate.now(),
+                    LocalTime.of(8, 30)
+                ),
+                chatType = "",
+                isChatAble = true,
+                isInputComplete = false,
+                chatStageType = "",
+                analysisFoodInfo = null,
+                recommendWalkInfo = null,
+                glucoseFeedbackInfo = null
+            )
+        )
+        AIChatMenu(
+            chatModel = ChatModel(
                 chatUserType = ChatUserType.AI,
                 message = "안녕하세요!",
                 date = LocalDateTime.of(
@@ -172,8 +189,8 @@ fun AIChatMenuPreview2(){
                 isInputComplete = false,
                 chatStageType = AnalysisFoodStage,
                 analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
+                    predictedGlucoseRise = 35.0,
+                    beginGlucose = 140.0,
                     foodInfo = FoodInfoModel(
                         name = "비빔밥",
                         nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
@@ -181,27 +198,27 @@ fun AIChatMenuPreview2(){
                             FoodNutritionModel(
                                 name = "탄수화물",
                                 unit = "g",
-                                value = 15
+                                value = 15.0
                             ),
                             FoodNutritionModel(
                                 name = "식이섬유",
                                 unit = "g",
-                                value = 2
+                                value = 2.0
                             ),
                             FoodNutritionModel(
                                 name = "단백질",
                                 unit = "g",
-                                value = 20
+                                value = 20.0
                             ),
                             FoodNutritionModel(
                                 name = "지방",
                                 unit = "g",
-                                value = 10
+                                value = 10.0
                             ),
                             FoodNutritionModel(
                                 name = "칼로리",
                                 unit = "kcal",
-                                value = 250
+                                value = 250.0
                             )
                         )
                     )
@@ -239,8 +256,8 @@ fun AIChatMenuPreview3(){
                 isInputComplete = false,
                 chatStageType = RecommendWalkDistanceStage,
                 analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
+                    predictedGlucoseRise = 35.0,
+                    beginGlucose = 140.0,
                     foodInfo = FoodInfoModel(
                         name = "비빔밥",
                         nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
@@ -248,27 +265,27 @@ fun AIChatMenuPreview3(){
                             FoodNutritionModel(
                                 name = "탄수화물",
                                 unit = "g",
-                                value = 15
+                                value = 15.0
                             ),
                             FoodNutritionModel(
                                 name = "식이섬유",
                                 unit = "g",
-                                value = 2
+                                value = 2.0
                             ),
                             FoodNutritionModel(
                                 name = "단백질",
                                 unit = "g",
-                                value = 20
+                                value = 20.0
                             ),
                             FoodNutritionModel(
                                 name = "지방",
                                 unit = "g",
-                                value = 10
+                                value = 10.0
                             ),
                             FoodNutritionModel(
                                 name = "칼로리",
                                 unit = "kcal",
-                                value = 250
+                                value = 250.0
                             )
                         )
                     )
@@ -342,6 +359,7 @@ fun AIChatMenuPreview4(){
 
 @Composable
 fun AIChatMenu(
+    isChatLoading: Boolean = false,
     chatModel: ChatModel,
     glucoseValue: String = "",
     onGlucoseValueChange: (String) -> Unit = {},
@@ -369,12 +387,26 @@ fun AIChatMenu(
             .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
-        if(chatModel.chatUserType == ChatUserType.User)
-            UserChatView(
-                message = chatModel.message,
-                sendTime = chatModel.date
-            )
-        else{
+        if(chatModel.chatUserType == ChatUserType.User) {
+            if (chatModel.message.isNotEmpty()) {
+                UserChatView(
+                    message = chatModel.message,
+                    sendTime = chatModel.date
+                )
+            }
+
+            if (chatModel.messageImageUri != null) {
+                AsyncImage(
+                    model = chatModel.messageImageUri,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(MediumRoundShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }else{
             AIChatView(
                 message = chatModel.message,
                 sendTime = chatModel.date
@@ -395,6 +427,7 @@ fun AIChatMenu(
                         BeforeMealGlucoseInputStage -> {
                             if(!chatModel.isInputComplete){
                                 BeginGlucoseInputMenuBox(
+                                    isChatLoading = isChatLoading,
                                     glucoseValue = glucoseValue,
                                     onGlucoseValueChange = onGlucoseValueChange,
                                     onGlucoseInputCompleteClick = onGlucoseInputCompleteClick,
@@ -416,6 +449,7 @@ fun AIChatMenu(
                                     )
                                 }
                                 TextField(
+                                    isEnabled = !isChatLoading,
                                     isMaxLengthView = false,
                                     value = ateFoodValue,
                                     onValueChange = onAteFoodValueChange,
@@ -436,8 +470,9 @@ fun AIChatMenu(
                                 )
                                 PrimaryButton(
                                     text = "확인",
-                                    enabled = ateFoodValue.isNotEmpty() ||
-                                        ateFoodImageUri != null,
+                                    enabled = (ateFoodValue.isNotEmpty() ||
+                                        ateFoodImageUri != null) &&
+                                        !isChatLoading,
                                     sizeType = LayoutSize.FillMaxSize,
                                     onClick = onAteFoodSendClick
                                 )
@@ -446,16 +481,17 @@ fun AIChatMenu(
                         InputAteWeightStage ->{
                             if(!chatModel.isInputComplete){
                                 TextField(
+                                    isEnabled = !isChatLoading,
                                     isMaxLengthView = false,
                                     value = ateWeightValue,
                                     onValueChange = onAteWeightValueChange,
-                                    placeholderText = "예)150",
+                                    placeholderText = "예)0.7",
                                     maxLength = 20,
                                     sizeType = LayoutSize.FillMaxSize,
                                     keyboardType = KeyboardType.Number,
                                     rightIcon = {
                                         Text(
-                                            text = "g",
+                                            text = "인분",
                                             style = AppTypography.labelLarge.regular,
                                             color = Gray,
                                         )
@@ -463,7 +499,8 @@ fun AIChatMenu(
                                 )
                                 PrimaryButton(
                                     text = "입력 완료",
-                                    enabled = ateWeightValue.isNotEmpty(),
+                                    enabled = ateWeightValue.isNotEmpty() &&
+                                        !isChatLoading,
                                     sizeType = LayoutSize.FillMaxSize,
                                     onClick = onAteWeightSendClick
                                 )
@@ -474,17 +511,18 @@ fun AIChatMenu(
                                 predictedGlucoseRise =
                                     chatModel
                                         .analysisFoodInfo
-                                        ?.predictedGlucoseRise?:0,
+                                        ?.predictedGlucoseRise?:0.0,
                                 beginGlucose = chatModel
                                     .analysisFoodInfo
-                                    ?.beginGlucose?:0,
+                                    ?.beginGlucose?:0.0,
                                 foodInfo = chatModel.analysisFoodInfo?.foodInfo
                                     ?: FoodInfoModel(
                                         name = "",
                                         nutritionInfo = "",
                                         nutritionList = emptyList()
                                     ),
-                                isMenuShow = !chatModel.isInputComplete,
+                                isMenuShow = !chatModel.isInputComplete &&
+                                    !isChatLoading,
                                 onCheckClick = onFoodCheckClick,
                                 onAIAnalysisClick = onFoodAIAnalysisClick,
                                 onKeywordInputClick = onFoodKeywordInputClick,
@@ -496,10 +534,10 @@ fun AIChatMenu(
                                 predictedGlucoseRise =
                                     chatModel
                                         .analysisFoodInfo
-                                        ?.predictedGlucoseRise?:0,
+                                        ?.predictedGlucoseRise?:0.0,
                                 beginGlucose = chatModel
                                     .analysisFoodInfo
-                                    ?.beginGlucose?:0,
+                                    ?.beginGlucose?:0.0,
                                 foodInfo = chatModel.analysisFoodInfo?.foodInfo
                                     ?: FoodInfoModel(
                                         name = "",
