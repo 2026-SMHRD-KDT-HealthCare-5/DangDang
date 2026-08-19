@@ -66,7 +66,7 @@ class DangDangRepository @Inject constructor(
                     listOf(
                         ChatModel(
                             chatUserType = ChatUserType.User,
-                            message = chat.userMessage,
+                            message = chat.userMessage?:"",
                             date = LocalDateTime.parse(chat.chattedAt),
                             chatType = "",
                             chatStageType = "",
@@ -80,12 +80,27 @@ class DangDangRepository @Inject constructor(
                             chatUserType = ChatUserType.AI,
                             message = chat.aiMessage,
                             date = LocalDateTime.parse(chat.chattedAt),
-                            chatType = chat.chatType,
-                            chatStageType = "",
+                            chatType = if(chat.chatType == "MISSION_CARD"){
+                                AnalysisFoodType
+                            }else{
+                                chat.chatType
+                            },
+                            chatStageType = if(chat.chatType == "MISSION_CARD"){
+                                RecommendWalkDistanceStage
+                            }else{
+                                ""
+                            },
                             isChatAble = true,
                             isInputComplete = false,
                             analysisFoodInfo = null,
-                            recommendWalkInfo = null,
+                            recommendWalkInfo = if(chat.cardData!=null){
+                                AIRecommendWalkModel(
+                                    targetDistance = chat.cardData.targetDistance.toFloat(),
+                                    minute = 30
+                                )
+                            }else{
+                                null
+                            },
                             glucoseFeedbackInfo = null
                         )
                     )
@@ -232,11 +247,13 @@ class DangDangRepository @Inject constructor(
                 uploadFile.toMultipart()
             }
 
-            val chatResponse = chatApiService.foodRecognize(
-                image = ateFoodImagePart,
-                message = ateFoodValue.toRequestBody(),
-                baseline = _preGlucose.value.toString().toRequestBody()
-            )
+            val chatResponse = safeApiCall {
+                chatApiService.foodRecognize(
+                    image = ateFoodImagePart,
+                    message = ateFoodValue.toRequestBody(),
+                    baseline = _preGlucose.value.toString().toRequestBody()
+                )
+            }
 
             if(chatResponse.isSuccessful){
                 val response = listOf(
@@ -327,18 +344,21 @@ class DangDangRepository @Inject constructor(
         weightValue: String,
     ): Response<List<ChatModel>>{
         val analyzeFood = _analyzeFood.value
-        val chatResponse = chatApiService.foodPredict(
-            FoodPredictInputForm(
-                carb = analyzeFood?.nutrition?.carb?:0.0,
-                sugar = analyzeFood?.nutrition?.sugar?:0.0,
-                protein = analyzeFood?.nutrition?.protein?:0.0,
-                fat = analyzeFood?.nutrition?.fat?:0.0,
-                fiber = analyzeFood?.nutrition?.fiber?:0.0,
-                calorie = analyzeFood?.nutrition?.calorie?:0.0,
-                portion = weightValue.toDouble(),
-                baseline = _preGlucose.value?:0.0
+        val chatResponse = safeApiCall {
+            chatApiService.foodPredict(
+                FoodPredictInputForm(
+                    carb = analyzeFood?.nutrition?.carb?:0.0,
+                    sugar = analyzeFood?.nutrition?.sugar?:0.0,
+                    protein = analyzeFood?.nutrition?.protein?:0.0,
+                    fat = analyzeFood?.nutrition?.fat?:0.0,
+                    fiber = analyzeFood?.nutrition?.fiber?:0.0,
+                    calorie = analyzeFood?.nutrition?.calorie?:0.0,
+                    portion = weightValue.toDouble(),
+                    baseline = _preGlucose.value?:0.0
+                )
             )
-        )
+        }
+
 
         if(chatResponse.isSuccessful){
             val foodPredict = chatResponse.body()
@@ -408,26 +428,30 @@ class DangDangRepository @Inject constructor(
                 uploadFile.toMultipart()
             }
 
-            val chatResponse = chatApiService.foodReAnalyze(
-                image = ateFoodImagePart,
-                foodName = ateFoodValue.toRequestBody(),
-                baseline = _preGlucose.value.toString().toRequestBody()
-            )
+            val chatResponse = safeApiCall {
+                chatApiService.foodReAnalyze(
+                    image = ateFoodImagePart,
+                    foodName = ateFoodValue.toRequestBody(),
+                    baseline = _preGlucose.value.toString().toRequestBody()
+                )
+            }
 
             if(chatResponse.isSuccessful){
                 val analyzeFood = chatResponse.body()
-                val predictResponse = chatApiService.foodPredict(
-                    FoodPredictInputForm(
-                        carb = analyzeFood?.nutrition?.carb?:0.0,
-                        sugar = analyzeFood?.nutrition?.sugar?:0.0,
-                        protein = analyzeFood?.nutrition?.protein?:0.0,
-                        fat = analyzeFood?.nutrition?.fat?:0.0,
-                        fiber = analyzeFood?.nutrition?.fiber?:0.0,
-                        calorie = analyzeFood?.nutrition?.calorie?:0.0,
-                        portion = weightValue.toDouble(),
-                        baseline = _preGlucose.value?:0.0
+                val predictResponse = safeApiCall{
+                    chatApiService.foodPredict(
+                        FoodPredictInputForm(
+                            carb = analyzeFood?.nutrition?.carb?:0.0,
+                            sugar = analyzeFood?.nutrition?.sugar?:0.0,
+                            protein = analyzeFood?.nutrition?.protein?:0.0,
+                            fat = analyzeFood?.nutrition?.fat?:0.0,
+                            fiber = analyzeFood?.nutrition?.fiber?:0.0,
+                            calorie = analyzeFood?.nutrition?.calorie?:0.0,
+                            portion = weightValue.toDouble(),
+                            baseline = _preGlucose.value?:0.0
+                        )
                     )
-                )
+                }
 
                 if(predictResponse.isSuccessful){
                     val foodPredict = predictResponse.body()
@@ -491,14 +515,16 @@ class DangDangRepository @Inject constructor(
 
     //음식 직접 입력 전송
     suspend fun sendFoodInputDirectly(foodInputDirectlyForm: FoodInputDirectlyForm): Response<List<ChatModel>>{
-        val chatResponse = chatApiService.foodConfirm(
-            FoodConfirmInputForm(
-                foodNo = null,
-                customFood = foodInputDirectlyForm,
-                preGlucose = _preGlucose.value,
-                portion = _portion.value
+        val chatResponse = safeApiCall {
+            chatApiService.foodConfirm(
+                FoodConfirmInputForm(
+                    foodNo = null,
+                    customFood = foodInputDirectlyForm,
+                    preGlucose = _preGlucose.value,
+                    portion = _portion.value
+                )
             )
-        )
+        }
 
         if(chatResponse.isSuccessful){
             val checkFood = chatResponse.body()
@@ -563,14 +589,17 @@ class DangDangRepository @Inject constructor(
 
     //음식 확정 선택 시
     suspend fun foodCheck(): Response<List<ChatModel>>{
-        val chatResponse = chatApiService.foodConfirm(
-            FoodConfirmInputForm(
-                foodNo = _analyzeFood.value?.foodNo,
-                customFood = null,
-                preGlucose = _preGlucose.value,
-                portion = _portion.value
+        val chatResponse = safeApiCall {
+            chatApiService.foodConfirm(
+                FoodConfirmInputForm(
+                    foodNo = _analyzeFood.value?.foodNo,
+                    customFood = null,
+                    preGlucose = _preGlucose.value,
+                    portion = _portion.value
+                )
             )
-        )
+        }
+
 
         if(chatResponse.isSuccessful){
             val checkFood = chatResponse.body()

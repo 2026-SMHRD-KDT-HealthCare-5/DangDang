@@ -530,22 +530,19 @@ fun AIChatMenu(
                             )
                         }
                         RecommendWalkDistanceStage -> {
-                            FoodDetailBox(
-                                predictedGlucoseRise =
-                                    chatModel
+                            if(chatModel.analysisFoodInfo != null){
+                                FoodDetailBox(
+                                    predictedGlucoseRise =
+                                        chatModel
+                                            .analysisFoodInfo
+                                            .predictedGlucoseRise,
+                                    beginGlucose = chatModel
                                         .analysisFoodInfo
-                                        ?.predictedGlucoseRise?:0.0,
-                                beginGlucose = chatModel
-                                    .analysisFoodInfo
-                                    ?.beginGlucose?:0.0,
-                                foodInfo = chatModel.analysisFoodInfo?.foodInfo
-                                    ?: FoodInfoModel(
-                                        name = "",
-                                        nutritionInfo = "",
-                                        nutritionList = emptyList()
-                                    ),
-                                isMenuShow = false,
-                            )
+                                        .beginGlucose,
+                                    foodInfo = chatModel.analysisFoodInfo.foodInfo,
+                                    isMenuShow = false,
+                                )
+                            }
                             AIWalkTip()
                             AIWarning()
                             AIRecommendWalkChallengeBox(
