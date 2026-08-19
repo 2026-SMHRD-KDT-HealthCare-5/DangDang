@@ -185,7 +185,27 @@ fun TextField(
             enabled = isEnabled,
             value = value,
             onValueChange = { newValue ->
-                onValueChange(newValue.take(maxLength))
+                val filteredValue = when (keyboardType) {
+                    KeyboardType.Number -> {
+                        buildString {
+                            var hasDecimalPoint = false
+
+                            newValue.forEach { char ->
+                                when {
+                                    char.isDigit() -> append(char)
+                                    char == '.' && !hasDecimalPoint -> {
+                                        append(char)
+                                        hasDecimalPoint = true
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    else -> newValue
+                }
+
+                onValueChange(filteredValue.take(maxLength))
             },
             textStyle = AppTypography.labelLarge.regular,
             keyboardOptions = KeyboardOptions(
