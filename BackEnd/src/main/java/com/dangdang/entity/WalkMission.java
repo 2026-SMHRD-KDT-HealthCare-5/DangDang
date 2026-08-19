@@ -194,4 +194,17 @@ public class WalkMission {
         this.status = finalStatus;
         this.endTime = LocalDateTime.now();
     }
+
+    /**
+     * [각주 DB] POST /api/walk-missions/{mission_no}/post-glucose 가 호출합니다. 걷기 후 사용자가
+     * 실측 혈당을 입력하면 그 값을 저장합니다. 재입력(수정)은 지원하지 않아 — 호출 전에
+     * WalkMissionService가 이미 값이 있는지 먼저 확인합니다 — 이 메서드는 값이 없을 때만
+     * 호출된다는 전제로 단순하게 대입만 합니다. 입력 시각을 담는 별도 컬럼은 없고 end_time을
+     * 그대로 "표시 시각"으로 씁니다(노션 명세).
+     *
+     * @lastModified 2026-08-19
+     */
+    public void recordPostWalkGlucose(Integer postWalkGlucose) {
+        this.postWalkGlucose = postWalkGlucose;
+    }
 }

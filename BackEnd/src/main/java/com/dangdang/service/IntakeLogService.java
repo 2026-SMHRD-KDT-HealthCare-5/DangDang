@@ -50,9 +50,12 @@ import java.util.Map;
 /**
  * [각주 T] (수정) preglucose/recognize/predict는 FastAPI(AI 서버)로 그대로 전달(프록시)만 하고
  * DB에 아무것도 안 씁니다. 반면 confirmIntake()("맞아요" 최종 확정)만은 예외적으로 이 서비스
- * 안에서 직접 DB에 씁니다 — intake_log/custom_food/walk_mission/ai_chat(MISSION_CARD).
+ * 안에서 직접 DB에 씁니다 — intake_log/custom_food/walk_mission/ai_chat(FOOD_CARD+MISSION_CARD).
  * (기획서 아키텍처 원칙: DB 쓰기는 전부 Spring, AI 추론은 전부 FastAPI가 전담하는데,
  *  "먹은 음식 최종 확정" 시점에야 DB에 저장하고, 인식/재분석 단계는 아직 저장할 대상이 없습니다.)
+ *
+ * [각주] (추가) FOOD_CARD는 recognize/reanalyze 시점이 아니라 여기서만 저장합니다(사용자 결정) —
+ * 재검색/재분석을 몇 번 반복하든 대화 이력엔 최종 확정한 음식 1건만 남습니다.
  */
 
 /*
@@ -267,6 +270,9 @@ public class IntakeLogService {
         Integer customFoodNo = null;
         BigDecimal carb, sugar, protein, fat, fiber, calorie;
         double portion;
+        String foodName;
+        Integer servingSize;
+        String source;
 
         if (request.foodNo() != null) {
             // --- "맞아요" (식약처 매칭 그대로 확정) ---
@@ -280,6 +286,9 @@ public class IntakeLogService {
             fiber = foodInfo.getFiber();
             calorie = foodInfo.getCalorie();
             portion = request.portion() != null ? request.portion() : 1.0;
+            foodName = foodInfo.getFoodName();
+            servingSize = foodInfo.getServingSize();
+            source = "공공데이터";
         } else {
             // --- "틀려요→AI로 분석하기" / "직접입력하기" 확정 ---
             // [각주 BJ-1] CustomFood 저장은 별도 서비스로 안 빼고 여기서 직접 처리합니다
@@ -311,6 +320,9 @@ public class IntakeLogService {
             calorie = savedCustomFood.getCalorie();
             // [각주 BK] 직접입력/AI추정 값은 "1인분 기준"이 아니라 "실제 먹은 양 그 자체"라 portion 고정 1.0.
             portion = 1.0;
+            foodName = savedCustomFood.getFoodName();
+            servingSize = savedCustomFood.getServingSize();
+            source = savedCustomFood.getSource();
         }
 
         PortionPredictRequest predictRequest = new PortionPredictRequest(
@@ -356,6 +368,14 @@ public class IntakeLogService {
                 .build();
         IntakeLog savedLog = intakeLogRepository.save(intakeLog);
 
+        // [각주 DG] FOOD_CARD는 recognize/reanalyze 시점이 아니라 여기(확정 시점)에만 저장합니다
+        // — 재검색/재분석을 몇 번을 반복하든 대화 이력에는 최종 확정한 음식 1건만 남기기로
+        // 결정했습니다(사용자 결정 사항). recognize/reanalyze는 여전히 DB에 아무것도 안 씁니다.
+        // 이 시점엔 predictPortion()이 이미 끝나서 portion 반영된 정확한 predictedGlucoseRise를
+        // 알고 있으니, recognize 때와 달리 부정확한 값 문제도 없습니다.
+        saveFoodCardChat(userNo, savedLog, foodNo, customFoodNo, foodName, servingSize, source,
+                carb, sugar, protein, fat, fiber, calorie, predicted.predictedGlucoseRise());
+
         WalkMission mission = WalkMission.builder()
                 .userNo(userNo)
                 .logNo(savedLog.getLogNo())
@@ -385,6 +405,51 @@ public class IntakeLogService {
         if (hasFoodNo == hasCustomFood) { // 둘 다 true(둘 다 옴) 이거나 둘 다 false(둘 다 없음)면 에러
             throw new BusinessException(ErrorCode.INVALID_CONFIRM_FOOD_REFERENCE);
         }
+    }
+
+    /**
+     * [각주 DH] FOOD_CARD 타입 ai_chat row를 저장합니다 — "확정된 음식" 1건의 스냅샷입니다.
+     * foodNo/customFoodNo 중 확정 시 실제로 채워진 쪽만 값이 들어가고 나머지는 null입니다
+     * (intake_log의 chk_food_reference와 동일한 XOR 규칙).
+     */
+    private void saveFoodCardChat(Integer userNo, IntakeLog intakeLog, Integer foodNo, Integer customFoodNo,
+                                   String foodName, Integer servingSize, String source,
+                                   BigDecimal carb, BigDecimal sugar, BigDecimal protein,
+                                   BigDecimal fat, BigDecimal fiber, BigDecimal calorie,
+                                   Double predictedGlucoseRise) {
+        Map<String, Object> nutrition = new LinkedHashMap<>();
+        nutrition.put("carb", carb);
+        nutrition.put("sugar", sugar);
+        nutrition.put("protein", protein);
+        nutrition.put("fat", fat);
+        nutrition.put("fiber", fiber);
+        nutrition.put("calorie", calorie);
+
+        Map<String, Object> card = new LinkedHashMap<>();
+        card.put("logNo", intakeLog.getLogNo());
+        card.put("foodNo", foodNo);
+        card.put("customFoodNo", customFoodNo);
+        card.put("foodName", foodName);
+        card.put("servingSize", servingSize);
+        card.put("nutrition", nutrition);
+        card.put("predictedGlucoseRise", predictedGlucoseRise);
+        card.put("source", source);
+
+        String cardDataJson;
+        try {
+            cardDataJson = objectMapper.writeValueAsString(card);
+        } catch (JsonProcessingException e) {
+            log.error("FOOD_CARD cardData 직렬화 실패 (logNo={}): {}", intakeLog.getLogNo(), e.getMessage());
+            cardDataJson = null;
+        }
+
+        AiChat aiChat = AiChat.builder()
+                .userNo(userNo)
+                .aiMessage(foodName + " 기록 완료!")
+                .chatType(ChatType.FOOD_CARD)
+                .cardData(cardDataJson)
+                .build();
+        aiChatRepository.save(aiChat);
     }
 
     /**

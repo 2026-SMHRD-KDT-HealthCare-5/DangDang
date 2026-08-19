@@ -16,6 +16,10 @@ public enum ChatType {
     FOOD_CARD,     // 음식 확인 카드 — cardData에 logNo + 영양정보 등 스냅샷
     MISSION_CARD,  // 추천 걷기 미션 카드 — cardData에 missionNo + 목표치 스냅샷
     POST_GLUCOSE,  // 걷기 후 혈당 입력 카드 — cardData에 missionNo 스냅샷
-    RESULT_CARD,   // 걷기 결과 요약 카드 — cardData에 missionNo + 결과 스냅샷
+    // [각주] (수정) RESULT_CARD 하나였던 걸 노션 "걷기 후 혈당 기록" 명세대로 목표
+    // 달성 여부에 따라 둘로 나눴습니다 — goalAchieved를 cardData 안에 또 넣는 대신
+    // chat_type 자체로 성공/실패를 구분해서 프론트가 렌더링 분기하기 더 쉽게 했습니다.
+    RESULT_CARD_SUCCESS, // 걷기 결과 요약 카드 (목표 달성) — cardData에 missionNo + 결과 스냅샷
+    RESULT_CARD_FAIL,    // 걷기 결과 요약 카드 (목표 미달성) — cardData에 missionNo + 결과 스냅샷
     CHEER          // 응원 메시지 — cardData에 missionNo 스냅샷
 }

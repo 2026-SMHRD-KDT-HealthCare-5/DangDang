@@ -52,7 +52,11 @@ public enum ErrorCode {
     MISSION_NOT_STARTABLE(HttpStatus.CONFLICT, "MISSION_409_NOT_STARTABLE",
             "대기 중인(READY) 미션만 시작할 수 있습니다."),
     MISSION_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "MISSION_409_NOT_IN_PROGRESS",
-            "진행 중인(IN_PROGRESS) 미션에서만 가능한 동작입니다.");
+            "진행 중인(IN_PROGRESS) 미션에서만 가능한 동작입니다."),
+    MISSION_NOT_FINISHED(HttpStatus.CONFLICT, "MISSION_409_NOT_FINISHED",
+            "완료(COMPLETE) 또는 미완료 종료(PARTIAL) 상태의 미션에서만 걷기 후 혈당을 기록할 수 있습니다."),
+    POST_GLUCOSE_ALREADY_RECORDED(HttpStatus.CONFLICT, "MISSION_409_POST_GLUCOSE_ALREADY_RECORDED",
+            "이미 걷기 후 혈당을 기록했습니다. 재입력(수정)은 지원하지 않습니다.");
 
     private final HttpStatus status;
     private final String code;

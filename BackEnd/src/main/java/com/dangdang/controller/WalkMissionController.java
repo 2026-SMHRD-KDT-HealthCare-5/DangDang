@@ -1,10 +1,12 @@
 package com.dangdang.controller;
 
 import com.dangdang.dto.request.ExpireMissionRequest;
+import com.dangdang.dto.request.PostGlucoseRequest;
 import com.dangdang.dto.request.TrackRequest;
 import com.dangdang.dto.response.ActiveMissionResponse;
 import com.dangdang.dto.response.EndMissionResponse;
 import com.dangdang.dto.response.ExpireMissionResponse;
+import com.dangdang.dto.response.PostGlucoseResponse;
 import com.dangdang.dto.response.StartMissionResponse;
 import com.dangdang.dto.response.TrackResponse;
 import com.dangdang.service.WalkMissionService;
@@ -100,6 +102,24 @@ public class WalkMissionController {
     ) {
         Integer userNo = (Integer) authentication.getPrincipal();
         EndMissionResponse response = walkMissionService.endMission(userNo, missionNo);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * [각주 DF] 걷기 종료(/end) 응답 시점에 챗봇에 뜬 POST_GLUCOSE 카드에 사용자가 실측 혈당을
+     * 입력해서 제출하면 호출합니다. COMPLETE/PARTIAL 상태의 미션에서만 가능하고, 한 번
+     * 입력하면 재입력(수정)은 지원하지 않습니다 (노션 "걷기 후 혈당 기록" 명세).
+     *
+     * @lastModified 2026-08-19
+     */
+    @PostMapping("/{missionNo}/post-glucose")
+    public ResponseEntity<PostGlucoseResponse> recordPostGlucose(
+            Authentication authentication,
+            @PathVariable Integer missionNo,
+            @RequestBody PostGlucoseRequest request
+    ) {
+        Integer userNo = (Integer) authentication.getPrincipal();
+        PostGlucoseResponse response = walkMissionService.recordPostGlucose(userNo, missionNo, request);
         return ResponseEntity.ok(response);
     }
 }

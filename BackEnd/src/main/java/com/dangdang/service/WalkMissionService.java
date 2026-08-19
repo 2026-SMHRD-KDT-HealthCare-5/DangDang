@@ -1,21 +1,25 @@
 package com.dangdang.service;
 
 import com.dangdang.dto.request.ExpireMissionRequest;
+import com.dangdang.dto.request.PostGlucoseRequest;
 import com.dangdang.dto.request.TrackRequest;
 import com.dangdang.dto.response.ActiveMissionResponse;
 import com.dangdang.dto.response.EndMissionResponse;
 import com.dangdang.dto.response.ExpireMissionResponse;
+import com.dangdang.dto.response.PostGlucoseResponse;
 import com.dangdang.dto.response.StartMissionResponse;
 import com.dangdang.dto.response.TrackResponse;
 import com.dangdang.entity.AiChat;
 import com.dangdang.entity.ChatType;
 import com.dangdang.entity.ExpireReason;
+import com.dangdang.entity.IntakeLog;
 import com.dangdang.entity.User;
 import com.dangdang.entity.WalkMission;
 import com.dangdang.entity.WalkMissionStatus;
 import com.dangdang.exception.BusinessException;
 import com.dangdang.exception.ErrorCode;
 import com.dangdang.repository.AiChatRepository;
+import com.dangdang.repository.IntakeLogRepository;
 import com.dangdang.repository.UserRepository;
 import com.dangdang.repository.WalkMissionRepository;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * - startMission()          : POST /{mission_no}/start
  * - trackMission()          : POST /{mission_no}/track (30초 폴링)
  * - endMission()            : POST /{mission_no}/end (수동 종료)
+ * - recordPostGlucose()     : POST /{mission_no}/post-glucose (걷기 후 실측 혈당 입력)
  * - expireMission()         : POST /api/walk-missions/{mission_no}/expire (프론트가 직접 호출)
  * - expireStaleMissionsBatch() : WalkMissionExpireScheduler(매분 배치)가 호출. TIMEOUT은
  *   "시작을 안 함"을, INACTIVE는 "last_tracked_at 30분간 정체 = 실제 이동 없음"을 감지합니다
@@ -68,6 +73,7 @@ public class WalkMissionService {
     private final WalkMissionRepository walkMissionRepository;
     private final AiChatRepository aiChatRepository;
     private final UserRepository userRepository;
+    private final IntakeLogRepository intakeLogRepository;
 
     private final Map<Integer, BigDecimal> checkpointDistanceCache = new ConcurrentHashMap<>();
 
@@ -240,6 +246,85 @@ public class WalkMissionService {
                 .userNo(userNo)
                 .aiMessage("걷기 완료! 🎉 수고했어요!\n이제 혈당을 입력해주세요.")
                 .chatType(ChatType.POST_GLUCOSE)
+                .cardData(cardDataJson)
+                .build();
+        aiChatRepository.save(aiChat);
+    }
+
+    /**
+     * [각주 DE] POST /{mission_no}/post-glucose 가 호출합니다 (노션 "걷기 후 혈당 기록" 명세).
+     * 걷기 종료(/end) 응답 시점에 이미 챗봇에 POST_GLUCOSE 카드가 떠 있는 상태에서, 사용자가
+     * 그 카드에 실측 혈당을 입력해 제출하면 이걸 호출합니다.
+     *
+     * 순서:
+     * 1) 미션 존재/소유자 확인
+     * 2) 상태가 COMPLETE/PARTIAL인지 확인 (EXPIRED 미션엔 입력 불가 — 409)
+     * 3) 이미 입력된 값이 있으면 거부 (재입력/수정 미지원 — 409)
+     * 4) postWalkGlucose 저장
+     * 5) goalAchieved(=status가 COMPLETE였는지)에 따라 RESULT_CARD_SUCCESS/FAIL 챗봇 카드 저장
+     *    (Gemini 호출 없음 — 필요한 4개 수치가 전부 서버가 이미 아는 값이라 규칙 기반 고정 문구로 처리)
+     *
+     * @lastModified 2026-08-19
+     */
+    @Transactional
+    public PostGlucoseResponse recordPostGlucose(Integer userNo, Integer missionNo, PostGlucoseRequest request) {
+        WalkMission mission = walkMissionRepository.findById(missionNo)
+                .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_FOUND));
+
+        if (!mission.getUserNo().equals(userNo)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN_MISSION_ACCESS);
+        }
+        if (mission.getStatus() != WalkMissionStatus.COMPLETE && mission.getStatus() != WalkMissionStatus.PARTIAL) {
+            throw new BusinessException(ErrorCode.MISSION_NOT_FINISHED);
+        }
+        if (mission.getPostWalkGlucose() != null) {
+            throw new BusinessException(ErrorCode.POST_GLUCOSE_ALREADY_RECORDED);
+        }
+
+        mission.recordPostWalkGlucose(request.postWalkGlucose());
+        walkMissionRepository.save(mission);
+
+        // [각주] logNo는 WalkMission 생성 시(confirmIntake) 항상 같이 채워지는 필수 FK라
+        // 여기서 못 찾는 건 데이터 정합성이 깨진 예외 상황입니다 — 그래도 500 대신 사용자가
+        // 이해할 수 있는 404로 응답하도록 MISSION_NOT_FOUND를 재사용했습니다.
+        IntakeLog intakeLog = intakeLogRepository.findById(mission.getLogNo())
+                .orElseThrow(() -> new BusinessException(ErrorCode.MISSION_NOT_FOUND));
+
+        boolean goalAchieved = mission.getStatus() == WalkMissionStatus.COMPLETE;
+        String feedbackMessage = goalAchieved
+                ? "목표를 달성했어요! 오늘도 건강한 습관을 실천했네요! 계속 함께 관리해요"
+                : "목표를 달성하지 못했어요... 하지만 오늘도 열심히 하려는 모습이 정말 멋져요! 계속 함께 관리해봐요!";
+
+        saveResultCardChat(userNo, mission, intakeLog, goalAchieved, feedbackMessage);
+
+        return new PostGlucoseResponse(
+                mission.getMissionNo(),
+                intakeLog.getPreGlucose(),
+                intakeLog.getPostGlucoseEst(),
+                mission.getPostWalkGlucose(),
+                mission.getTargetDistance(),
+                mission.getActualDistance(),
+                goalAchieved,
+                feedbackMessage
+        );
+    }
+
+    /** RESULT_CARD_SUCCESS/FAIL 카드 저장 — 수치 요약과 응원 문구를 하나의 카드로 합칩니다(노션 명세). */
+    private void saveResultCardChat(Integer userNo, WalkMission mission, IntakeLog intakeLog,
+                                     boolean goalAchieved, String feedbackMessage) {
+        String cardDataJson = "{"
+                + "\"missionNo\":" + mission.getMissionNo() + ","
+                + "\"preGlucose\":" + intakeLog.getPreGlucose() + ","
+                + "\"postGlucoseEst\":" + intakeLog.getPostGlucoseEst() + ","
+                + "\"postWalkGlucose\":" + mission.getPostWalkGlucose() + ","
+                + "\"targetDistance\":" + mission.getTargetDistance() + ","
+                + "\"actualDistance\":" + mission.getActualDistance()
+                + "}";
+
+        AiChat aiChat = AiChat.builder()
+                .userNo(userNo)
+                .aiMessage(feedbackMessage)
+                .chatType(goalAchieved ? ChatType.RESULT_CARD_SUCCESS : ChatType.RESULT_CARD_FAIL)
                 .cardData(cardDataJson)
                 .build();
         aiChatRepository.save(aiChat);
