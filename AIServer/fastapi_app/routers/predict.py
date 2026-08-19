@@ -25,7 +25,13 @@ def predict_with_portion(req: PortionPredictRequest):
 
     Spring은 food_no/custom_food_no로 이미 알고 있는 영양성분(1 serving_size 기준)에
     사용자가 선택한 portion(0.5/1.0/1.5 등)을 곱해서 보내면, FastAPI가 LightGBM으로
-    재예측하고 걷기 미션 목표(targetDistance/targetKcal)까지 계산해서 돌려준다.
+    재예측하고 걷기 미션 목표(targetDistance/targetKcal/targetTimeMinutes)까지 계산해서 돌려준다.
+
+    [추가] targetTimeMinutes는 calc_walking_mission()이 애초에 targetDistance를 만들 때
+    쓴 "몇 분 걸어야 하는지"(walk_minutes) 값을 그대로 노출한 것입니다. targetDistance로부터
+    별도 페이스 공식(예: distance*12)으로 재계산하지 않습니다 — 이미 있는 원본값을 다시
+    근사해서 만들면 이중 계산이고 오차만 더해질 뿐이라, 계산의 출처(walk_minutes)를
+    그대로 돌려주는 게 더 정확합니다.
     """
     if req.diagnosis_group not in DIAGNOSIS_GROUPS:
         return JSONResponse(
@@ -51,8 +57,9 @@ def predict_with_portion(req: PortionPredictRequest):
         content={
             "predictedGlucoseRise": prediction["predicted_rise"],
             "predictedPeak": prediction["predicted_peak"],
-            "targetDistance": mission["distance_km"],
+            "targetDistance": mission["distance_m"],
             "targetKcal": mission["calories"],
+            "targetTimeMinutes": mission["walk_minutes"],
             "nutritionUsed": {
                 "carb": round(carb, 1),
                 "sugar": round(sugar, 1),

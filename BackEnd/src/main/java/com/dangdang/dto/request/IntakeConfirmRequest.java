@@ -20,8 +20,7 @@ public record IntakeConfirmRequest(
         Integer foodNo,
         CustomFoodPayload customFood,
         Integer preGlucose,
-        Double portion,
-        String diagnosisGroup
+        Double portion
 ) {
     /** "틀려요→AI로 분석하기" 또는 "직접입력하기" 단계에서 나온 음식 정보를 그대로 실어 보냅니다. */
     public record CustomFoodPayload(

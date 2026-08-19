@@ -13,21 +13,24 @@ JSONResponse(status_code=status_code, content=content)로 감싸기만 하면 �
 
 목차
 1. parse_gemini_json() — Gemini가 ```json 코드블록으로 감싼 응답까지 안전하게 파싱
-2. _resolve_diag_and_baseline() — 진단군/식전혈당이 안 넘어왔을 때 기본값 채우기
-3. _build_recognize_response() — 인식 결과를 최종 응답 형태로 조립
-4. recognize() — routers/recognize.py가 호출하는 진입점 (음식 인식 2단계 파이프라인)
-5. reanalyze() — routers/reanalyze.py가 호출하는 진입점 (AI 재분석)
+2. _build_recognize_response() — 인식 결과를 최종 응답 형태로 조립
+3. recognize() — routers/recognize.py가 호출하는 진입점 (음식 인식 2단계 파이프라인)
+4. reanalyze() — routers/reanalyze.py가 호출하는 진입점 (AI 재분석)
+
+[수정] predictedGlucoseRise를 recognize/reanalyze 단계에서 미리 계산하던 로직을 없앴습니다.
+이 시점엔 portion(몇 인분)을 몰라서 항상 1인분 가정으로만 계산됐고, 어차피 /predict가
+실제 portion으로 다시 계산하는 값이라 예측 모델 호출이 낭비였습니다. 그래서 이 계산에만
+쓰이던 _resolve_diag_and_baseline() 헬퍼와 glucose_predictor import도 같이 뺐습니다.
 """
 import json
 import re
 
 from google.genai import types
 
-from core.config import client, MODEL_NAME, log_token_usage, get_pre_glucose_default, DIAGNOSIS_GROUPS
+from core.config import client, MODEL_NAME, log_token_usage
 from prompts.reanalyze import FOOD_REANALYSIS_IMAGE_PROMPT, FOOD_REANALYSIS_TEXT_PROMPT
 from prompts.recognize import FOOD_RECOGNITION_PROMPT, TEXT_FOOD_EXTRACTION_PROMPT
 from repositories.food_repo import food_db
-from services.glucose_predictor import glucose_predictor
 
 MATCH_SCORE_THRESHOLD = 70  # DB 유사도 매칭 최소 점수
 
@@ -39,29 +42,21 @@ def parse_gemini_json(text: str) -> dict:
     return json.loads(cleaned)
 
 
-def _resolve_diag_and_baseline(diagnosis_group, baseline):
-    diag = diagnosis_group if diagnosis_group in DIAGNOSIS_GROUPS else "건강군"
-    bl = baseline if baseline is not None else get_pre_glucose_default(diag)
-    return diag, bl
-
-
 def _build_recognize_response(
     matched: bool,
     food_name: str,
     db_match: dict | None,
-    baseline: float,
-    diagnosis_group: str,
 ) -> dict:
-    """음식 인식 결과를 명세서 형식의 응답 dict로 구성"""
+    """음식 인식 결과를 명세서 형식의 응답 dict로 구성.
+
+    [수정] predictedGlucoseRise는 여기서 계산하지 않습니다 — 이 시점엔 portion(몇 인분
+    먹었는지)을 아직 모르기 때문에 항상 1인분 가정으로 계산될 수밖에 없고, 어차피
+    /predict가 실제 portion을 반영해서 다시 계산합니다. 화면도 recognize 응답 시점엔
+    "얼마나 드셨어요?"만 물어보고 카드/예측치는 predict 응답을 받은 뒤에 보여주므로,
+    이 값을 미리 계산하는 건 예측 모델 호출만 낭비하는 것이었습니다.
+    baseline/diagnosis_group 인자도 이 계산에만 쓰였어서 같이 뺐습니다.
+    """
     if matched and db_match:
-        prediction = glucose_predictor.predict_peak(
-            carb=float(db_match["carb"]),
-            protein=float(db_match["protein"]),
-            fat=float(db_match["fat"]),
-            fiber=float(db_match["fiber"]),
-            baseline=baseline,
-            diagnosis_group=diagnosis_group,
-        )
         return {
             "matched": True,
             "foodNo": db_match["food_no"],
@@ -75,7 +70,6 @@ def _build_recognize_response(
                 "fiber": db_match["fiber"],
                 "calorie": db_match["calorie"],
             },
-            "predictedGlucoseRise": prediction["predicted_rise"],
             "source": "공공데이터",
             "chatbotMessage": "식약처 데이터에서 찾았어요! 이 음식이 맞나요?",
         }
@@ -86,7 +80,6 @@ def _build_recognize_response(
         "foodName": food_name,
         "serving_size": None,
         "nutrition": None,
-        "predictedGlucoseRise": None,
         "source": None,
         "chatbotMessage": "식약처 데이터에서 찾지 못했어요. AI로 분석하거나 직접 입력해 주세요.",
     }
@@ -96,11 +89,10 @@ async def recognize(image, message, baseline, diagnosis_group) -> tuple[int, dic
     """
     - image: 음식 사진 (사진 인식 시)
     - message: 텍스트 입력 (채팅으로 음식명 입력 시)
-    - baseline: 식전 혈당 (미입력 시 진단군별 기본값 적용)
-    - diagnosis_group: 진단군 ("건강군" / "전당뇨" / "2형당뇨")
+    - baseline, diagnosis_group: [수정] 더 이상 여기서 안 씁니다 — predictedGlucoseRise
+      계산을 뺀 뒤로 이 함수 안에서 쓸 곳이 없어졌습니다. 라우터/Spring이 여전히 이
+      값들을 보내더라도 그냥 받기만 하고 무시합니다(호출부 깨지지 않게 시그니처는 유지).
     """
-    diag, bl = _resolve_diag_and_baseline(diagnosis_group, baseline)
-
     # --- 사진 입력 ---
     if image:
         image_bytes = await image.read()
@@ -141,13 +133,13 @@ async def recognize(image, message, baseline, diagnosis_group) -> tuple[int, dic
 
     # 인식 불가
     if food_name == "인식불가":
-        return 200, _build_recognize_response(False, food_name, None, bl, diag)
+        return 200, _build_recognize_response(False, food_name, None)
 
     # DB 매칭
     db_match = food_db.get_best_match(food_name, brand=brand)
     matched = db_match is not None and db_match["match_score"] >= MATCH_SCORE_THRESHOLD
 
-    return 200, _build_recognize_response(matched, food_name, db_match if matched else None, bl, diag)
+    return 200, _build_recognize_response(matched, food_name, db_match if matched else None)
 
 
 async def reanalyze(image, food_name, baseline, diagnosis_group) -> tuple[int, dict]:
@@ -156,11 +148,12 @@ async def reanalyze(image, food_name, baseline, diagnosis_group) -> tuple[int, d
     - image: 음식 사진 → Gemini Vision으로 분석
     - food_name: 음식명 텍스트 → Gemini 텍스트로 영양성분 추정
     둘 중 하나는 필수 (라우터에서 사전 검증).
+    - baseline, diagnosis_group: [수정] predictedGlucoseRise 계산을 뺀 뒤로 여기서 안 씁니다
+      (recognize()와 동일한 이유 — portion을 모르는 시점이라 계산해봐야 /predict에서 다시
+      계산될 값이라 예측 모델 호출만 낭비였습니다).
 
     ※ CUSTOM_FOOD 테이블 저장은 Spring 쪽에서 처리한다. 여기서는 추정 결과만 반환한다.
     """
-    diag, bl = _resolve_diag_and_baseline(diagnosis_group, baseline)
-
     # --- 사진 분석 ---
     if image:
         image_bytes = await image.read()
@@ -194,15 +187,6 @@ async def reanalyze(image, food_name, baseline, diagnosis_group) -> tuple[int, d
     if not all(k in nutrition for k in required_keys):
         return 500, {"error": "AI가 영양성분을 추정하지 못했습니다.", "raw": analysis}
 
-    prediction = glucose_predictor.predict_peak(
-        carb=float(nutrition["carb"]),
-        protein=float(nutrition["protein"]),
-        fat=float(nutrition["fat"]),
-        fiber=float(nutrition["fiber"]),
-        baseline=bl,
-        diagnosis_group=diag,
-    )
-
     # 텍스트로 입력한 경우(food_name이 있음)는 사용자가 준 이름을 그대로 신뢰합니다.
     # Gemini가 못 알아듣고 엉뚱한 진짜 음식 이름으로 바꿔치기(할루시네이션)하는 걸 막기 위함입니다.
     # 사진만 준 경우(food_name 없음)는 Gemini가 음식 자체를 식별해야 하니 그대로 둡니다.
@@ -219,7 +203,6 @@ async def reanalyze(image, food_name, baseline, diagnosis_group) -> tuple[int, d
             "fiber": nutrition.get("fiber"),
             "calorie": nutrition.get("calorie"),
         },
-        "predictedGlucoseRise": prediction["predicted_rise"],
         "source": "AI추정",
         "chatbotMessage": f"{source_msg} 정확하지 않을 수 있으니 확인해 주세요!",
     }

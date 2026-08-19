@@ -55,15 +55,17 @@ public class IntakeLogController {
     /**
      * 음식 인식 (사진 또는 텍스트).
      * - image / message 중 최소 하나는 필수
-     * - baseline(식전 혈당), diagnosisGroup(진단군)은 선택 — 안 보내면 FastAPI가 기본값을 적용
+     * - baseline(식전 혈당)은 선택 — 안 보내면 FastAPI가 기본값을 적용
+     * - [각주] (수정) diagnosisGroup은 더 이상 요청 파라미터로 안 받습니다. 사용자의 실제 진단
+     *   정보라 요청마다 프론트가 골라 보낼 이유가 없어서, 서버가 항상 로그인 사용자의
+     *   users.diagnosis_group을 그대로 조회해서 씁니다.
      */
     @PostMapping(value = "/recognize", consumes = "multipart/form-data")
     public ResponseEntity<FoodRecognitionResponse> recognize(
             Authentication authentication,
             @RequestParam(required = false) MultipartFile image,
             @RequestParam(required = false) String message,
-            @RequestParam(required = false) Double baseline,
-            @RequestParam(required = false) String diagnosisGroup
+            @RequestParam(required = false) Double baseline
     ) {
         boolean hasImage = image != null && !image.isEmpty();
         boolean hasMessage = message != null && !message.isBlank();
@@ -76,8 +78,7 @@ public class IntakeLogController {
         // SecurityContext에 넣어둔 로그인 사용자의 userNo를 꺼냅니다.
         Integer userNo = (Integer) authentication.getPrincipal();
 
-        FoodRecognitionResponse response =
-                intakeLogService.recognizeFood(userNo, image, message, baseline, diagnosisGroup);
+        FoodRecognitionResponse response = intakeLogService.recognizeFood(userNo, image, message, baseline);
         return ResponseEntity.ok(response);
     }
 
@@ -126,8 +127,7 @@ public class IntakeLogController {
             Authentication authentication,
             @RequestParam(required = false) MultipartFile image,
             @RequestParam(required = false) String foodName,
-            @RequestParam(required = false) Double baseline,
-            @RequestParam(required = false) String diagnosisGroup
+            @RequestParam(required = false) Double baseline
     ) {
         boolean hasImage = image != null && !image.isEmpty();
         boolean hasFoodName = foodName != null && !foodName.isBlank();
@@ -137,8 +137,7 @@ public class IntakeLogController {
         }
 
         Integer userNo = (Integer) authentication.getPrincipal();
-        ReanalyzeResponse response =
-                recognizeProxyService.reanalyze(userNo, image, foodName, baseline, diagnosisGroup);
+        ReanalyzeResponse response = recognizeProxyService.reanalyze(userNo, image, foodName, baseline);
         return ResponseEntity.ok(response);
     }
 

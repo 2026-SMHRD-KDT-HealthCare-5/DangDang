@@ -3,11 +3,16 @@ package com.dangdang;
 import jakarta.annotation.PostConstruct;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.TimeZone;
 
 // [각주] @SpringBootApplication : "이 클래스가 스프링부트 앱의 시작점"이라는 표시입니다.
 // main() 메서드를 실행하면 내장 웹서버(Tomcat)가 켜지면서 8080 포트에서 요청을 기다립니다.
+// [각주 CH] @EnableScheduling : @Scheduled가 붙은 메서드(WalkMissionExpireScheduler)를
+// 스프링이 실제로 주기적으로 실행해주게 켜는 스위치입니다. 이게 없으면 @Scheduled를
+// 붙여놔도 아무 일도 안 일어납니다.
+@EnableScheduling
 @SpringBootApplication
 public class DangdangServerApplication {
 

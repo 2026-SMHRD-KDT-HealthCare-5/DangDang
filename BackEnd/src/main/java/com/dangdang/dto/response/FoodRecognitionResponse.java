@@ -21,13 +21,16 @@ import java.math.BigDecimal;
  * 판정해줄 필요가 없다고 결정했습니다. 매칭 실패 여부는 foodNo(또는 nutrition)가 null인지로
  * 그대로 판단할 수 있어서 정보 손실도 없습니다 — FastAPI가 여전히 matched를 같이 보내더라도
  * 여기 필드에 없으면 Jackson이 그냥 무시하고 넘어갑니다(에러 안 남).
+ *
+ * [각주] (수정) predictedGlucoseRise도 같은 이유로 뺐습니다 — 이 시점엔 portion을 몰라서
+ * 1인분 가정으로만 계산되는 값이라 부정확하고, 어차피 "얼마나 드셨어요?" 답변 후 /predict가
+ * 실제 값을 다시 계산해서 줍니다. FastAPI(food_recognition.py)도 이 계산 자체를 없앴습니다.
  */
 public record FoodRecognitionResponse(
         Integer foodNo,
         String foodName,
         @JsonProperty("serving_size") Integer servingSize,
         NutritionInfo nutrition,
-        Double predictedGlucoseRise,
         String source,
         String chatbotMessage
 ) {

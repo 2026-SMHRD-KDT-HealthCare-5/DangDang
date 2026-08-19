@@ -11,13 +11,16 @@ import java.math.BigDecimal;
  * 사용자가 "맞아요"를 누르면 IntakeConfirmRequest.customFood로 그대로 실어 보내면 됩니다
  * (이때 source는 "AI추정"으로 고정해서 보내면 됩니다).
  *
- * @lastModified 2026-08-18
+ * [각주] (수정) predictedGlucoseRise는 뺐습니다 — 이 시점엔 portion을 몰라서 1인분 가정으로만
+ * 계산되는 부정확한 값이었고, 어차피 "얼마나 드셨어요?" 응답 후 /predict가 실제 값을 다시
+ * 계산해서 줍니다. FastAPI(food_recognition.py)도 이 계산(모델 호출) 자체를 없앴습니다.
+ *
+ * @lastModified 2026-08-19
  */
 public record ReanalyzeResponse(
         String foodName,
         @JsonProperty("serving_size") Integer servingSize,
         NutritionInfo nutrition,
-        Double predictedGlucoseRise,
         String source,
         String chatbotMessage
 ) {
