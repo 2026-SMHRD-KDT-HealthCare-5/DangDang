@@ -304,11 +304,16 @@ class DangDangRepository @Inject constructor(
         }
     }
 
-    fun analyzeFoodToFoodInfoModel(foodName: String, nutrition: AnalysisNutritionResponse?): FoodInfoModel{
+    fun analyzeFoodToFoodInfoModel(
+        foodName: String,
+        nutrition: AnalysisNutritionResponse?,
+        servingSize: Int,
+        calorie: Double
+    ): FoodInfoModel{
         return FoodInfoModel(
             name = foodName,
-            nutritionInfo = "총 내용량 ${_analyzeFood.value?.serving_size}g 1인분(1개) / " +
-                    "${_analyzeFood.value?.nutrition?.calorie}kcal",
+            nutritionInfo = "총 내용량 ${servingSize}g 1인분(1개) / " +
+                    "${calorie}kcal",
             nutritionList = listOf(
                 FoodNutritionModel(
                     name = "탄수화물",
@@ -389,7 +394,9 @@ class DangDangRepository @Inject constructor(
                         beginGlucose = _preGlucose.value?:0.0,
                         foodInfo = analyzeFoodToFoodInfoModel(
                             foodName = analyzeFood?.foodName?:"",
-                            nutrition = foodPredict?.nutritionUsed
+                            nutrition = foodPredict?.nutritionUsed,
+                            servingSize = analyzeFood?.serving_size?:0,
+                            calorie = analyzeFood?.nutrition?.calorie?:0.0
                         )
                     ),
                     recommendWalkInfo = null,
@@ -484,7 +491,9 @@ class DangDangRepository @Inject constructor(
                                 beginGlucose = _preGlucose.value?:0.0,
                                 foodInfo = analyzeFoodToFoodInfoModel(
                                     foodName = analyzeFood?.foodName?:"",
-                                    nutrition = foodPredict?.nutritionUsed
+                                    nutrition = foodPredict?.nutritionUsed,
+                                    servingSize = analyzeFood?.serving_size?:0,
+                                    calorie = analyzeFood?.nutrition?.calorie?:0.0
                                 )
                             ),
                             recommendWalkInfo = null,
@@ -522,7 +531,7 @@ class DangDangRepository @Inject constructor(
                     foodNo = null,
                     customFood = foodInputDirectlyForm,
                     preGlucose = _preGlucose.value,
-                    portion = _portion.value
+                    portion = null
                 )
             )
         }
@@ -551,7 +560,9 @@ class DangDangRepository @Inject constructor(
                                 fat = foodInputDirectlyForm.fat.toDouble(),
                                 fiber = foodInputDirectlyForm.fiber.toDouble(),
                                 calorie = foodInputDirectlyForm.calorie.toDouble()
-                            )
+                            ),
+                            servingSize = foodInputDirectlyForm.servingSize.toInt(),
+                            calorie = foodInputDirectlyForm.calorie.toDouble()
                         )
                     ),
                     recommendWalkInfo = AIRecommendWalkModel(
@@ -619,7 +630,9 @@ class DangDangRepository @Inject constructor(
                         beginGlucose = _preGlucose.value?:0.0,
                         foodInfo = analyzeFoodToFoodInfoModel(
                             foodName = _analyzeFood.value?.foodName?:"",
-                            nutrition = _foodPredict.value?.nutritionUsed
+                            nutrition = _foodPredict.value?.nutritionUsed,
+                            servingSize = _analyzeFood.value?.serving_size?:0,
+                            calorie = _analyzeFood.value?.nutrition?.calorie?:0.0
                         )
                     ),
                     recommendWalkInfo = AIRecommendWalkModel(
