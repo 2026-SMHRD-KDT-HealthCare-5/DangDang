@@ -1,4 +1,4 @@
-git package com.dangdang.repository;
+package com.dangdang.repository;
 
 import com.dangdang.entity.RefreshToken;
 import org.springframework.data.jpa.repository.JpaRepository;
