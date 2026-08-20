@@ -10,7 +10,6 @@ import com.dangdang.entity.AiChat;
 import com.dangdang.entity.ChatType;
 import com.dangdang.entity.CustomFood;
 import com.dangdang.entity.CustomFoodSource;
-import com.dangdang.entity.DiagnosisGroup;
 import com.dangdang.entity.FoodInfo;
 import com.dangdang.entity.IntakeLog;
 import com.dangdang.entity.User;
@@ -51,9 +50,12 @@ import java.util.Map;
 /**
  * [각주 T] (수정) preglucose/recognize/predict는 FastAPI(AI 서버)로 그대로 전달(프록시)만 하고
  * DB에 아무것도 안 씁니다. 반면 confirmIntake()("맞아요" 최종 확정)만은 예외적으로 이 서비스
- * 안에서 직접 DB에 씁니다 — intake_log/custom_food/walk_mission/ai_chat(MISSION_CARD).
+ * 안에서 직접 DB에 씁니다 — intake_log/custom_food/walk_mission/ai_chat(FOOD_CARD+MISSION_CARD).
  * (기획서 아키텍처 원칙: DB 쓰기는 전부 Spring, AI 추론은 전부 FastAPI가 전담하는데,
  *  "먹은 음식 최종 확정" 시점에야 DB에 저장하고, 인식/재분석 단계는 아직 저장할 대상이 없습니다.)
+ *
+ * [각주] (추가) FOOD_CARD는 recognize/reanalyze 시점이 아니라 여기서만 저장합니다(사용자 결정) —
+ * 재검색/재분석을 몇 번 반복하든 대화 이력엔 최종 확정한 음식 1건만 남습니다.
  */
 
 /*
@@ -74,6 +76,9 @@ public class IntakeLogService {
     private final WalkMissionRepository walkMissionRepository;
     private final AiChatRepository aiChatRepository;
     private final ObjectMapper objectMapper;
+    // [각주 DB] 자동취소된 미션이 트래킹 캐시에 남아있지 않도록 정리하기 위해 주입합니다
+    // (WalkMissionService -> IntakeLogService 방향 의존은 없어서 순환 걱정 없음).
+    private final WalkMissionService walkMissionService;
 
     @Value("${fastapi.base-url}")
     private String fastApiBaseUrl;
@@ -135,19 +140,19 @@ public class IntakeLogService {
      * FastAPI의 POST /rag/intake-logs/recognize 를 호출합니다.
      * image/message 중 최소 하나는 있어야 하는데, 그 검증은 컨트롤러에서 먼저 합니다.
      *
-     * [각주 V] diagnosisGroup: 요청에 값이 오면 그걸 우선 쓰고(안드로이드가 직접 지정하고 싶을 때 대비),
-     * 안 오면 로그인한 사용자(userNo)의 users.diagnosis_group 값을 DB에서 조회해서 채웁니다.
-     * 둘 다 없으면(진단군 미설정 회원) null로 FastAPI에 전달되고, FastAPI가 기본값("건강군")을 적용합니다.
+     * [각주 V] (수정) diagnosisGroup은 더 이상 요청으로 안 받습니다 — 이건 사용자의 실제
+     * 진단 정보라 요청마다 프론트가 고를 값이 아니라, 로그인한 사용자(userNo)의
+     * users.diagnosis_group을 항상 그대로 조회해서 씁니다. 값이 없으면(진단군 미설정 회원)
+     * null로 FastAPI에 전달되고, FastAPI가 기본값("건강군")을 적용합니다.
      *
-     * 요청으로 온 diagnosisGroup은 안드로이드 화면 문구("정상"/"전당뇨"/"제2형당뇨") 그대로이므로,
-     * DiagnosisGroup.fromRawText()로 검증 + FastAPI가 이해하는 값("건강군"/"전당뇨"/"2형당뇨")으로
-     * 변환합니다. DB에서 꺼낸 값(users.diagnosis_group)은 이미 변환된 값이라 그대로 씁니다.
+     * (예전엔 프론트가 안드로이드 화면 문구를 rawText로 보내면 DiagnosisGroup.fromRawText()로
+     * 검증+변환했는데, "제2형당뇨"를 "2형당뇨"로 잘못 보내는 등 입력 실수가 잦고 애초에 클라이언트가
+     * 이 값을 바꿔 보낼 이유가 없어서 파라미터 자체를 없앴습니다. DB에서 꺼낸 값은 이미 FastAPI가
+     * 이해하는 형식("건강군"/"전당뇨"/"2형당뇨")으로 저장돼 있어서 변환도 필요 없습니다.)
      */
     public FoodRecognitionResponse recognizeFood(Integer userNo, MultipartFile image, String message,
-                                                  Double baseline, String diagnosisGroup) {
-        String resolvedDiagnosisGroup = (diagnosisGroup != null && !diagnosisGroup.isBlank())
-                ? DiagnosisGroup.fromRawText(diagnosisGroup).getApiValue()
-                : userRepository.findById(userNo).map(User::getDiagnosisGroup).orElse(null);
+                                                  Double baseline) {
+        String resolvedDiagnosisGroup = userRepository.findById(userNo).map(User::getDiagnosisGroup).orElse(null);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
 
@@ -195,15 +200,16 @@ public class IntakeLogService {
      * FastAPI schemas/predict.py의 PortionPredictRequest는 baseline/diagnosis_group이
      * 둘 다 필수(기본값 없음)입니다. recognize와 달리 FastAPI가 자동으로 기본값을 채워주지
      * 않으므로, Spring이 여기서 직접 확실한 값을 만들어 보내야 합니다.
+     *
+     * [각주] (수정) diagnosisGroup도 recognizeFood()와 동일하게 요청으로 안 받고 DB에서
+     * 항상 조회합니다 — [각주 V] 참고.
      */
     public PortionPredictResponse predictPortion(Integer userNo, PortionPredictRequest request) {
         if (request.baseline() == null) {
             throw new BusinessException(ErrorCode.MISSING_BASELINE);
         }
 
-        String resolvedDiagnosisGroup = (request.diagnosisGroup() != null && !request.diagnosisGroup().isBlank())
-                ? DiagnosisGroup.fromRawText(request.diagnosisGroup()).getApiValue()
-                : userRepository.findById(userNo).map(User::getDiagnosisGroup).orElse(null);
+        String resolvedDiagnosisGroup = userRepository.findById(userNo).map(User::getDiagnosisGroup).orElse(null);
         if (resolvedDiagnosisGroup == null || resolvedDiagnosisGroup.isBlank()) {
             // [각주] recognize는 이 경우 null을 보내면 FastAPI가 알아서 "건강군"으로 채워주지만,
             // predict.py는 diagnosis_group이 DIAGNOSIS_GROUPS(건강군/전당뇨/2형당뇨) 안에 없으면
@@ -247,7 +253,7 @@ public class IntakeLogService {
      *    "서버가 신뢰하는" 영양성분을 다시 확보 (프론트가 보낸 값을 그대로 믿지 않음)
      * 4) FastAPI predict를 다시 호출해서 predictedGlucoseRise/targetDistance/targetKcal 재계산
      *    (프론트가 /predict로 이미 받은 값을 또 보내더라도 그건 무시하고 서버가 새로 계산합니다)
-     * 5) 이미 활성 미션(READY/IN_PROGRESS)이 있으면 자동 취소(EXPIRED/CANCEL) 후 진행
+     * 5) 이미 활성 미션(READY/IN_PROGRESS)이 있으면 자동 취소(EXPIRED/CANCELLED) 후 진행
      *    — uq_active_mission(부분 유니크 인덱스)이 "유저당 활성 미션 1개"를 DB 레벨에서도 강제합니다
      * 6) intake_log 저장 → walk_mission 저장 → ai_chat(MISSION_CARD) 저장
      *
@@ -264,6 +270,9 @@ public class IntakeLogService {
         Integer customFoodNo = null;
         BigDecimal carb, sugar, protein, fat, fiber, calorie;
         double portion;
+        String foodName;
+        Integer servingSize;
+        String source;
 
         if (request.foodNo() != null) {
             // --- "맞아요" (식약처 매칭 그대로 확정) ---
@@ -277,6 +286,9 @@ public class IntakeLogService {
             fiber = foodInfo.getFiber();
             calorie = foodInfo.getCalorie();
             portion = request.portion() != null ? request.portion() : 1.0;
+            foodName = foodInfo.getFoodName();
+            servingSize = foodInfo.getServingSize();
+            source = "공공데이터";
         } else {
             // --- "틀려요→AI로 분석하기" / "직접입력하기" 확정 ---
             // [각주 BJ-1] CustomFood 저장은 별도 서비스로 안 빼고 여기서 직접 처리합니다
@@ -308,11 +320,14 @@ public class IntakeLogService {
             calorie = savedCustomFood.getCalorie();
             // [각주 BK] 직접입력/AI추정 값은 "1인분 기준"이 아니라 "실제 먹은 양 그 자체"라 portion 고정 1.0.
             portion = 1.0;
+            foodName = savedCustomFood.getFoodName();
+            servingSize = savedCustomFood.getServingSize();
+            source = savedCustomFood.getSource();
         }
 
         PortionPredictRequest predictRequest = new PortionPredictRequest(
                 carb, sugar, protein, fat, fiber, calorie,
-                portion, baseline, request.diagnosisGroup()
+                portion, baseline
         );
         PortionPredictResponse predicted = predictPortion(userNo, predictRequest);
 
@@ -324,7 +339,19 @@ public class IntakeLogService {
                 userNo, List.of(WalkMissionStatus.READY, WalkMissionStatus.IN_PROGRESS)
         ).ifPresent(activeMission -> {
             activeMission.cancelForNewConfirm();
-            walkMissionRepository.save(activeMission);
+            // [각주 CN] save()가 아니라 saveAndFlush()를 씁니다 — 이유: WalkMission의 PK는
+            // GenerationType.IDENTITY라, 바로 아래에서 "새" WalkMission을 save()하는 순간
+            // (트랜잭션 끝까지 안 미뤄지고) INSERT가 그 즉시 DB로 나갑니다(IDENTITY는 DB가
+            // 키를 만들어주는 방식이라 Hibernate가 그 값을 바로 받아와야 해서 미룰 수가 없음).
+            // 반면 이 UPDATE(취소 처리)는 그냥 save()만 쓰면 트랜잭션 커밋 시점까지 미뤄지는게
+            // 기본 동작이라, "이전 미션을 취소 → 새 미션 저장"을 코드 순서대로 짰어도 실제 DB에는
+            // "새 미션 INSERT"가 "이전 미션 취소 UPDATE"보다 먼저 도착해버렸습니다. 그 순간 DB에는
+            // 같은 유저의 활성(READY/IN_PROGRESS) 미션이 일시적으로 2건이 되어버려서
+            // uq_active_mission(유저당 활성 미션 1개 제약, 부분 유니크 인덱스)에 걸려
+            // "중복" 에러가 났던 겁니다. saveAndFlush()로 취소 UPDATE를 먼저 확실히 DB에
+            // 반영해두면 이 순서 역전이 사라집니다.
+            walkMissionRepository.saveAndFlush(activeMission);
+            walkMissionService.evictCheckpointCache(activeMission.getMissionNo());
         });
 
         Integer postGlucoseEst = (predicted.predictedGlucoseRise() != null)
@@ -341,6 +368,14 @@ public class IntakeLogService {
                 .build();
         IntakeLog savedLog = intakeLogRepository.save(intakeLog);
 
+        // [각주 DG] FOOD_CARD는 recognize/reanalyze 시점이 아니라 여기(확정 시점)에만 저장합니다
+        // — 재검색/재분석을 몇 번을 반복하든 대화 이력에는 최종 확정한 음식 1건만 남기기로
+        // 결정했습니다(사용자 결정 사항). recognize/reanalyze는 여전히 DB에 아무것도 안 씁니다.
+        // 이 시점엔 predictPortion()이 이미 끝나서 portion 반영된 정확한 predictedGlucoseRise를
+        // 알고 있으니, recognize 때와 달리 부정확한 값 문제도 없습니다.
+        saveFoodCardChat(userNo, savedLog, foodNo, customFoodNo, foodName, servingSize, source,
+                carb, sugar, protein, fat, fiber, calorie, predicted.predictedGlucoseRise());
+
         WalkMission mission = WalkMission.builder()
                 .userNo(userNo)
                 .logNo(savedLog.getLogNo())
@@ -350,7 +385,7 @@ public class IntakeLogService {
         WalkMission savedMission = walkMissionRepository.save(mission);
 
         String chatbotMessage = "기록할 음식이 확정되었어요! 이제 식후 30분 이후 걷기를 시작해볼까요?";
-        saveMissionCardChat(userNo, savedLog, savedMission, chatbotMessage);
+        saveMissionCardChat(userNo, savedLog, savedMission, predicted.targetTimeMinutes(), chatbotMessage);
 
         return new IntakeConfirmResponse(
                 savedLog.getLogNo(),
@@ -358,6 +393,7 @@ public class IntakeLogService {
                 predicted.predictedGlucoseRise(),
                 savedMission.getTargetDistance(),
                 savedMission.getTargetKcal(),
+                predicted.targetTimeMinutes(),
                 chatbotMessage
         );
     }
@@ -371,13 +407,68 @@ public class IntakeLogService {
         }
     }
 
-    /** MISSION_CARD 타입 ai_chat row를 저장합니다. cardData는 프론트가 나중에 이력을 다시 그릴 때 쓸 스냅샷입니다. */
-    private void saveMissionCardChat(Integer userNo, IntakeLog intakeLog, WalkMission mission, String chatbotMessage) {
+    /**
+     * [각주 DH] FOOD_CARD 타입 ai_chat row를 저장합니다 — "확정된 음식" 1건의 스냅샷입니다.
+     * foodNo/customFoodNo 중 확정 시 실제로 채워진 쪽만 값이 들어가고 나머지는 null입니다
+     * (intake_log의 chk_food_reference와 동일한 XOR 규칙).
+     */
+    private void saveFoodCardChat(Integer userNo, IntakeLog intakeLog, Integer foodNo, Integer customFoodNo,
+                                   String foodName, Integer servingSize, String source,
+                                   BigDecimal carb, BigDecimal sugar, BigDecimal protein,
+                                   BigDecimal fat, BigDecimal fiber, BigDecimal calorie,
+                                   Double predictedGlucoseRise) {
+        Map<String, Object> nutrition = new LinkedHashMap<>();
+        nutrition.put("carb", carb);
+        nutrition.put("sugar", sugar);
+        nutrition.put("protein", protein);
+        nutrition.put("fat", fat);
+        nutrition.put("fiber", fiber);
+        nutrition.put("calorie", calorie);
+
+        Map<String, Object> card = new LinkedHashMap<>();
+        card.put("logNo", intakeLog.getLogNo());
+        card.put("foodNo", foodNo);
+        card.put("customFoodNo", customFoodNo);
+        card.put("foodName", foodName);
+        card.put("servingSize", servingSize);
+        card.put("nutrition", nutrition);
+        card.put("predictedGlucoseRise", predictedGlucoseRise);
+        card.put("source", source);
+
+        String cardDataJson;
+        try {
+            cardDataJson = objectMapper.writeValueAsString(card);
+        } catch (JsonProcessingException e) {
+            log.error("FOOD_CARD cardData 직렬화 실패 (logNo={}): {}", intakeLog.getLogNo(), e.getMessage());
+            cardDataJson = null;
+        }
+
+        AiChat aiChat = AiChat.builder()
+                .userNo(userNo)
+                .aiMessage(foodName + " 기록 완료!")
+                .chatType(ChatType.FOOD_CARD)
+                .cardData(cardDataJson)
+                .build();
+        aiChatRepository.save(aiChat);
+    }
+
+    /**
+     * MISSION_CARD 타입 ai_chat row를 저장합니다. cardData는 프론트가 나중에 이력을 다시 그릴 때 쓸 스냅샷입니다.
+     *
+     * [각주] targetTimeMinutes는 WalkMission 엔티티(DB)에는 저장하지 않습니다 — walk_mission
+     * 테이블에 이 값을 담을 컬럼이 없어서(target_distance/target_kcal만 있음), 여기 카드
+     * 스냅샷에만 값을 남겨둡니다. 그래서 이 값은 지금 이 확정 응답/카드에서만 볼 수 있고,
+     * 나중에 GET /api/walk-missions/active로 다시 조회할 때는 안 나옵니다 — 필요하면
+     * walk_mission에 컬럼을 추가해야 합니다(DB는 직접 관리하시니, 필요하면 알려드릴게요).
+     */
+    private void saveMissionCardChat(Integer userNo, IntakeLog intakeLog, WalkMission mission,
+                                      Integer targetTimeMinutes, String chatbotMessage) {
         Map<String, Object> card = new LinkedHashMap<>();
         card.put("logNo", intakeLog.getLogNo());
         card.put("missionNo", mission.getMissionNo());
         card.put("targetDistance", mission.getTargetDistance());
         card.put("targetKcal", mission.getTargetKcal());
+        card.put("targetTimeMinutes", targetTimeMinutes);
 
         String cardDataJson;
         try {

@@ -2,7 +2,6 @@ package com.dangdang.service;
 
 import com.dangdang.client.FastApiClient;
 import com.dangdang.dto.response.ReanalyzeResponse;
-import com.dangdang.entity.DiagnosisGroup;
 import com.dangdang.entity.User;
 import com.dangdang.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -29,13 +28,11 @@ public class RecognizeProxyService {
 
     /**
      * image/foodName 중 최소 하나는 필수 — 검증은 컨트롤러에서 먼저 합니다.
-     * diagnosisGroup 해석 규칙은 IntakeLogService.recognizeFood()의 [각주 V]와 동일합니다.
+     * diagnosisGroup은 요청으로 안 받고 항상 DB에서 조회합니다 —
+     * IntakeLogService.recognizeFood()의 [각주 V]와 동일한 이유입니다.
      */
-    public ReanalyzeResponse reanalyze(Integer userNo, MultipartFile image, String foodName,
-                                        Double baseline, String diagnosisGroup) {
-        String resolvedDiagnosisGroup = (diagnosisGroup != null && !diagnosisGroup.isBlank())
-                ? DiagnosisGroup.fromRawText(diagnosisGroup).getApiValue()
-                : userRepository.findById(userNo).map(User::getDiagnosisGroup).orElse(null);
+    public ReanalyzeResponse reanalyze(Integer userNo, MultipartFile image, String foodName, Double baseline) {
+        String resolvedDiagnosisGroup = userRepository.findById(userNo).map(User::getDiagnosisGroup).orElse(null);
 
         MultiValueMap<String, Object> body = new LinkedMultiValueMap<>();
         if (image != null && !image.isEmpty()) {

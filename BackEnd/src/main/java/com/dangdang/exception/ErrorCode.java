@@ -38,7 +38,25 @@ public enum ErrorCode {
     INVALID_CUSTOM_FOOD_SOURCE(HttpStatus.BAD_REQUEST, "FOOD_400_INVALID_CUSTOM_FOOD_SOURCE",
             "source 값이 올바르지 않습니다. (\"AI추정\" 또는 \"사용자입력\" 중 하나여야 합니다)"),
     FOOD_NOT_FOUND(HttpStatus.NOT_FOUND, "FOOD_404_FOOD_NOT_FOUND",
-            "존재하지 않는 음식입니다. (food_no를 다시 확인해주세요)");
+            "존재하지 않는 음식입니다. (food_no를 다시 확인해주세요)"),
+
+    // --- 걷기 미션(walk-missions) 관련 ---
+    MISSION_NOT_FOUND(HttpStatus.NOT_FOUND, "MISSION_404_NOT_FOUND",
+            "존재하지 않는 미션입니다."),
+    FORBIDDEN_MISSION_ACCESS(HttpStatus.FORBIDDEN, "MISSION_403_FORBIDDEN",
+            "본인의 미션만 조회하거나 종료할 수 있습니다."),
+    INVALID_EXPIRE_REASON(HttpStatus.BAD_REQUEST, "MISSION_400_INVALID_EXPIRE_REASON",
+            "expireReason 값이 올바르지 않습니다. (\"INACTIVE\" 또는 \"CANCELLED\" 중 하나여야 합니다)"),
+    MISSION_NOT_EXPIRABLE(HttpStatus.CONFLICT, "MISSION_409_NOT_EXPIRABLE",
+            "진행 중인(IN_PROGRESS) 미션만 이 방식으로 종료할 수 있습니다."),
+    MISSION_NOT_STARTABLE(HttpStatus.CONFLICT, "MISSION_409_NOT_STARTABLE",
+            "대기 중인(READY) 미션만 시작할 수 있습니다."),
+    MISSION_NOT_IN_PROGRESS(HttpStatus.CONFLICT, "MISSION_409_NOT_IN_PROGRESS",
+            "진행 중인(IN_PROGRESS) 미션에서만 가능한 동작입니다."),
+    MISSION_NOT_FINISHED(HttpStatus.CONFLICT, "MISSION_409_NOT_FINISHED",
+            "완료(COMPLETE) 또는 미완료 종료(PARTIAL) 상태의 미션에서만 걷기 후 혈당을 기록할 수 있습니다."),
+    POST_GLUCOSE_ALREADY_RECORDED(HttpStatus.CONFLICT, "MISSION_409_POST_GLUCOSE_ALREADY_RECORDED",
+            "이미 걷기 후 혈당을 기록했습니다. 재입력(수정)은 지원하지 않습니다.");
 
     private final HttpStatus status;
     private final String code;

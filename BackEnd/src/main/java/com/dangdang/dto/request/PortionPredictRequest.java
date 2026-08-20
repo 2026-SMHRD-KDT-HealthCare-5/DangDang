@@ -12,6 +12,11 @@ import java.math.BigDecimal;
  *
  * baseline은 필수입니다 — preglucose 단계에서 이미 정해진 값이라 여기서 새로 기본값을
  * 계산하지 않습니다(그건 FastAPI predict.py도 마찬가지로 필수 값으로 받습니다).
+ *
+ * [각주] (수정) diagnosisGroup 필드를 뺐습니다 — 이 값은 사용자의 실제 진단 정보라
+ * 요청마다 프론트가 골라 보낼 이유가 없고, 서버가 항상 users.diagnosis_group을 그대로
+ * 조회해서 씁니다(IntakeLogService.predictPortion() 참고). 클라이언트가 rawText 형식
+ * ("제2형당뇨" 등)을 잘못 보내서 검증 에러가 나는 문제도 이걸로 원천 차단됩니다.
  */
 public record PortionPredictRequest(
         BigDecimal carb,
@@ -21,7 +26,6 @@ public record PortionPredictRequest(
         BigDecimal fiber,
         BigDecimal calorie,
         Double portion,
-        Double baseline,
-        String diagnosisGroup
+        Double baseline
 ) {
 }
