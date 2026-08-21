@@ -1,0 +1,18 @@
+# [각주] gradlew는 셸 스크립트라서 CRLF로 바뀌면 리눅스/맥에서 "bad interpreter" 에러가 남.
+# text eol=lf : 이 파일은 무조건 LF로 저장하도록 강제(운영체제 상관없이 고정).
+gradlew text eol=lf
+*.sh text eol=lf
+
+# 윈도우 전용 스크립트는 반대로 CRLF로 고정.
+gradlew.bat text eol=crlf
+*.bat text eol=crlf
+
+# 자바/코틀린/설정 파일은 그냥 각자 운영체제 기본값(autocrlf)에 맡김 — 굳이 강제 안 함.
+*.java text
+*.kt text
+*.kts text
+
+# 바이너리 파일은 Git이 줄바꿈 변환을 아예 건드리면 안 됨(건드리면 파일 깨짐).
+*.jar binary
+*.png binary
+*.jpg binary
