@@ -38,7 +38,7 @@ object StepCounterManager {
     private val _isWalkEndDialog = MutableStateFlow(false)
     val isWalkEndDialog: StateFlow<Boolean> = _isWalkEndDialog.asStateFlow()
 
-    fun endWalkMission(missionNo: Int){
+    fun endWalkMission(){
         _isEndWalk.value = true
         _isWalkEndDialog.value = true
     }
@@ -100,7 +100,7 @@ object StepCounterManager {
         _walkStatus.value = _walkStatus.value.copy(
             missionNo = loadedWalkStatus?.missionNo?:0,
             status = loadedWalkStatus?.status?:"",
-            targetDistance = loadedWalkStatus?.targetDistance?:0f,
+            targetDistance = getMeterToKm(loadedWalkStatus?.targetDistance?.toDouble()?:0.0).toFloat(),
             currentWalkCount = loadedWalkStatus?.currentWalkCount?:0,
             currentWalkKcal = getWalkKcal(loadedWalkStatus?.currentWalkCount?:0),
             actualDistance = getMeterToKm(loadedWalkStatus?.actualDistance?.toDouble()?:0.0).toFloat(),

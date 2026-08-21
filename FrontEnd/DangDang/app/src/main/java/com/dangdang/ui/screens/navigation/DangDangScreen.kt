@@ -20,6 +20,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -121,6 +122,7 @@ fun DangDangScreen(
     dangDangViewModel: DangDangViewModel = hiltViewModel(),
     onWalkChallengeMove: () -> Unit,
     isWalkComplete: Boolean,
+    missionNo: Int,
     onFoodInputDirectlyClick: () -> Unit,
     navController: NavController,
 ){
@@ -181,6 +183,10 @@ fun DangDangScreen(
         ?.getStateFlow("isWalkComplete", false)
         ?.collectAsState()
         ?: remember { mutableStateOf(false) }
+    val missionNoHandle by savedStateHandle
+        ?.getStateFlow("missionNo", -1)
+        ?.collectAsState()
+        ?: remember { mutableIntStateOf(-1) }
 
     //음식 입력 직접하고 왔을 경우
     val isFoodInputDirectlySend by savedStateHandle
@@ -276,7 +282,12 @@ fun DangDangScreen(
             },
             onAfterWalkGlucoseInputCompleteClick = {
                 dangDangViewModel.afterWalkGlucoseSend(
-                    afterWalkGlucoseValue.toInt()
+                    missionNo = if(missionNo > 0){
+                        missionNo
+                    }else{
+                        missionNoHandle
+                    },
+                    glucose = afterWalkGlucoseValue.toInt()
                 )
             },
             onChallengeClick = {

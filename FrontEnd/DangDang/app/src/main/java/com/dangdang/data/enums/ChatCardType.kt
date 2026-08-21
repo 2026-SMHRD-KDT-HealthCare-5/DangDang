@@ -4,5 +4,5 @@ import androidx.annotation.Keep
 
 @Keep
 enum class ChatCardType {
-    MISSION_CARD, FOOD_CARD
+    MISSION_CARD, FOOD_CARD, POST_GLUCOSE
 }

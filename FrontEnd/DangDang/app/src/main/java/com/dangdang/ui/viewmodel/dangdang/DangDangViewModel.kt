@@ -172,9 +172,14 @@ class DangDangViewModel @Inject constructor(
         }
     }
 
-    fun afterWalkGlucoseSend(glucose: Int){
+    fun afterWalkGlucoseSend(missionNo: Int, glucose: Int){
         chatProcess {
-            _chattingList.applyResponse(dangDangRepository.afterWalkGlucoseSend(glucose))
+            _chattingList.applyResponse(
+                dangDangRepository.afterWalkGlucoseSend(
+                    missionNo = missionNo,
+                    glucose = glucose
+                )
+            )
         }
     }
 }

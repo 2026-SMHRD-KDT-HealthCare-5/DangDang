@@ -65,7 +65,7 @@ fun WalkScreenPreview(
 fun WalkScreen(
     walkViewModel: WalkViewModel = hiltViewModel(),
     isStart: Boolean,
-    onSendGlucoseClick: () -> Unit
+    onSendGlucoseClick: (missionNo: Int) -> Unit
 ){
     val context = LocalContext.current
 
@@ -83,9 +83,6 @@ fun WalkScreen(
 
     val routePoints by
         StepCounterManager.routePoints.collectAsState()
-
-    val isEndWalk by
-        StepCounterManager.isEndWalk.collectAsState()
 
     val isWalkEndDialog by
         StepCounterManager.isWalkEndDialog.collectAsState()
@@ -136,12 +133,6 @@ fun WalkScreen(
         }
     }
 
-    LaunchedEffect(isEndWalk) {
-        if(isEndWalk && walkStatus.targetDistance > 0.0f){
-            walkViewModel.endWalkMission(walkStatus.missionNo)
-        }
-    }
-
     if(walkStatus.status != WalkMissionStatus.Loading.name &&
         walkStatus.status != WalkMissionStatus.LoadingError.name){
         WalkScreenContent(
@@ -160,7 +151,9 @@ fun WalkScreen(
                 }
             },
             isWalkEndDialog = isWalkEndDialog,
-            onSendGlucoseClick = onSendGlucoseClick
+            onSendGlucoseClick = {
+                onSendGlucoseClick(walkStatus.missionNo)
+            }
         )
     }else{
         ErrorView(

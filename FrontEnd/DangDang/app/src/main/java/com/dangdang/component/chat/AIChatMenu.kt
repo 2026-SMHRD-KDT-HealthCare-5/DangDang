@@ -419,12 +419,14 @@ fun AIChatMenu(
             if(chatModel.chatType.isNotEmpty()){
                 //오늘 걷기 목표 타입일 경우
                 if(chatModel.chatType == TodayWalkTargetType){
-                    AIRecommendWalkChallengeBox(
-                        targetDistance =
-                            chatModel.recommendWalkInfo?.targetDistance?:0f,
-                        minute = chatModel.recommendWalkInfo?.minute?:0,
-                        onChallengeClick = onChallengeClick
-                    )
+                    if(chatModel.recommendWalkInfo != null){
+                        AIRecommendWalkChallengeBox(
+                            targetDistance =
+                                chatModel.recommendWalkInfo.targetDistance,
+                            minute = chatModel.recommendWalkInfo.minute,
+                            onChallengeClick = onChallengeClick
+                        )
+                    }
                 }else if(chatModel.chatType == AnalysisFoodType){
                     //음식 분석 타입인 경우
                     when(chatModel.chatStageType){

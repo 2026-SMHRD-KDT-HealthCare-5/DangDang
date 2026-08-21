@@ -175,7 +175,10 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun providerDangDangRepository(chatApiService: ChatApiService): DangDangRepository {
-        return DangDangRepository(chatApiService)
+    fun providerDangDangRepository(
+        chatApiService: ChatApiService,
+        walkApiService: WalkApiService
+    ): DangDangRepository {
+        return DangDangRepository(chatApiService, walkApiService)
     }
 }

@@ -19,6 +19,7 @@ import com.dangdang.common.utils.toMultipart
 import com.dangdang.common.utils.toRequestBody
 import com.dangdang.common.utils.uriToFile
 import com.dangdang.data.api.ChatApiService
+import com.dangdang.data.api.WalkApiService
 import com.dangdang.data.enums.ChatCardType
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.model.chat.AIRecommendWalkModel
@@ -38,6 +39,8 @@ import com.dangdang.data.model.chat.FoodPredictInputForm
 import com.dangdang.data.model.chat.FoodPredictResponse
 import com.dangdang.data.model.chat.GlucoseFeedbackModel
 import com.dangdang.data.model.chat.PreGlucoseInputForm
+import com.dangdang.data.model.walk.PostWalkGlucoseInputForm
+import com.dangdang.data.model.walk.WalkStatusCardData
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -50,7 +53,8 @@ import java.time.LocalTime
 import javax.inject.Inject
 
 class DangDangRepository @Inject constructor(
-    private val chatApiService: ChatApiService
+    private val chatApiService: ChatApiService,
+    private val walkApiService: WalkApiService
 ){
     private val gson = Gson()
     private val _analyzeChattingList = MutableStateFlow<List<ChatModel>>(emptyList())
@@ -59,6 +63,10 @@ class DangDangRepository @Inject constructor(
     private val _preGlucose = MutableStateFlow<Double?>(null)
     private val _portion = MutableStateFlow<Double?>(null)
 
+    private val _targetTimeMinutes = MutableStateFlow<Int?>(null)
+
+    private val _missionNo = MutableStateFlow<Int?>(null)
+
     //채팅 리스트 호출하기
     suspend fun getChattingList(): Response<List<ChatModel>>{
         val chatResponse = safeApiCall {
@@ -66,7 +74,8 @@ class DangDangRepository @Inject constructor(
         }
         if(chatResponse.isSuccessful){
             val chatList = ArrayList<ChatModel>()
-            chatResponse.body()?.messages?.forEach { chat ->
+            val chatResponseList = chatResponse.body()?.messages
+            chatResponseList?.forEachIndexed { index, chat ->
                 chatList.addAll(
                     listOf(
                         ChatModel(
@@ -86,7 +95,8 @@ class DangDangRepository @Inject constructor(
                             message = chat.aiMessage,
                             date = LocalDateTime.parse(chat.chattedAt),
                             chatType = if(chat.chatType == ChatCardType.MISSION_CARD.name ||
-                                chat.chatType == ChatCardType.FOOD_CARD.name){
+                                chat.chatType == ChatCardType.FOOD_CARD.name ||
+                                chat.chatType == ChatCardType.POST_GLUCOSE.name){
                                 AnalysisFoodType
                             }else{
                                 chat.chatType
@@ -94,11 +104,21 @@ class DangDangRepository @Inject constructor(
                             chatStageType = if(chat.chatType == ChatCardType.MISSION_CARD.name ||
                                 chat.chatType == ChatCardType.FOOD_CARD.name){
                                 RecommendWalkDistanceStage
+                            }else if(chat.chatType == ChatCardType.POST_GLUCOSE.name){
+                                chat.cardData?.takeIf { it.isJsonObject }?.let { cardDataJson ->
+                                    val cardData = gson.fromJson(cardDataJson, WalkStatusCardData::class.java)
+                                    _missionNo.value = cardData.missionNo
+                                }
+                                AfterWalkGlucoseInputStage
                             }else{
                                 ""
                             },
                             isChatAble = true,
-                            isInputComplete = false,
+                            isInputComplete = if(chat.chatType == ChatCardType.POST_GLUCOSE.name){
+                                index < chatResponseList.size - 1
+                            }else{
+                                false
+                            },
                             analysisFoodInfo = if(chat.chatType == ChatCardType.FOOD_CARD.name){
                                 chat.cardData?.takeIf { it.isJsonObject }?.let { cardDataJson ->
                                     val cardData = gson.fromJson(cardDataJson, FoodAnalysisResponse::class.java)
@@ -119,6 +139,7 @@ class DangDangRepository @Inject constructor(
                             recommendWalkInfo = if(chat.chatType == ChatCardType.MISSION_CARD.name){
                                 chat.cardData?.takeIf { it.isJsonObject }?.let { cardDataJson ->
                                     val cardData = gson.fromJson(cardDataJson, FoodConfirmResponse::class.java)
+                                    _targetTimeMinutes.value = cardData.targetTimeMinutes
                                     AIRecommendWalkModel(
                                         targetDistance = getMeterToKm(cardData.targetDistance).toFloat(),
                                         minute = cardData.targetTimeMinutes
@@ -132,6 +153,7 @@ class DangDangRepository @Inject constructor(
                     )
                 )
             }
+
             return Response.success(chatList)
         }else{
             return Response.error(chatResponse.code(), chatResponse.errorBody())
@@ -669,6 +691,8 @@ class DangDangRepository @Inject constructor(
                 )
             )
 
+            _targetTimeMinutes.value = checkFood?.targetTimeMinutes
+
             return Response.success(_analyzeChattingList.value)
         }else{
             return Response.error(chatResponse.code(), chatResponse.errorBody())
@@ -678,40 +702,55 @@ class DangDangRepository @Inject constructor(
 
     //오늘 걷기 목표 불러오기 선택 시
     suspend fun getRecommendWalkChallenge(): Response<List<ChatModel>>{
-        val response = listOf(
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "오늘 걷기 미션이에요!",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = TodayWalkTargetType,
-                isChatAble = true,
-                isInputComplete = false,
-                chatStageType = "",
-                analysisFoodInfo = null,
-                recommendWalkInfo = AIRecommendWalkModel(
-                    targetDistance = 2.6f,
-                    minute = 30
-                ),
-                glucoseFeedbackInfo = null
+        val walkStatusResponse = safeApiCall {
+            walkApiService.getWalkStatus()
+        }
+        if(walkStatusResponse.isSuccessful){
+            val walkStatus = walkStatusResponse.body()
+            val isMissionHave = walkStatus?.targetDistance != null
+
+            return Response.success(
+                listOf(
+                    ChatModel(
+                        chatUserType = ChatUserType.AI,
+                        message = if(isMissionHave){
+                            "오늘 걷기 미션이에요!"
+                        } else {
+                            "아직 생성된 걷기 미션이 없어요!\n" +
+                                    "[음식분석&걷기]를 누르시고 먹은 음식을 입력한 다음\n" +
+                                    "걷기 미션을 생성해보세요"
+                        },
+                        date = LocalDateTime.now(),
+                        chatType = TodayWalkTargetType,
+                        isChatAble = true,
+                        isInputComplete = false,
+                        chatStageType = "",
+                        analysisFoodInfo = null,
+                        recommendWalkInfo = if(isMissionHave){
+                            AIRecommendWalkModel(
+                                targetDistance = getMeterToKm(walkStatus.targetDistance.toDouble()).toFloat(),
+                                minute = _targetTimeMinutes.value?:0
+                            )
+                        }else{
+                            null
+                        },
+                        glucoseFeedbackInfo = null
+                    )
+                )
             )
-        )
-        return Response.success(response)
+        }else{
+            return Response.error(walkStatusResponse.code(), walkStatusResponse.errorBody())
+        }
     }
 
     //걷기 완료 미션 전송
     suspend fun completeWalkMission(): Response<List<ChatModel>>{
-        val response = listOf(
+        _analyzeChattingList.value = listOf(
             ChatModel(
                 chatUserType = ChatUserType.AI,
                 message = "걷기 완료! \uD83C\uDF89 수고했어요!\n" +
                         "이제 혈당을 입력해주세요.",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
+                date = LocalDateTime.now(),
                 chatType = AnalysisFoodType,
                 isChatAble = false,
                 isInputComplete = false,
@@ -721,34 +760,45 @@ class DangDangRepository @Inject constructor(
                 glucoseFeedbackInfo = null
             )
         )
-        return Response.success(response)
+        return Response.success(_analyzeChattingList.value)
     }
 
     //식후 혈당 전송
-    suspend fun afterWalkGlucoseSend(glucose: Int): Response<List<ChatModel>>{
-        val response = listOf(
-            ChatModel(
-                chatUserType = ChatUserType.AI,
-                message = "정말 잘했어요!",
-                date = LocalDateTime.of(
-                    LocalDate.now(),
-                    LocalTime.of(8, 30)
-                ),
-                chatType = AnalysisFoodType,
-                isChatAble = true,
-                isInputComplete = false,
-                chatStageType = AIFeedbackStage,
-                analysisFoodInfo = null,
-                recommendWalkInfo = null,
-                glucoseFeedbackInfo = GlucoseFeedbackModel(
-                    beginGlucose = 140,
-                    aiPredictAfterGlucose = 175,
-                    realAfterGlucose = 170,
-                    targetDistance = 2.6f,
-                    walkDistance = 2.6f
+    suspend fun afterWalkGlucoseSend(missionNo: Int?, glucose: Int): Response<List<ChatModel>>{
+        val postWalkGlucoseResponse = safeApiCall {
+            walkApiService.postWalkGlucose(
+                missionNo = missionNo?:_missionNo.value?:-1,
+                postWalkGlucoseInputForm = PostWalkGlucoseInputForm(
+                    postWalkGlucose = glucose
                 )
             )
-        )
-        return Response.success(response)
+        }
+        if(postWalkGlucoseResponse.isSuccessful){
+            val postWalkGlucoseResponseBody = postWalkGlucoseResponse.body()
+
+            val response = listOf(
+                ChatModel(
+                    chatUserType = ChatUserType.AI,
+                    message = "정말 잘했어요!",
+                    date = LocalDateTime.now(),
+                    chatType = AnalysisFoodType,
+                    isChatAble = true,
+                    isInputComplete = false,
+                    chatStageType = AIFeedbackStage,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = GlucoseFeedbackModel(
+                        beginGlucose = postWalkGlucoseResponseBody?.preGlucose?:0,
+                        aiPredictAfterGlucose = postWalkGlucoseResponseBody?.postGlucoseEst?:0,
+                        realAfterGlucose = postWalkGlucoseResponseBody?.postWalkGlucose?:0,
+                        targetDistance = getMeterToKm(postWalkGlucoseResponseBody?.targetDistance?:0.0).toFloat(),
+                        walkDistance = getMeterToKm(postWalkGlucoseResponseBody?.actualDistance?:0.0).toFloat()
+                    )
+                )
+            )
+            return Response.success(response)
+        }else{
+            return Response.error(postWalkGlucoseResponse.code(), postWalkGlucoseResponse.errorBody())
+        }
     }
 }

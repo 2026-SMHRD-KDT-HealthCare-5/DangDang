@@ -48,7 +48,7 @@ class WalkViewModel @Inject constructor(
                         val expireResponseBody = expireResponse.body()
                         Toast.makeText(context, expireResponseBody?.noticeMessage, Toast.LENGTH_SHORT).show()
                     }else{
-                        Toast.makeText(context, "미션 종료 처리를 하는 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+                        StepCounterManager.walkStateLoadingErrorProcess()
                     }
                 }else{
                     StepCounterManager.loadWalkState(walkStatus)
@@ -91,11 +91,5 @@ class WalkViewModel @Inject constructor(
         walkStatus: WalkStatus
     ) {
         StopStepCounting(context, walkStatus.missionNo)
-    }
-
-    fun endWalkMission(missionNo: Int){
-        viewModelScope.launch {
-            walkRepository.endWalkMission(missionNo)
-        }
     }
 }
