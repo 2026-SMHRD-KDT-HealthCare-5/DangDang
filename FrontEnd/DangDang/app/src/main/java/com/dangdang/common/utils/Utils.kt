@@ -133,6 +133,10 @@ fun addComma(number: Int): String {
     return formattedNumber
 }
 
+fun getMeterToKm(distance: Double): Double{
+    return distance / 1000.0
+}
+
 fun navigateBottomTab(
     navController: NavHostController,
     route: String

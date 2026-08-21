@@ -11,5 +11,6 @@ data class FoodAnalysisResponse (
     val predictedGlucoseRise: Double,
     val source: String,
     val chatbotMessage: String,
-    val serving_size: Int
+    val serving_size: Int,
+    val servingSize: Int
 )

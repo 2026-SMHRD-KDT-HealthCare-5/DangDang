@@ -13,11 +13,13 @@ import com.dangdang.common.utils.InputAteWeightStage
 import com.dangdang.common.utils.RecommendWalkDistanceStage
 import com.dangdang.common.utils.TodayWalkTargetType
 import com.dangdang.common.utils.deleteSafely
+import com.dangdang.common.utils.getMeterToKm
 import com.dangdang.common.utils.safeApiCall
 import com.dangdang.common.utils.toMultipart
 import com.dangdang.common.utils.toRequestBody
 import com.dangdang.common.utils.uriToFile
 import com.dangdang.data.api.ChatApiService
+import com.dangdang.data.enums.ChatCardType
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.model.chat.AIRecommendWalkModel
 import com.dangdang.data.model.chat.AnalysisFoodModel
@@ -28,6 +30,7 @@ import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.ChatRecommendQuestionModel
 import com.dangdang.data.model.chat.FoodAnalysisResponse
 import com.dangdang.data.model.chat.FoodConfirmInputForm
+import com.dangdang.data.model.chat.FoodConfirmResponse
 import com.dangdang.data.model.chat.FoodInfoModel
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
 import com.dangdang.data.model.chat.FoodNutritionModel
@@ -35,6 +38,7 @@ import com.dangdang.data.model.chat.FoodPredictInputForm
 import com.dangdang.data.model.chat.FoodPredictResponse
 import com.dangdang.data.model.chat.GlucoseFeedbackModel
 import com.dangdang.data.model.chat.PreGlucoseInputForm
+import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -48,6 +52,7 @@ import javax.inject.Inject
 class DangDangRepository @Inject constructor(
     private val chatApiService: ChatApiService
 ){
+    private val gson = Gson()
     private val _analyzeChattingList = MutableStateFlow<List<ChatModel>>(emptyList())
     private val _analyzeFood = MutableStateFlow<FoodAnalysisResponse?>(null)
     private val _foodPredict = MutableStateFlow<FoodPredictResponse?>(null)
@@ -80,24 +85,45 @@ class DangDangRepository @Inject constructor(
                             chatUserType = ChatUserType.AI,
                             message = chat.aiMessage,
                             date = LocalDateTime.parse(chat.chattedAt),
-                            chatType = if(chat.chatType == "MISSION_CARD"){
+                            chatType = if(chat.chatType == ChatCardType.MISSION_CARD.name ||
+                                chat.chatType == ChatCardType.FOOD_CARD.name){
                                 AnalysisFoodType
                             }else{
                                 chat.chatType
                             },
-                            chatStageType = if(chat.chatType == "MISSION_CARD"){
+                            chatStageType = if(chat.chatType == ChatCardType.MISSION_CARD.name ||
+                                chat.chatType == ChatCardType.FOOD_CARD.name){
                                 RecommendWalkDistanceStage
                             }else{
                                 ""
                             },
                             isChatAble = true,
                             isInputComplete = false,
-                            analysisFoodInfo = null,
-                            recommendWalkInfo = if(chat.cardData!=null){
-                                AIRecommendWalkModel(
-                                    targetDistance = chat.cardData.targetDistance.toFloat(),
-                                    minute = 30
-                                )
+                            analysisFoodInfo = if(chat.chatType == ChatCardType.FOOD_CARD.name){
+                                chat.cardData?.takeIf { it.isJsonObject }?.let { cardDataJson ->
+                                    val cardData = gson.fromJson(cardDataJson, FoodAnalysisResponse::class.java)
+                                    AnalysisFoodModel(
+                                        predictedGlucoseRise = 0.0,
+                                        beginGlucose = 0.0,
+                                        foodInfo = analyzeFoodToFoodInfoModel(
+                                            foodName = cardData.foodName,
+                                            nutrition = cardData.nutrition,
+                                            servingSize = cardData.servingSize,
+                                            calorie = cardData.nutrition.calorie
+                                        )
+                                    )
+                                }
+                            }else{
+                                null
+                            },
+                            recommendWalkInfo = if(chat.chatType == ChatCardType.MISSION_CARD.name){
+                                chat.cardData?.takeIf { it.isJsonObject }?.let { cardDataJson ->
+                                    val cardData = gson.fromJson(cardDataJson, FoodConfirmResponse::class.java)
+                                    AIRecommendWalkModel(
+                                        targetDistance = getMeterToKm(cardData.targetDistance).toFloat(),
+                                        minute = cardData.targetTimeMinutes
+                                    )
+                                }
                             }else{
                                 null
                             },
@@ -566,8 +592,8 @@ class DangDangRepository @Inject constructor(
                         )
                     ),
                     recommendWalkInfo = AIRecommendWalkModel(
-                        targetDistance = checkFood?.targetDistance?.toFloat()?:0.0f,
-                        minute = 30
+                        targetDistance = getMeterToKm(checkFood?.targetDistance?:0.0).toFloat(),
+                        minute = checkFood?.targetTimeMinutes?:0
                     ),
                     glucoseFeedbackInfo = null
                 )
@@ -636,8 +662,8 @@ class DangDangRepository @Inject constructor(
                         )
                     ),
                     recommendWalkInfo = AIRecommendWalkModel(
-                        targetDistance = checkFood?.targetDistance?.toFloat()?:0.0f,
-                        minute = 30
+                        targetDistance = getMeterToKm(checkFood?.targetDistance?:0.0).toFloat(),
+                        minute = checkFood?.targetTimeMinutes?:0
                     ),
                     glucoseFeedbackInfo = null
                 )

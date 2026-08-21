@@ -1,20 +1,20 @@
 package com.dangdang.data.manager
 
+import com.dangdang.common.utils.WalkStatusDefault
+import com.dangdang.common.utils.getMeterToKm
+import com.dangdang.common.utils.getWalkKcal
+import com.dangdang.data.enums.WalkMissionStatus
 import com.dangdang.data.model.walk.WalkStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 object StepCounterManager {
 
     private val _walkStatus = MutableStateFlow(
-        WalkStatus(
-            missionNo = 0,
-            walkTargetDistance = 0f,
-            currentWalkDistance = 0f,
-            currentWalkCount = 0,
-            currentWalkKcal = 0
-        )
+        WalkStatusDefault
     )
     val walkStatus: StateFlow<WalkStatus> =
         _walkStatus.asStateFlow()
@@ -57,20 +57,20 @@ object StepCounterManager {
 
     fun updateWalkTarget(walkTargetDistance: Float){
         _walkStatus.value = _walkStatus.value.copy(
-            walkTargetDistance = walkTargetDistance
+            targetDistance = walkTargetDistance
         )
     }
 
     fun updateStepCount(stepCount: Int) {
         _walkStatus.value = _walkStatus.value.copy(
             currentWalkCount = stepCount,
-            currentWalkKcal = (stepCount * 0.04f).toInt(),
+            currentWalkKcal = getWalkKcal(stepCount),
         )
     }
 
     fun updateWalkDistance(distance: Float) {
         _walkStatus.value = _walkStatus.value.copy(
-            currentWalkDistance = distance
+            actualDistance = distance
         )
     }
 
@@ -87,10 +87,31 @@ object StepCounterManager {
     }
 
     fun reset() {
+        _walkStatus.value = WalkStatusDefault
+    }
+
+    fun walkStateLoadingErrorProcess(){
         _walkStatus.value = _walkStatus.value.copy(
-            currentWalkCount = 0,
-            currentWalkDistance = 0f,
-            currentWalkKcal = 0,
+            status = WalkMissionStatus.LoadingError.name
         )
+    }
+
+    fun loadWalkState(loadedWalkStatus: WalkStatus?){
+        _walkStatus.value = _walkStatus.value.copy(
+            missionNo = loadedWalkStatus?.missionNo?:0,
+            status = loadedWalkStatus?.status?:"",
+            targetDistance = loadedWalkStatus?.targetDistance?:0f,
+            currentWalkCount = loadedWalkStatus?.currentWalkCount?:0,
+            currentWalkKcal = getWalkKcal(loadedWalkStatus?.currentWalkCount?:0),
+            actualDistance = getMeterToKm(loadedWalkStatus?.actualDistance?.toDouble()?:0.0).toFloat(),
+        )
+
+        if(loadedWalkStatus?.status == WalkMissionStatus.IN_PROGRESS.name){
+            val startTime = LocalDateTime.parse(loadedWalkStatus.startTime)
+            _stepTime.value = ChronoUnit.SECONDS.between(
+                startTime,
+                LocalDateTime.now()
+            ).toInt()
+        }
     }
 }

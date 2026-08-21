@@ -1,6 +1,11 @@
 package com.dangdang.common.utils
 
+import android.content.Context
+import android.content.Intent
+import com.dangdang.data.enums.WalkMissionStatus
+import com.dangdang.data.model.walk.WalkStatus
 import com.dangdang.data.model.walk.WalkStatusItemTemplateModel
+import com.dangdang.data.service.StepCounterService
 import java.util.Locale
 
 val WalkStatusDetailItemTemplates = listOf(
@@ -17,7 +22,7 @@ val WalkStatusDetailItemTemplates = listOf(
     WalkStatusItemTemplateModel(
         title = "거리",
         value = { walkStatus, _ ->
-            String.format(Locale.getDefault(), "%.2f", walkStatus.currentWalkDistance)
+            String.format(Locale.getDefault(), "%.2f", walkStatus.actualDistance)
         },
         unit = "km"
     ),
@@ -36,3 +41,39 @@ val WalkStatusDetailItemTemplates = listOf(
         unit = "kcal"
     )
 )
+
+val WalkStatusDefault = WalkStatus(
+    missionNo = 0,
+    targetDistance = 0f,
+    actualDistance = 0f,
+    currentWalkCount = 0,
+    currentWalkKcal = 0,
+    status = WalkMissionStatus.Loading.name,
+    startTime = "",
+    lastTrackedAt = "",
+    createdAt = "",
+)
+
+fun StopStepCounting(
+    context: Context,
+    missionNo: Int
+) {
+    val intent =
+        Intent(
+            context,
+            StepCounterService::class.java
+        ).apply {
+
+            action =
+                StepCounterService.ACTION_STOP
+        }
+    intent.putExtra("missionNo", missionNo)
+
+    context.startService(
+        intent
+    )
+}
+
+fun getWalkKcal(stepCount: Int): Int{
+    return (stepCount * 0.04f).toInt()
+}

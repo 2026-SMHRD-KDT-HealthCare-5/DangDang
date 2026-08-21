@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.StopStepCounting
 import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -98,6 +99,11 @@ class SessionManager(
 
         _logoutEvent.tryEmit(Unit)
 
+        //걷기 미션 종료 처리
+        StepCounterManager.reset()
+        StopStepCounting(context, -1)
+
+        //소셜 로그아웃 처리
         try {
             CredentialManager
                 .create(context)

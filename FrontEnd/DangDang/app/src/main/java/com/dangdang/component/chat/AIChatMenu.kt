@@ -566,14 +566,16 @@ fun AIChatMenu(
                                     isMenuShow = false,
                                 )
                             }
-                            AIWalkTip()
-                            AIWarning()
-                            AIRecommendWalkChallengeBox(
-                                targetDistance =
-                                    chatModel.recommendWalkInfo?.targetDistance?:0f,
-                                minute = chatModel.recommendWalkInfo?.minute?:0,
-                                onChallengeClick = onChallengeClick
-                            )
+                            if(chatModel.recommendWalkInfo != null){
+                                AIWalkTip()
+                                AIWarning()
+                                AIRecommendWalkChallengeBox(
+                                    targetDistance =
+                                        chatModel.recommendWalkInfo.targetDistance,
+                                    minute = chatModel.recommendWalkInfo.minute,
+                                    onChallengeClick = onChallengeClick
+                                )
+                            }
                         }
                         AfterWalkGlucoseInputStage -> {
                             AfterWalkGlucoseInputMenuBox(

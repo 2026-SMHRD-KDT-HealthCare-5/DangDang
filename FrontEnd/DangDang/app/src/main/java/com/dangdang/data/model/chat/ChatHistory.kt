@@ -1,6 +1,7 @@
 package com.dangdang.data.model.chat
 
 import androidx.annotation.Keep
+import com.google.gson.JsonElement
 
 @Keep
 data class ChatHistory (
@@ -9,5 +10,5 @@ data class ChatHistory (
     val aiMessage: String,
     val chatType: String,
     val chattedAt: String,
-    val cardData: FoodConfirmResponse?
+    val cardData: JsonElement?
 )

@@ -9,5 +9,6 @@ data class FoodConfirmResponse(
     val predictedGlucoseRise: Double,
     val targetDistance: Double,
     val targetKcal: Double,
+    val targetTimeMinutes: Int,
     val chatbotMessage: String
 )

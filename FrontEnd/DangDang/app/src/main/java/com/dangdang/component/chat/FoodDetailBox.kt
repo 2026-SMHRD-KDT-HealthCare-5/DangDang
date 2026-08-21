@@ -226,10 +226,13 @@ fun FoodDetailBox(
             }
         }
 
-        PredictedGlucoseRiseBox(
-            predictedGlucoseRise = predictedGlucoseRise,
-            beginGlucose = beginGlucose
-        )
+        if(predictedGlucoseRise > 0.0 ||
+            beginGlucose > 0.0){
+            PredictedGlucoseRiseBox(
+                predictedGlucoseRise = predictedGlucoseRise,
+                beginGlucose = beginGlucose
+            )
+        }
 
         if(isMenuShow){
             PrimaryOutlinedButton(
