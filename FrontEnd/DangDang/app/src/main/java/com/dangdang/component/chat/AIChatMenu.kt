@@ -580,11 +580,13 @@ fun AIChatMenu(
                             }
                         }
                         AfterWalkGlucoseInputStage -> {
-                            AfterWalkGlucoseInputMenuBox(
-                                afterWalkGlucoseValue = afterWalkGlucoseValue,
-                                onAfterWalkGlucoseValueChange = onAfterWalkGlucoseValueChange,
-                                onGlucoseInputCompleteClick = onAfterWalkGlucoseInputCompleteClick
-                            )
+                            if(!chatModel.isInputComplete){
+                                AfterWalkGlucoseInputMenuBox(
+                                    afterWalkGlucoseValue = afterWalkGlucoseValue,
+                                    onAfterWalkGlucoseValueChange = onAfterWalkGlucoseValueChange,
+                                    onGlucoseInputCompleteClick = onAfterWalkGlucoseInputCompleteClick
+                                )
+                            }
                         }
                         AIFeedbackStage -> {
                             chatModel.glucoseFeedbackInfo?.let {

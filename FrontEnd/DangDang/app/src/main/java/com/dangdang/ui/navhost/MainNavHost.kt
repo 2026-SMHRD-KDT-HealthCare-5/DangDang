@@ -53,20 +53,15 @@ fun MainNavHost(
 
             //당당이
             composable(
-                route = "${MainRoute.DangDang.route}?isWalkComplete={isWalkComplete}&missionNo={missionNo}",
+                route = "${MainRoute.DangDang.route}?isWalkComplete={isWalkComplete}",
                 arguments = listOf(
                     navArgument("isWalkComplete") {
                         type = NavType.BoolType
                         defaultValue = false
                     },
-                    navArgument("missionNo"){
-                        type = NavType.IntType
-                        defaultValue = -1
-                    }
                 )
             ) { backStackEntry ->
                 val isWalkComplete = backStackEntry.arguments?.getBoolean("isWalkComplete") ?: false
-                val missionNo = backStackEntry.arguments?.getInt("missionNo") ?: -1
 
                 DangDangScreen(
                     onWalkChallengeMove = {
@@ -76,7 +71,6 @@ fun MainNavHost(
                         )
                     },
                     isWalkComplete = isWalkComplete,
-                    missionNo = missionNo,
                     onFoodInputDirectlyClick = {
                         navController.navigate(DangDangRoute.FoodInputDirectly.route)
                     },
@@ -104,10 +98,10 @@ fun MainNavHost(
                 val isStart = backStackEntry.arguments?.getBoolean("isStart") ?: false
                 WalkScreen(
                     isStart = isStart,
-                    onSendGlucoseClick = { missionNo ->
+                    onSendGlucoseClick = {
                         navigateBottomTab(
                             navController = navController,
-                            route = "${MainRoute.DangDang.route}?isWalkComplete=true&missionNo=${missionNo}"
+                            route = "${MainRoute.DangDang.route}?isWalkComplete=true"
                         )
                         // 탭 복원(restoreState) 시 인자가 유실되는 경우를 대비해 savedStateHandle에도 저장
                         navController.currentBackStackEntry?.savedStateHandle?.set("isWalkComplete", true)

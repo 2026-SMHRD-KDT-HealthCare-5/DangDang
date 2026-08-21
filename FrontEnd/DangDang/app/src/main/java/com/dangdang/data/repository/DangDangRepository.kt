@@ -40,6 +40,7 @@ import com.dangdang.data.model.chat.FoodPredictResponse
 import com.dangdang.data.model.chat.GlucoseFeedbackModel
 import com.dangdang.data.model.chat.PreGlucoseInputForm
 import com.dangdang.data.model.walk.PostWalkGlucoseInputForm
+import com.dangdang.data.model.walk.PostWalkGlucoseResponse
 import com.dangdang.data.model.walk.WalkStatusCardData
 import com.google.gson.Gson
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -96,7 +97,9 @@ class DangDangRepository @Inject constructor(
                             date = LocalDateTime.parse(chat.chattedAt),
                             chatType = if(chat.chatType == ChatCardType.MISSION_CARD.name ||
                                 chat.chatType == ChatCardType.FOOD_CARD.name ||
-                                chat.chatType == ChatCardType.POST_GLUCOSE.name){
+                                chat.chatType == ChatCardType.POST_GLUCOSE.name ||
+                                chat.chatType == ChatCardType.RESULT_CARD_FAIL.name ||
+                                chat.chatType == ChatCardType.RESULT_CARD_SUCCESS.name){
                                 AnalysisFoodType
                             }else{
                                 chat.chatType
@@ -110,12 +113,15 @@ class DangDangRepository @Inject constructor(
                                     _missionNo.value = cardData.missionNo
                                 }
                                 AfterWalkGlucoseInputStage
+                            }else if(chat.chatType == ChatCardType.RESULT_CARD_FAIL.name ||
+                                chat.chatType == ChatCardType.RESULT_CARD_SUCCESS.name){
+                                AIFeedbackStage
                             }else{
                                 ""
                             },
                             isChatAble = true,
                             isInputComplete = if(chat.chatType == ChatCardType.POST_GLUCOSE.name){
-                                index < chatResponseList.size - 1
+                                index < chatResponseList.lastIndex
                             }else{
                                 false
                             },
@@ -148,7 +154,22 @@ class DangDangRepository @Inject constructor(
                             }else{
                                 null
                             },
-                            glucoseFeedbackInfo = null
+                            glucoseFeedbackInfo = if(chat.chatType == ChatCardType.RESULT_CARD_FAIL.name ||
+                                chat.chatType == ChatCardType.RESULT_CARD_SUCCESS.name){
+                                chat.cardData?.takeIf { it.isJsonObject }?.let { cardDataJson ->
+                                    val cardData = gson.fromJson(cardDataJson,
+                                        PostWalkGlucoseResponse::class.java)
+                                    GlucoseFeedbackModel(
+                                        beginGlucose = cardData?.preGlucose?:0,
+                                        aiPredictAfterGlucose = cardData?.postGlucoseEst?:0,
+                                        realAfterGlucose = cardData?.postWalkGlucose?:0,
+                                        targetDistance = getMeterToKm(cardData?.targetDistance?:0.0).toFloat(),
+                                        walkDistance = getMeterToKm(cardData?.actualDistance?:0.0).toFloat()
+                                    )
+                                }
+                            }else{
+                                null
+                            }
                         )
                     )
                 )
@@ -767,7 +788,13 @@ class DangDangRepository @Inject constructor(
     suspend fun afterWalkGlucoseSend(missionNo: Int?, glucose: Int): Response<List<ChatModel>>{
         val postWalkGlucoseResponse = safeApiCall {
             walkApiService.postWalkGlucose(
-                missionNo = missionNo?:_missionNo.value?:-1,
+                missionNo = if((missionNo?:-1) > 0){
+                    missionNo?:-1
+                }else if((_missionNo.value?:-1) > 0){
+                    _missionNo.value?:-1
+                }else{
+                    -1
+                },
                 postWalkGlucoseInputForm = PostWalkGlucoseInputForm(
                     postWalkGlucose = glucose
                 )

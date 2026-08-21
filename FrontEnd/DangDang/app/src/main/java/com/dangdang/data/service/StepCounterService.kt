@@ -19,6 +19,7 @@ import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.data.enums.WalkMissionExpiredReason
+import com.dangdang.data.enums.WalkMissionStatus
 import com.dangdang.data.manager.StepCounterManager
 import com.dangdang.data.model.walk.WalkExpireInputForm
 import com.dangdang.data.model.walk.WalkMissionTrackingInputForm
@@ -142,7 +143,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         when (intent?.action) {
             ACTION_START -> startStepCounting(currentStep)
-            ACTION_STOP -> stopStepCounting()
+            ACTION_STOP -> stopStepCounting(true)
         }
 
         return START_NOT_STICKY
@@ -215,21 +216,32 @@ class StepCounterService : Service(), SensorEventListener {
         updateNotification(totalStepCount, totalDistance)
     }
 
-    private fun stopStepCounting() {
+    private fun stopStepCounting(isEndWalkMission: Boolean) {
         CoroutineScope(Dispatchers.IO).launch {
-            endWalkMission(
-                no = missionNo,
-                onSuccess = {
-                    withContext(Dispatchers.Main) {
-                        sensorManager.unregisterListener(this@StepCounterService)
-                        fusedLocationClient.removeLocationUpdates(locationCallback)
-                        timerJob?.cancel()
-                        StepCounterManager.updateWalkingState(false)
-                        stopSelf()
+            if(isEndWalkMission){
+                endWalkMission(
+                    no = missionNo,
+                    onSuccess = {
+                        withContext(Dispatchers.Main) {
+                            stopProcess()
+                        }
                     }
+                )
+            }else{
+                withContext(Dispatchers.Main) {
+                    stopProcess()
                 }
-            )
+            }
         }
+    }
+
+    private fun stopProcess(){
+        sensorManager.unregisterListener(this@StepCounterService)
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+        timerJob?.cancel()
+        StepCounterManager.updateWalkingState(false)
+        StepCounterManager.updateWalkStatus(WalkMissionStatus.EXPIRED.name)
+        stopSelf()
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -272,7 +284,7 @@ class StepCounterService : Service(), SensorEventListener {
                         no = missionNo,
                         onSuccess = {
                             withContext(Dispatchers.Main) {
-                                stopStepCounting()
+                                stopStepCounting(false)
                             }
                         }
                     )
@@ -321,7 +333,7 @@ class StepCounterService : Service(), SensorEventListener {
                         StepCounterManager.updateWalkDistance(totalDistance / 1000f)
                         showTrackNotification(false)
                     }else{
-                        stopStepCounting()
+                        stopStepCounting(false)
                         StepCounterManager.walkStateLoadingErrorProcess()
                     }
                 }else{
@@ -333,7 +345,7 @@ class StepCounterService : Service(), SensorEventListener {
                         if (appPrefs.isNotificationEnabled()) {
                             showGoalReachedNotification()
                         }
-                        stopStepCounting()
+                        stopStepCounting(true)
                     }
                 }
 
@@ -343,7 +355,7 @@ class StepCounterService : Service(), SensorEventListener {
             //실패 시 처리
             responseCount ++
             if(responseCount >= 3){
-                stopStepCounting()
+                stopStepCounting(false)
                 StepCounterManager.walkStateLoadingErrorProcess()
                 break
             }
@@ -363,7 +375,7 @@ class StepCounterService : Service(), SensorEventListener {
             Toast.makeText(this, "걷기 미션이 자동으로 만료되었습니다.", Toast.LENGTH_SHORT).show()
             onSuccess()
         }else{
-            stopStepCounting()
+            stopStepCounting(false)
             StepCounterManager.walkStateLoadingErrorProcess()
         }
     }

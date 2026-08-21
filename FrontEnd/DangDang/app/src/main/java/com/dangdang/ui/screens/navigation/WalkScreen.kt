@@ -16,6 +16,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -65,12 +66,12 @@ fun WalkScreenPreview(
 fun WalkScreen(
     walkViewModel: WalkViewModel = hiltViewModel(),
     isStart: Boolean,
-    onSendGlucoseClick: (missionNo: Int) -> Unit
+    onSendGlucoseClick: () -> Unit
 ){
     val context = LocalContext.current
 
-    var isAutoStart by remember {
-        mutableStateOf(false)
+    var shouldAutoStart by rememberSaveable {
+        mutableStateOf(isStart)
     }
 
     val walkStatus by
@@ -116,18 +117,17 @@ fun WalkScreen(
         }
     }
 
-    LaunchedEffect(isStart, walkStatus) {
+    LaunchedEffect(shouldAutoStart, walkStatus) {
         if(!isWalking){
             if(walkStatus.status == WalkMissionStatus.Loading.name){
                 walkViewModel.getWalkStatus(context)
             }
 
-            if(
+            if (
                 walkStatus.status != WalkMissionStatus.Loading.name &&
-                isStart &&
-                !isAutoStart
-            ){
-                isAutoStart = true
+                shouldAutoStart
+            ) {
+                shouldAutoStart = false
                 startStepCounting()
             }
         }
@@ -152,7 +152,7 @@ fun WalkScreen(
             },
             isWalkEndDialog = isWalkEndDialog,
             onSendGlucoseClick = {
-                onSendGlucoseClick(walkStatus.missionNo)
+                onSendGlucoseClick()
             }
         )
     }else{

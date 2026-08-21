@@ -55,6 +55,12 @@ object StepCounterManager {
         }
     }
 
+    fun updateWalkStatus(status: String){
+        _walkStatus.value = _walkStatus.value.copy(
+            status = status
+        )
+    }
+
     fun updateWalkTarget(walkTargetDistance: Float){
         _walkStatus.value = _walkStatus.value.copy(
             targetDistance = walkTargetDistance

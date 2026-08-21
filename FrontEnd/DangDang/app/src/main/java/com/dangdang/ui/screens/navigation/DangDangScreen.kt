@@ -41,6 +41,7 @@ import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.text.textbox.ChatSendBox
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.manager.StepCounterManager
 import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.ChatRecommendQuestionModel
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
@@ -122,13 +123,14 @@ fun DangDangScreen(
     dangDangViewModel: DangDangViewModel = hiltViewModel(),
     onWalkChallengeMove: () -> Unit,
     isWalkComplete: Boolean,
-    missionNo: Int,
     onFoodInputDirectlyClick: () -> Unit,
     navController: NavController,
 ){
     val context = LocalContext.current
     val savedStateHandle =
         navController.currentBackStackEntry?.savedStateHandle
+
+    val walkStatus by StepCounterManager.walkStatus.collectAsState()
 
     var chatMessageValue by remember { mutableStateOf("") }
 
@@ -183,10 +185,6 @@ fun DangDangScreen(
         ?.getStateFlow("isWalkComplete", false)
         ?.collectAsState()
         ?: remember { mutableStateOf(false) }
-    val missionNoHandle by savedStateHandle
-        ?.getStateFlow("missionNo", -1)
-        ?.collectAsState()
-        ?: remember { mutableIntStateOf(-1) }
 
     //음식 입력 직접하고 왔을 경우
     val isFoodInputDirectlySend by savedStateHandle
@@ -282,11 +280,7 @@ fun DangDangScreen(
             },
             onAfterWalkGlucoseInputCompleteClick = {
                 dangDangViewModel.afterWalkGlucoseSend(
-                    missionNo = if(missionNo > 0){
-                        missionNo
-                    }else{
-                        missionNoHandle
-                    },
+                    missionNo = walkStatus.missionNo,
                     glucose = afterWalkGlucoseValue.toInt()
                 )
             },
