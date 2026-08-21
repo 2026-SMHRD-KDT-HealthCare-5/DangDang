@@ -7,7 +7,6 @@ python-multipart
 rapidfuzz
 pandas
 numpy
-pdfplumber
 lightgbm
 scikit-learn
 sqlalchemy
