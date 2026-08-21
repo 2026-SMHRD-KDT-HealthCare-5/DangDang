@@ -14,12 +14,14 @@ import com.dangdang.entity.ChatType;
 import com.dangdang.entity.ExpireReason;
 import com.dangdang.entity.IntakeLog;
 import com.dangdang.entity.User;
+import com.dangdang.entity.TeamMember;
 import com.dangdang.entity.WalkMission;
 import com.dangdang.entity.WalkMissionStatus;
 import com.dangdang.exception.BusinessException;
 import com.dangdang.exception.ErrorCode;
 import com.dangdang.repository.AiChatRepository;
 import com.dangdang.repository.IntakeLogRepository;
+import com.dangdang.repository.TeamMemberRepository;
 import com.dangdang.repository.UserRepository;
 import com.dangdang.repository.WalkMissionRepository;
 import lombok.RequiredArgsConstructor;
@@ -74,6 +76,7 @@ public class WalkMissionService {
     private final AiChatRepository aiChatRepository;
     private final UserRepository userRepository;
     private final IntakeLogRepository intakeLogRepository;
+    private final TeamMemberRepository teamMemberRepository;
 
     private final Map<Integer, BigDecimal> checkpointDistanceCache = new ConcurrentHashMap<>();
 
@@ -195,6 +198,7 @@ public class WalkMissionService {
         mission.completeManually(finalStatus);
         walkMissionRepository.save(mission);
         evictCheckpointCache(missionNo);
+        addTeamDistanceIfJoined(userNo, actualDistance);
 
         long durationMinutes = Duration.between(mission.getStartTime(), mission.getEndTime()).toMinutes();
         BigDecimal weightKg = userRepository.findById(userNo).map(User::getWeight).orElse(DEFAULT_WEIGHT_KG);
@@ -203,6 +207,22 @@ public class WalkMissionService {
         savePostGlucoseChat(userNo, missionNo);
 
         return new EndMissionResponse(finalStatus, actualDistance, durationMinutes, burnedKcal, true);
+    }
+
+    /**
+     * [각주] (추가 2026-08-20) 걷기 미션이 COMPLETE/PARTIAL로 끝날 때마다 호출합니다. 이 유저가
+     * 가입한 팀이 있으면(없으면 아무것도 안 함) team_member.total_distance(가입 이후 누적, km)에
+     * 이번 미션의 actualDistance(m)를 km로 환산해서 더합니다 — 팀 챌린지 현황 조회의
+     * "팀원별 누적거리" 랭킹이 이 컬럼을 그대로 읽습니다(TeamMemberRepository 참고).
+     * EXPIRED로 끝난 미션(중간 취소/타임아웃/미활동)은 대상이 아닙니다 — endMission()에서만
+     * 부릅니다.
+     */
+    private void addTeamDistanceIfJoined(Integer userNo, BigDecimal actualDistanceM) {
+        teamMemberRepository.findByUserNo(userNo).ifPresent(teamMember -> {
+            BigDecimal distanceKm = actualDistanceM.divide(BigDecimal.valueOf(1000), 2, RoundingMode.HALF_UP);
+            teamMember.addDistance(distanceKm);
+            teamMemberRepository.save(teamMember);
+        });
     }
 
     /**
