@@ -18,21 +18,5 @@ import javax.inject.Inject
 class CommunityTeamChallengeViewModel @Inject constructor(
     private val communityRepository: CommunityRepository
 ): ViewModel(){
-    private val _teamChallengeStatusList =
-        MutableStateFlow<PendingModel<List<TeamMemberChallengeStatusModel>>>(
-            PendingModel(null, LoadingState.Loading)
-        )
-    val teamChallengeStatusList: StateFlow<PendingModel<List<TeamMemberChallengeStatusModel>>> =
-        _teamChallengeStatusList.asStateFlow()
 
-    init {
-        getTeamChallengeStatusList()
-    }
-
-    //팀원들 걷기 현황 가져오기
-    fun getTeamChallengeStatusList(){
-        viewModelScope.launch {
-            _teamChallengeStatusList.applyResponse(communityRepository.getTeamChallengeStatusList())
-        }
-    }
 }

@@ -6,9 +6,9 @@ import androidx.annotation.Keep
 data class FoodConfirmResponse(
     val logNo: Int,
     val missionNo: Int,
-    val predictedGlucoseRise: Double,
-    val targetDistance: Double,
-    val targetKcal: Double,
+    val predictedGlucoseRise: Float,
+    val targetDistance: Float,
+    val targetKcal: Float,
     val targetTimeMinutes: Int,
     val chatbotMessage: String
 )

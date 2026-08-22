@@ -8,7 +8,7 @@ data class FoodAnalysisResponse (
     val foodNo: Int,
     val foodName: String,
     val nutrition: AnalysisNutritionResponse,
-    val predictedGlucoseRise: Double,
+    val predictedGlucoseRise: Float,
     val source: String,
     val chatbotMessage: String,
     val serving_size: Int,

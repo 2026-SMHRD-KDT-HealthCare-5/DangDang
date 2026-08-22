@@ -47,7 +47,7 @@ class SignUpViewModel @Inject constructor(
                 _userInfoDetail.applyResponse(response)
                 if(response.isSuccessful){
                     response.body()?.let {
-                        appPrefs.setNotificationEnabled(it.notification_enabled)
+                        appPrefs.setNotificationEnabled(it.notificationEnabled)
                     }
                 }
             }else{
@@ -81,9 +81,9 @@ class SignUpViewModel @Inject constructor(
                 )
                 && (userInfoDetail.isSocial
                     ||(
-                        userInfoDetail.password.isNotEmpty()
-                        && isValidPassword(userInfoDetail.password)
-                        && userInfoDetail.passwordCheck.isNotEmpty()
+                        userInfoDetail.password?.isNotEmpty() == true
+                        && isValidPassword(userInfoDetail.password?:"")
+                        && userInfoDetail.passwordCheck?.isNotEmpty() == true
                         && userInfoDetail.password == userInfoDetail.passwordCheck
                     )
                 )
@@ -120,7 +120,7 @@ class SignUpViewModel @Inject constructor(
             )
             if(response.isSuccessful){
                 _userInfoDetail.value.data?.let {
-                    appPrefs.setNotificationEnabled(it.notification_enabled)
+                    appPrefs.setNotificationEnabled(it.notificationEnabled)
                 }
                 onSuccess()
             }else{

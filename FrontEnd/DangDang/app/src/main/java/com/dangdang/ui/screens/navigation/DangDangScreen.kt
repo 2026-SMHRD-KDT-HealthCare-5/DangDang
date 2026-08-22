@@ -23,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -198,10 +199,15 @@ fun DangDangScreen(
 
     var isInitialized by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isWalkComplete, isWalkCompleteByHandle, isFoodInputDirectlySend) {
-        if(isWalkComplete || isWalkCompleteByHandle){
+    var shouldWalkComplete by rememberSaveable {
+        mutableStateOf(isWalkComplete)
+    }
+
+    LaunchedEffect(shouldWalkComplete, isWalkCompleteByHandle, isFoodInputDirectlySend) {
+        if(shouldWalkComplete || isWalkCompleteByHandle){
             dangDangViewModel.completeWalkMission()
             savedStateHandle?.remove<Boolean>("isWalkComplete")
+            shouldWalkComplete = false
             isInitialized = true
         }else if(isFoodInputDirectlySend){
             foodInputDirectlyForm?.let{

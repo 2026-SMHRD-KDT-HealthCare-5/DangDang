@@ -7,7 +7,6 @@ import androidx.lifecycle.viewModelScope
 import com.dangdang.common.utils.AppPrefs
 import com.dangdang.common.utils.applyResponse
 import com.dangdang.data.enums.LoadingState
-import com.dangdang.data.model.user.User
 import com.dangdang.data.repository.UserRepository
 import com.dangdang.data.manager.SessionManager
 import com.dangdang.data.model.PendingModel
@@ -40,7 +39,7 @@ class MyPageViewModel @Inject constructor(
             _userInfo.applyResponse(response)
             if(response.isSuccessful){
                 response.body()?.let {
-                    appPrefs.setNotificationEnabled(it.notification_enabled)
+                    appPrefs.setNotificationEnabled(it.notificationEnabled)
                 }
             }
         }
@@ -64,7 +63,7 @@ class MyPageViewModel @Inject constructor(
                 appPrefs.setNotificationEnabled(isNotification)
                 _userInfo.value = _userInfo.value.copy(
                     data = _userInfo.value.data?.copy(
-                        notification_enabled = isNotification
+                        notificationEnabled = isNotification
                     ),
                     loadingState = LoadingState.Success
                 )

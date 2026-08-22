@@ -4,6 +4,7 @@ import com.dangdang.common.utils.WalkStatusDefault
 import com.dangdang.common.utils.getMeterToKm
 import com.dangdang.common.utils.getWalkKcal
 import com.dangdang.data.enums.WalkMissionStatus
+import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.walk.WalkStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -38,6 +39,13 @@ object StepCounterManager {
     private val _isWalkEndDialog = MutableStateFlow(false)
     val isWalkEndDialog: StateFlow<Boolean> = _isWalkEndDialog.asStateFlow()
 
+    private val _userInfo = MutableStateFlow<SignUpForm?>(null)
+    val userInfo: StateFlow<SignUpForm?> = _userInfo.asStateFlow()
+
+    fun initUserInfo(userInfo: SignUpForm?){
+        _userInfo.value = userInfo
+    }
+
     fun endWalkMission(){
         _isEndWalk.value = true
         _isWalkEndDialog.value = true
@@ -70,13 +78,18 @@ object StepCounterManager {
     fun updateStepCount(stepCount: Int) {
         _walkStatus.value = _walkStatus.value.copy(
             currentWalkCount = stepCount,
-            currentWalkKcal = getWalkKcal(stepCount),
         )
     }
 
     fun updateWalkDistance(distance: Float) {
         _walkStatus.value = _walkStatus.value.copy(
-            actualDistance = distance
+            actualDistance = distance,
+        )
+    }
+
+    fun updateWalkKcal(kcal: Int){
+        _walkStatus.value = _walkStatus.value.copy(
+            currentWalkKcal = kcal
         )
     }
 
@@ -106,18 +119,10 @@ object StepCounterManager {
         _walkStatus.value = _walkStatus.value.copy(
             missionNo = loadedWalkStatus?.missionNo?:0,
             status = loadedWalkStatus?.status?:"",
-            targetDistance = getMeterToKm(loadedWalkStatus?.targetDistance?.toDouble()?:0.0).toFloat(),
+            targetDistance = getMeterToKm(loadedWalkStatus?.targetDistance?:0f),
             currentWalkCount = loadedWalkStatus?.currentWalkCount?:0,
-            currentWalkKcal = getWalkKcal(loadedWalkStatus?.currentWalkCount?:0),
-            actualDistance = getMeterToKm(loadedWalkStatus?.actualDistance?.toDouble()?:0.0).toFloat(),
+            currentWalkKcal = 0,
+            actualDistance = getMeterToKm(loadedWalkStatus?.actualDistance?:0f),
         )
-
-        if(loadedWalkStatus?.status == WalkMissionStatus.IN_PROGRESS.name){
-            val startTime = LocalDateTime.parse(loadedWalkStatus.startTime)
-            _stepTime.value = ChronoUnit.SECONDS.between(
-                startTime,
-                LocalDateTime.now()
-            ).toInt()
-        }
     }
 }

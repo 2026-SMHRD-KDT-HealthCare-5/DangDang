@@ -18,11 +18,14 @@ import android.util.Log
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.getMeterToKm
+import com.dangdang.common.utils.getWalkKcal
 import com.dangdang.data.enums.WalkMissionExpiredReason
 import com.dangdang.data.enums.WalkMissionStatus
 import com.dangdang.data.manager.StepCounterManager
 import com.dangdang.data.model.walk.WalkExpireInputForm
 import com.dangdang.data.model.walk.WalkMissionTrackingInputForm
+import com.dangdang.data.repository.UserRepository
 import com.dangdang.data.repository.WalkRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -51,6 +54,9 @@ class StepCounterService : Service(), SensorEventListener {
 
     @Inject
     lateinit var walkRepository: WalkRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
 
     private val serviceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO
@@ -124,7 +130,7 @@ class StepCounterService : Service(), SensorEventListener {
 
             totalDistance += distance
             // m 단위를 km 단위로 변환하여 매니저에 업데이트
-            StepCounterManager.updateWalkDistance(totalDistance / 1000f)
+            updateDistance()
             StepCounterManager.addRoutePoint(location.latitude, location.longitude)
 
             // 마지막 유의미한 이동 시각 갱신
@@ -174,6 +180,7 @@ class StepCounterService : Service(), SensorEventListener {
                     StepCounterManager.resetStepTime()
                     StepCounterManager.updateWalkingState(true)
                     StepCounterManager.updateWalkDistance(0f)
+                    StepCounterManager.updateWalkKcal(0)
 
                     startTimer()
                 }
@@ -299,11 +306,25 @@ class StepCounterService : Service(), SensorEventListener {
     private suspend fun startWalkMission(no: Int, onSuccess: (SensorEventListener)-> Unit){
         if(no == -1) return
         val response = walkRepository.startWalkMission(no)
-        if(response.isSuccessful){
+        val userInfoResponse = userRepository.getUserInfoDetail()
+        if(response.isSuccessful && userInfoResponse.isSuccessful){
+            val userInfo = userInfoResponse.body()
+            StepCounterManager.initUserInfo(userInfo)
+
             onSuccess(this)
         }else{
             Toast.makeText(this, "걷기 미션을 시작하는 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
         }
+    }
+
+    fun updateDistance(){
+        val kmDistance = getMeterToKm(totalDistance)
+        StepCounterManager.updateWalkDistance(kmDistance)
+        StepCounterManager.updateWalkKcal(getWalkKcal(
+            distance = kmDistance,
+            seconds = elapsedSecond,
+            userInfo = StepCounterManager.userInfo.value
+        ))
     }
 
     //폴링 처리
@@ -316,9 +337,9 @@ class StepCounterService : Service(), SensorEventListener {
             val response = walkRepository.trackWalkMission(
                 missionNo = no,
                 walkMissionTrackingInputForm = WalkMissionTrackingInputForm(
-                    latitude = location.latitude,
-                    longitude = location.longitude,
-                    currentDistance = totalDistance.toDouble()
+                    latitude = location.latitude.toFloat(),
+                    longitude = location.longitude.toFloat(),
+                    currentDistance = totalDistance
                 )
             )
             if(response.isSuccessful){
@@ -330,7 +351,7 @@ class StepCounterService : Service(), SensorEventListener {
                     if(walkStatusResponse.isSuccessful){
                         val walkStatusResponseBody = walkStatusResponse.body()
                         totalDistance = walkStatusResponseBody?.actualDistance?:0f
-                        StepCounterManager.updateWalkDistance(totalDistance / 1000f)
+                        updateDistance()
                         showTrackNotification(false)
                     }else{
                         stopStepCounting(false)

@@ -72,53 +72,38 @@ fun HomeScreenPreview(
             afterMealGlucoseStatus = listOf(155f, 148f, 168f, 158f, 178f, 152f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f)
         ),
         teamInfo = TeamInfoModel(
-            isLeader = false,
-            name = "우리팀 5월 걷기 챌린지",
-            currentMemberCount = 4,
-            maxMemberCount = 5,
+            teamNo = 1,
+            isCreator = false,
+            teamName = "우리팀 5월 걷기 챌린지",
+            memberCount = 4,
+            capacity = 5,
             targetDistance = 150f,
-            currentDistance = 20f,
-            currentTeamDistance = 30f,
+            currentDistance = 30f,
             profileImageUrl = ExamplePictureUrl,
-            introduction = "하루 7천보 이상 함께 걸어요!"
-        ),
-        teamChallengeStatusList = listOf(
-            TeamMemberChallengeStatusModel(
-                rank = 1,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임",
-                currentDistance = 32.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 2,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임2",
-                currentDistance = 20.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 3,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임3",
-                currentDistance = 10.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 4,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임4",
-                currentDistance = 5.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 5,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임5",
-                currentDistance = 3.56f,
-                targetDistance = 150f
+            teamIntro = "하루 7천보 이상 함께 걸어요!",
+            members = listOf(
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임",
+                    totalDistance = 32.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임2",
+                    totalDistance = 20.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임3",
+                    totalDistance = 10.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임4",
+                    totalDistance = 5.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임5",
+                    totalDistance = 3.56f,
+                )
             )
-        )
+        ),
     )
 }
 
@@ -137,13 +122,9 @@ fun HomeScreen(
     val teamInfo by
         homeViewModel.teamInfo.collectAsState()
 
-    val teamChallengeStatusList by
-        homeViewModel.teamChallengeStatusList.collectAsState()
-
     if(weeklyGlucoseCheckList.loadingState == LoadingState.Success
         && afterMealGlucoseStatus.loadingState == LoadingState.Success
-        && teamInfo.loadingState == LoadingState.Success
-        && teamChallengeStatusList.loadingState == LoadingState.Success){
+        && teamInfo.loadingState == LoadingState.Success){
         
         HomeScreenContent(
             onFoodInputClick = onFoodInputClick,
@@ -151,7 +132,6 @@ fun HomeScreen(
             weeklyGlucoseCheckList = weeklyGlucoseCheckList.data?:emptyList(),
             afterMealGlucoseStatus = afterMealGlucoseStatus.data,
             teamInfo = teamInfo.data,
-            teamChallengeStatusList = teamChallengeStatusList.data
         )
     }else{
         ErrorView(
@@ -159,7 +139,6 @@ fun HomeScreen(
                 weeklyGlucoseCheckList.loadingState == LoadingState.Error
                  || afterMealGlucoseStatus.loadingState == LoadingState.Error
                  || teamInfo.loadingState == LoadingState.Error
-                 || teamChallengeStatusList.loadingState == LoadingState.Error
             ){
                 LoadingState.Error
             }else{
@@ -177,7 +156,6 @@ fun HomeScreenContent(
     weeklyGlucoseCheckList : List<WeeklyGlucoseCheckModel>,
     afterMealGlucoseStatus: AfterMealGlucoseStatusModel?,
     teamInfo: TeamInfoModel?,
-    teamChallengeStatusList: List<TeamMemberChallengeStatusModel>?
 ){
     val scrollState = rememberScrollState()
 
@@ -218,7 +196,6 @@ fun HomeScreenContent(
             teamInfo?.let{
                 HomeTeamChallengeStatus(
                     teamInfo = it,
-                    teamMemberChallengeStatusList = teamChallengeStatusList ?: emptyList(),
                     onMoreClick = onTeamChallengeMoreClick
                 )
             }

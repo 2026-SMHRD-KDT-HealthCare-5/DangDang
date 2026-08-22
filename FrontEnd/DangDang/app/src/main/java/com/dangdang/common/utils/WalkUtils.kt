@@ -3,6 +3,7 @@ package com.dangdang.common.utils
 import android.content.Context
 import android.content.Intent
 import com.dangdang.data.enums.WalkMissionStatus
+import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.walk.WalkStatus
 import com.dangdang.data.model.walk.WalkStatusItemTemplateModel
 import com.dangdang.data.service.StepCounterService
@@ -74,6 +75,27 @@ fun StopStepCounting(
     )
 }
 
-fun getWalkKcal(stepCount: Int): Int{
-    return (stepCount * 0.04f).toInt()
+fun calculateSpeed(distance: Float, seconds: Int): Float {
+    if (seconds <= 0) return 0.0f
+    val hours = seconds / 3600.0f
+    return distance / hours
+}
+
+fun getMet(speed: Float) : Float{
+    return if(speed < 3.2f){
+        2.0f
+    }else if(speed in 3.2f..<4.8f){
+        3.0f
+    }else if(speed in 4.8f..<6.4f){
+        4.3f
+    }else{
+        6.0f
+    }
+}
+
+fun getWalkKcal(distance: Float, seconds: Int, userInfo: SignUpForm?): Int{
+    val hours = seconds / 3600.0f
+    val speed = calculateSpeed(distance, seconds)
+    val met = getMet(speed)
+    return (met * (userInfo?.weight?.toFloat()?:0f) * hours).toInt()
 }

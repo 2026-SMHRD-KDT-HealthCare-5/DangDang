@@ -61,8 +61,8 @@ class DangDangRepository @Inject constructor(
     private val _analyzeChattingList = MutableStateFlow<List<ChatModel>>(emptyList())
     private val _analyzeFood = MutableStateFlow<FoodAnalysisResponse?>(null)
     private val _foodPredict = MutableStateFlow<FoodPredictResponse?>(null)
-    private val _preGlucose = MutableStateFlow<Double?>(null)
-    private val _portion = MutableStateFlow<Double?>(null)
+    private val _preGlucose = MutableStateFlow<Float?>(null)
+    private val _portion = MutableStateFlow<Float?>(null)
 
     private val _targetTimeMinutes = MutableStateFlow<Int?>(null)
 
@@ -129,8 +129,8 @@ class DangDangRepository @Inject constructor(
                                 chat.cardData?.takeIf { it.isJsonObject }?.let { cardDataJson ->
                                     val cardData = gson.fromJson(cardDataJson, FoodAnalysisResponse::class.java)
                                     AnalysisFoodModel(
-                                        predictedGlucoseRise = 0.0,
-                                        beginGlucose = 0.0,
+                                        predictedGlucoseRise = 0f,
+                                        beginGlucose = 0f,
                                         foodInfo = analyzeFoodToFoodInfoModel(
                                             foodName = cardData.foodName,
                                             nutrition = cardData.nutrition,
@@ -163,8 +163,8 @@ class DangDangRepository @Inject constructor(
                                         beginGlucose = cardData?.preGlucose?:0,
                                         aiPredictAfterGlucose = cardData?.postGlucoseEst?:0,
                                         realAfterGlucose = cardData?.postWalkGlucose?:0,
-                                        targetDistance = getMeterToKm(cardData?.targetDistance?:0.0).toFloat(),
-                                        walkDistance = getMeterToKm(cardData?.actualDistance?:0.0).toFloat()
+                                        targetDistance = getMeterToKm(cardData?.targetDistance?:0f),
+                                        walkDistance = getMeterToKm(cardData?.actualDistance?:0f)
                                     )
                                 }
                             }else{
@@ -298,7 +298,7 @@ class DangDangRepository @Inject constructor(
                 } + response
             }
 
-            _preGlucose.value = chatResponseBody?.preGlucose?.toDouble()
+            _preGlucose.value = chatResponseBody?.preGlucose?.toFloat()
 
             return Response.success(_analyzeChattingList.value)
         }else{
@@ -377,7 +377,7 @@ class DangDangRepository @Inject constructor(
         foodName: String,
         nutrition: AnalysisNutritionResponse?,
         servingSize: Int,
-        calorie: Double
+        calorie: Float
     ): FoodInfoModel{
         return FoodInfoModel(
             name = foodName,
@@ -387,27 +387,27 @@ class DangDangRepository @Inject constructor(
                 FoodNutritionModel(
                     name = "탄수화물",
                     unit = "g",
-                    value = nutrition?.carb?:0.0
+                    value = nutrition?.carb?:0f
                 ),
                 FoodNutritionModel(
                     name = "식이섬유",
                     unit = "g",
-                    value = nutrition?.fiber?:0.0
+                    value = nutrition?.fiber?:0f
                 ),
                 FoodNutritionModel(
                     name = "단백질",
                     unit = "g",
-                    value = nutrition?.protein?:0.0
+                    value = nutrition?.protein?:0f
                 ),
                 FoodNutritionModel(
                     name = "지방",
                     unit = "g",
-                    value = nutrition?.fat?:0.0
+                    value = nutrition?.fat?:0f
                 ),
                 FoodNutritionModel(
                     name = "칼로리",
                     unit = "kcal",
-                    value = nutrition?.calorie?:0.0
+                    value = nutrition?.calorie?:0f
                 )
             )
         )
@@ -421,14 +421,14 @@ class DangDangRepository @Inject constructor(
         val chatResponse = safeApiCall {
             chatApiService.foodPredict(
                 FoodPredictInputForm(
-                    carb = analyzeFood?.nutrition?.carb?:0.0,
-                    sugar = analyzeFood?.nutrition?.sugar?:0.0,
-                    protein = analyzeFood?.nutrition?.protein?:0.0,
-                    fat = analyzeFood?.nutrition?.fat?:0.0,
-                    fiber = analyzeFood?.nutrition?.fiber?:0.0,
-                    calorie = analyzeFood?.nutrition?.calorie?:0.0,
-                    portion = weightValue.toDouble(),
-                    baseline = _preGlucose.value?:0.0
+                    carb = analyzeFood?.nutrition?.carb?:0f,
+                    sugar = analyzeFood?.nutrition?.sugar?:0f,
+                    protein = analyzeFood?.nutrition?.protein?:0f,
+                    fat = analyzeFood?.nutrition?.fat?:0f,
+                    fiber = analyzeFood?.nutrition?.fiber?:0f,
+                    calorie = analyzeFood?.nutrition?.calorie?:0f,
+                    portion = weightValue.toFloat(),
+                    baseline = _preGlucose.value?:0f
                 )
             )
         }
@@ -459,13 +459,13 @@ class DangDangRepository @Inject constructor(
                     isInputComplete = false,
                     chatStageType = AnalysisFoodStage,
                     analysisFoodInfo = AnalysisFoodModel(
-                        predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0.0,
-                        beginGlucose = _preGlucose.value?:0.0,
+                        predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0f,
+                        beginGlucose = _preGlucose.value?:0f,
                         foodInfo = analyzeFoodToFoodInfoModel(
                             foodName = analyzeFood?.foodName?:"",
                             nutrition = foodPredict?.nutritionUsed,
                             servingSize = analyzeFood?.serving_size?:0,
-                            calorie = analyzeFood?.nutrition?.calorie?:0.0
+                            calorie = analyzeFood?.nutrition?.calorie?:0f
                         )
                     ),
                     recommendWalkInfo = null,
@@ -480,7 +480,7 @@ class DangDangRepository @Inject constructor(
                     )
                 } + response
             }
-            _portion.value = weightValue.toDouble()
+            _portion.value = weightValue.toFloat()
             _foodPredict.value = foodPredict
 
             return Response.success(_analyzeChattingList.value)
@@ -519,14 +519,14 @@ class DangDangRepository @Inject constructor(
                 val predictResponse = safeApiCall{
                     chatApiService.foodPredict(
                         FoodPredictInputForm(
-                            carb = analyzeFood?.nutrition?.carb?:0.0,
-                            sugar = analyzeFood?.nutrition?.sugar?:0.0,
-                            protein = analyzeFood?.nutrition?.protein?:0.0,
-                            fat = analyzeFood?.nutrition?.fat?:0.0,
-                            fiber = analyzeFood?.nutrition?.fiber?:0.0,
-                            calorie = analyzeFood?.nutrition?.calorie?:0.0,
-                            portion = weightValue.toDouble(),
-                            baseline = _preGlucose.value?:0.0
+                            carb = analyzeFood?.nutrition?.carb?:0f,
+                            sugar = analyzeFood?.nutrition?.sugar?:0f,
+                            protein = analyzeFood?.nutrition?.protein?:0f,
+                            fat = analyzeFood?.nutrition?.fat?:0f,
+                            fiber = analyzeFood?.nutrition?.fiber?:0f,
+                            calorie = analyzeFood?.nutrition?.calorie?:0f,
+                            portion = weightValue.toFloat(),
+                            baseline = _preGlucose.value?:0f
                         )
                     )
                 }
@@ -556,13 +556,13 @@ class DangDangRepository @Inject constructor(
                             isInputComplete = false,
                             chatStageType = AnalysisFoodStage,
                             analysisFoodInfo = AnalysisFoodModel(
-                                predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0.0,
-                                beginGlucose = _preGlucose.value?:0.0,
+                                predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0f,
+                                beginGlucose = _preGlucose.value?:0f,
                                 foodInfo = analyzeFoodToFoodInfoModel(
                                     foodName = analyzeFood?.foodName?:"",
                                     nutrition = foodPredict?.nutritionUsed,
                                     servingSize = analyzeFood?.serving_size?:0,
-                                    calorie = analyzeFood?.nutrition?.calorie?:0.0
+                                    calorie = analyzeFood?.nutrition?.calorie?:0f
                                 )
                             ),
                             recommendWalkInfo = null,
@@ -577,7 +577,7 @@ class DangDangRepository @Inject constructor(
                             )
                         } + response
                     }
-                    _portion.value = weightValue.toDouble()
+                    _portion.value = weightValue.toFloat()
                     _foodPredict.value = foodPredict
 
                     return Response.success(_analyzeChattingList.value)
@@ -618,24 +618,24 @@ class DangDangRepository @Inject constructor(
                     isInputComplete = false,
                     chatStageType = RecommendWalkDistanceStage,
                     analysisFoodInfo = AnalysisFoodModel(
-                        predictedGlucoseRise = checkFood?.predictedGlucoseRise?:0.0,
-                        beginGlucose = _preGlucose.value?:0.0,
+                        predictedGlucoseRise = checkFood?.predictedGlucoseRise?:0f,
+                        beginGlucose = _preGlucose.value?:0f,
                         foodInfo = analyzeFoodToFoodInfoModel(
                             foodName = foodInputDirectlyForm.foodName,
                             nutrition = AnalysisNutritionResponse(
-                                carb = foodInputDirectlyForm.carb.toDouble(),
-                                sugar = foodInputDirectlyForm.sugar.toDouble(),
-                                protein = foodInputDirectlyForm.protein.toDouble(),
-                                fat = foodInputDirectlyForm.fat.toDouble(),
-                                fiber = foodInputDirectlyForm.fiber.toDouble(),
-                                calorie = foodInputDirectlyForm.calorie.toDouble()
+                                carb = foodInputDirectlyForm.carb.toFloat(),
+                                sugar = foodInputDirectlyForm.sugar.toFloat(),
+                                protein = foodInputDirectlyForm.protein.toFloat(),
+                                fat = foodInputDirectlyForm.fat.toFloat(),
+                                fiber = foodInputDirectlyForm.fiber.toFloat(),
+                                calorie = foodInputDirectlyForm.calorie.toFloat()
                             ),
                             servingSize = foodInputDirectlyForm.servingSize.toInt(),
-                            calorie = foodInputDirectlyForm.calorie.toDouble()
+                            calorie = foodInputDirectlyForm.calorie.toFloat()
                         )
                     ),
                     recommendWalkInfo = AIRecommendWalkModel(
-                        targetDistance = getMeterToKm(checkFood?.targetDistance?:0.0).toFloat(),
+                        targetDistance = getMeterToKm(checkFood?.targetDistance?:0f),
                         minute = checkFood?.targetTimeMinutes?:0
                     ),
                     glucoseFeedbackInfo = null
@@ -695,17 +695,17 @@ class DangDangRepository @Inject constructor(
                     isInputComplete = false,
                     chatStageType = RecommendWalkDistanceStage,
                     analysisFoodInfo = AnalysisFoodModel(
-                        predictedGlucoseRise = checkFood?.predictedGlucoseRise?:0.0,
-                        beginGlucose = _preGlucose.value?:0.0,
+                        predictedGlucoseRise = checkFood?.predictedGlucoseRise?:0f,
+                        beginGlucose = _preGlucose.value?:0f,
                         foodInfo = analyzeFoodToFoodInfoModel(
                             foodName = _analyzeFood.value?.foodName?:"",
                             nutrition = _foodPredict.value?.nutritionUsed,
                             servingSize = _analyzeFood.value?.serving_size?:0,
-                            calorie = _analyzeFood.value?.nutrition?.calorie?:0.0
+                            calorie = _analyzeFood.value?.nutrition?.calorie?:0f
                         )
                     ),
                     recommendWalkInfo = AIRecommendWalkModel(
-                        targetDistance = getMeterToKm(checkFood?.targetDistance?:0.0).toFloat(),
+                        targetDistance = getMeterToKm(checkFood?.targetDistance?:0f).toFloat(),
                         minute = checkFood?.targetTimeMinutes?:0
                     ),
                     glucoseFeedbackInfo = null
@@ -749,7 +749,7 @@ class DangDangRepository @Inject constructor(
                         analysisFoodInfo = null,
                         recommendWalkInfo = if(isMissionHave){
                             AIRecommendWalkModel(
-                                targetDistance = getMeterToKm(walkStatus.targetDistance.toDouble()).toFloat(),
+                                targetDistance = getMeterToKm(walkStatus.targetDistance),
                                 minute = _targetTimeMinutes.value?:0
                             )
                         }else{
@@ -818,8 +818,8 @@ class DangDangRepository @Inject constructor(
                         beginGlucose = postWalkGlucoseResponseBody?.preGlucose?:0,
                         aiPredictAfterGlucose = postWalkGlucoseResponseBody?.postGlucoseEst?:0,
                         realAfterGlucose = postWalkGlucoseResponseBody?.postWalkGlucose?:0,
-                        targetDistance = getMeterToKm(postWalkGlucoseResponseBody?.targetDistance?:0.0).toFloat(),
-                        walkDistance = getMeterToKm(postWalkGlucoseResponseBody?.actualDistance?:0.0).toFloat()
+                        targetDistance = getMeterToKm(postWalkGlucoseResponseBody?.targetDistance?:0f),
+                        walkDistance = getMeterToKm(postWalkGlucoseResponseBody?.actualDistance?:0f)
                     )
                 )
             )

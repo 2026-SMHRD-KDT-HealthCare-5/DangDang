@@ -192,8 +192,8 @@ fun AIChatMenuPreview2(){
                 isInputComplete = false,
                 chatStageType = AnalysisFoodStage,
                 analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35.0,
-                    beginGlucose = 140.0,
+                    predictedGlucoseRise = 35.0f,
+                    beginGlucose = 140.0f,
                     foodInfo = FoodInfoModel(
                         name = "비빔밥",
                         nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
@@ -201,27 +201,27 @@ fun AIChatMenuPreview2(){
                             FoodNutritionModel(
                                 name = "탄수화물",
                                 unit = "g",
-                                value = 15.0
+                                value = 15.0f
                             ),
                             FoodNutritionModel(
                                 name = "식이섬유",
                                 unit = "g",
-                                value = 2.0
+                                value = 2.0f
                             ),
                             FoodNutritionModel(
                                 name = "단백질",
                                 unit = "g",
-                                value = 20.0
+                                value = 20.0f
                             ),
                             FoodNutritionModel(
                                 name = "지방",
                                 unit = "g",
-                                value = 10.0
+                                value = 10.0f
                             ),
                             FoodNutritionModel(
                                 name = "칼로리",
                                 unit = "kcal",
-                                value = 250.0
+                                value = 250.0f
                             )
                         )
                     )
@@ -259,8 +259,8 @@ fun AIChatMenuPreview3(){
                 isInputComplete = false,
                 chatStageType = RecommendWalkDistanceStage,
                 analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35.0,
-                    beginGlucose = 140.0,
+                    predictedGlucoseRise = 35.0f,
+                    beginGlucose = 140.0f,
                     foodInfo = FoodInfoModel(
                         name = "비빔밥",
                         nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
@@ -268,27 +268,27 @@ fun AIChatMenuPreview3(){
                             FoodNutritionModel(
                                 name = "탄수화물",
                                 unit = "g",
-                                value = 15.0
+                                value = 15.0f
                             ),
                             FoodNutritionModel(
                                 name = "식이섬유",
                                 unit = "g",
-                                value = 2.0
+                                value = 2.0f
                             ),
                             FoodNutritionModel(
                                 name = "단백질",
                                 unit = "g",
-                                value = 20.0
+                                value = 20.0f
                             ),
                             FoodNutritionModel(
                                 name = "지방",
                                 unit = "g",
-                                value = 10.0
+                                value = 10.0f
                             ),
                             FoodNutritionModel(
                                 name = "칼로리",
                                 unit = "kcal",
-                                value = 250.0
+                                value = 250.0f
                             )
                         )
                     )
@@ -536,10 +536,10 @@ fun AIChatMenu(
                                 predictedGlucoseRise =
                                     chatModel
                                         .analysisFoodInfo
-                                        ?.predictedGlucoseRise?:0.0,
+                                        ?.predictedGlucoseRise?:0f,
                                 beginGlucose = chatModel
                                     .analysisFoodInfo
-                                    ?.beginGlucose?:0.0,
+                                    ?.beginGlucose?:0f,
                                 foodInfo = chatModel.analysisFoodInfo?.foodInfo
                                     ?: FoodInfoModel(
                                         name = "",

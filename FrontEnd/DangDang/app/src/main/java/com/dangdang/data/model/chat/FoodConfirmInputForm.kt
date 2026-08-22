@@ -6,6 +6,6 @@ import androidx.annotation.Keep
 data class FoodConfirmInputForm(
     val foodNo: Int?,
     val customFood: FoodInputDirectlyForm?,
-    val preGlucose: Double?,
-    val portion: Double?,
+    val preGlucose: Float?,
+    val portion: Float?,
 )

@@ -39,18 +39,10 @@ class HomeViewModel @Inject constructor(
     )
     val teamInfo: StateFlow<PendingModel<TeamInfoModel?>> = _teamInfo.asStateFlow()
 
-    private val _teamChallengeStatusList =
-        MutableStateFlow<PendingModel<List<TeamMemberChallengeStatusModel>>>(
-            PendingModel(emptyList(), LoadingState.Loading)
-        )
-    val teamChallengeStatusList: StateFlow<PendingModel<List<TeamMemberChallengeStatusModel>>> =
-        _teamChallengeStatusList.asStateFlow()
-
     init {
         getWeeklyGlucoseCheckList()
         getAfterMealGlucoseStatus()
         getUserTeamInfo()
-        getTeamChallengeStatusList()
     }
 
     fun getWeeklyGlucoseCheckList(){
@@ -69,13 +61,6 @@ class HomeViewModel @Inject constructor(
     fun getUserTeamInfo(){
         viewModelScope.launch {
             _teamInfo.applyResponse(communityRepository.getUserTeamInfo())
-        }
-    }
-
-    //팀원들 걷기 현황 가져오기
-    fun getTeamChallengeStatusList(){
-        viewModelScope.launch {
-            _teamChallengeStatusList.applyResponse(communityRepository.getTeamChallengeStatusList())
         }
     }
 }

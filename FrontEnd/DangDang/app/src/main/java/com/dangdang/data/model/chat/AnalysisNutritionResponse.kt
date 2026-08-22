@@ -4,10 +4,10 @@ import androidx.annotation.Keep
 
 @Keep
 data class AnalysisNutritionResponse (
-    val carb: Double,
-    val sugar: Double,
-    val protein: Double,
-    val fat: Double,
-    val fiber: Double,
-    val calorie: Double
+    val carb: Float,
+    val sugar: Float,
+    val protein: Float,
+    val fat: Float,
+    val fiber: Float,
+    val calorie: Float
 )

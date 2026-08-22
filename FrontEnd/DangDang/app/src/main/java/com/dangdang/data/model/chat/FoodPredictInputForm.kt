@@ -4,12 +4,12 @@ import androidx.annotation.Keep
 
 @Keep
 data class FoodPredictInputForm (
-    val carb: Double,
-    val sugar: Double,
-    val protein: Double,
-    val fat: Double,
-    val fiber: Double,
-    val calorie: Double,
-    val portion: Double,
-    val baseline: Double
+    val carb: Float,
+    val sugar: Float,
+    val protein: Float,
+    val fat: Float,
+    val fiber: Float,
+    val calorie: Float,
+    val portion: Float,
+    val baseline: Float
 )

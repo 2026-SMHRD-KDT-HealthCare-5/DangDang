@@ -4,7 +4,7 @@ import androidx.annotation.Keep
 
 @Keep
 data class WalkMissionTrackingInputForm(
-    val latitude: Double,
-    val longitude: Double,
-    val currentDistance: Double
+    val latitude: Float,
+    val longitude: Float,
+    val currentDistance: Float
 )

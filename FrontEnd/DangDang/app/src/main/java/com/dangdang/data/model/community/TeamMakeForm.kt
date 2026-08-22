@@ -6,7 +6,7 @@ import androidx.annotation.Keep
 @Keep
 data class TeamMakeForm(
     var uri: Uri?,
-    var name: String,
-    var introduction: String,
+    var teamName: String,
+    var teamIntro: String,
     var targetDistance: String
 )

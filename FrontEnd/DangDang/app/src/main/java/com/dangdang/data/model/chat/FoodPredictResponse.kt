@@ -4,9 +4,9 @@ import androidx.annotation.Keep
 
 @Keep
 data class FoodPredictResponse(
-    val predictedGlucoseRise: Double,
-    val predictedPeak: Double,
-    val targetDistance: Double,
-    val targetKcal: Double,
+    val predictedGlucoseRise: Float,
+    val predictedPeak: Float,
+    val targetDistance: Float,
+    val targetKcal: Float,
     val nutritionUsed: AnalysisNutritionResponse
 )

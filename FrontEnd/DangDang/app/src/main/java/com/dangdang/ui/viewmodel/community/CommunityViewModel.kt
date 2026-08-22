@@ -38,9 +38,9 @@ class CommunityViewModel @Inject constructor(
     }
 
     //팀 나가기
-    fun outTeam(context: Context){
+    fun outTeam(context: Context, teamNo: Int){
         viewModelScope.launch {
-            val response = communityRepository.outTeam()
+            val response = communityRepository.outTeam(teamNo)
             if(response.isSuccessful){
                 _teamInfo.value = _teamInfo.value.copy(
                     data = null,

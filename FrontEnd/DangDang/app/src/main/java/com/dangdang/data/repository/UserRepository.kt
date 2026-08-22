@@ -14,8 +14,6 @@ import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.SignUpResponse
 import com.dangdang.data.model.user.TokenResponse
 import com.dangdang.data.model.user.User
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.ResponseBody.Companion.toResponseBody
 import retrofit2.Response
 import javax.inject.Inject
 
@@ -54,28 +52,8 @@ class UserRepository @Inject constructor(
     }
 
     //유저 회원정보수정 정보 가져오기 api 부르기
-    suspend fun getUserInfoDetail(): Response<SignUpForm> {
-        val data = SignUpForm(
-            isSocial = true,
-            nickname = "닉네임8",
-            email = "email@gmail.com",
-            password = "",
-            passwordCheck = "",
-            gender = Gender.male.name,
-            birthDate = "1997.05.16",
-            height = "170",
-            weight = "70",
-            hba1c = "12",
-            isHemoglobinRecentResultUnknown = false,
-            targetGlucose = "180",
-            activityLevel = "주 1 ~2회",
-            joined_at = "2026-07-28",
-            profileImageUrl = ExamplePictureUrl,
-            notification_enabled = true,
-            diagnosisGroup = diagnosisGroupList[0]
-        )
-
-        return Response.success(data)
+    suspend fun getUserInfoDetail(): Response<SignUpForm> = safeApiCall {
+        userApiService.getUserInfoDetail()
     }
 
     //회원정보수정 완료 api 부르기

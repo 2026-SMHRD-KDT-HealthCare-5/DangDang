@@ -49,9 +49,9 @@ fun SignUpFormContentPreview(
             isHemoglobinRecentResultUnknown = false,
             targetGlucose = "",
             activityLevel = "거의 안함",
-            joined_at = "",
+            joinedAt = "",
             profileImageUrl = "",
-            notification_enabled = false,
+            notificationEnabled = false,
             diagnosisGroup = diagnosisGroupList[0]
         ),
         onFormChange = {}
@@ -114,8 +114,8 @@ fun SignUpFormContent(
             isMaxLengthView = false,
             isRequired = false,
             isBorder = true,
-            value = signUpForm.password,
-            isError = !isValidPassword(signUpForm.password),
+            value = signUpForm.password?:"",
+            isError = !isValidPassword(signUpForm.password?:""),
             errorText = "비밀번호는 ${PasswordMinLength}자 이상이어야 합니다.",
             onValueChange = {
                 onFormChange(
@@ -134,7 +134,7 @@ fun SignUpFormContent(
             isMaxLengthView = false,
             isRequired = false,
             isBorder = true,
-            value = signUpForm.passwordCheck,
+            value = signUpForm.passwordCheck?:"",
             isError = signUpForm.password != signUpForm.passwordCheck,
             errorText = "비밀번호가 일치하지 않습니다.",
             onValueChange = {
@@ -221,7 +221,7 @@ fun SignUpFormContent(
             title = "당뇨 유형",
             items = diagnosisGroupList,
             selectedItem = signUpForm.diagnosisGroup,
-            itemText = { it },
+            itemText = { it?:"" },
             onSelected = {
                 onFormChange(
                     signUpForm.copy(diagnosisGroup = it)

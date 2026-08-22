@@ -8,8 +8,8 @@ data class PostWalkGlucoseResponse (
     val preGlucose: Int,
     val postGlucoseEst: Int,
     val postWalkGlucose: Int,
-    val targetDistance: Double,
-    val actualDistance: Double,
+    val targetDistance: Float,
+    val actualDistance: Float,
     val goalAchieved: Boolean,
     val feedbackMessage: String
 )

@@ -180,7 +180,7 @@ class LoginViewModel @Inject constructor(
             val response = userRepository.getUserInfoDetail()
             if (response.isSuccessful) {
                 response.body()?.let {
-                    appPrefs.setNotificationEnabled(it.notification_enabled)
+                    appPrefs.setNotificationEnabled(it.notificationEnabled)
                 }
             }
         }

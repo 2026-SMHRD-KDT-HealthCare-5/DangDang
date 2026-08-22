@@ -51,6 +51,6 @@ val SignUpDefault = SignUpForm(
     targetGlucose = "",
     activityLevel = activityLevelList[0].title,
     profileImageUrl = "",
-    joined_at = "",
-    notification_enabled = false
+    joinedAt = "",
+    notificationEnabled = false
 )

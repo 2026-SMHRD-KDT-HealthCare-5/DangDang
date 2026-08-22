@@ -4,13 +4,14 @@ import androidx.annotation.Keep
 
 @Keep
 data class TeamInfoModel(
-    var isLeader: Boolean,
-    val currentMemberCount: Int,
-    val maxMemberCount: Int,
+    val teamNo: Int,
+    var isCreator: Boolean,
+    val memberCount: Int,
+    val capacity: Int,
     val profileImageUrl: String,
-    val introduction: String,
-    var name: String,
+    val teamIntro: String,
+    var teamName: String,
     var targetDistance: Float,
     var currentDistance: Float,
-    var currentTeamDistance: Float
+    val members: List<TeamMemberChallengeStatusModel>
 )

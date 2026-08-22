@@ -35,7 +35,9 @@ import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.ui.viewmodel.navigation.MyPageViewModel
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+
 
 @Preview
 @Composable
@@ -57,9 +59,9 @@ fun MyPageScreenPreview(
             isHemoglobinRecentResultUnknown = false,
             targetGlucose = "180",
             activityLevel = "주 1 ~2회",
-            joined_at = "2026-07-28",
+            joinedAt = "2026-07-28",
             profileImageUrl = ExamplePictureUrl,
-            notification_enabled = true,
+            notificationEnabled = true,
             diagnosisGroup = diagnosisGroupList[0]
         ),
         onMyInfoUpdateMove = {},
@@ -97,7 +99,7 @@ fun MyPageScreen(
         isGrantedPermission
     ) {
         derivedStateOf {
-            (userInfo.data?.notification_enabled ?: false)
+            (userInfo.data?.notificationEnabled ?: false)
             && isGrantedPermission
         }
     }
@@ -175,8 +177,9 @@ fun MyPageScreenContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
             val sinceDays = ChronoUnit.DAYS.between(
-                LocalDate.parse(user?.joined_at),
+                LocalDate.parse(user?.joinedAt, formatter),
                 LocalDate.now()
             )
             Profile(
