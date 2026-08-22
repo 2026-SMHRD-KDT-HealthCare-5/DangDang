@@ -10,6 +10,7 @@ import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.data.model.user.LoginForm
+import com.dangdang.data.model.user.NotificationSetForm
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.SignUpResponse
 import com.dangdang.data.model.user.TokenResponse
@@ -57,19 +58,12 @@ class UserRepository @Inject constructor(
     }
 
     //회원정보수정 완료 api 부르기
-    suspend fun userInfoUpdate(signUpForm: SignUpForm?): Response<User>{
-        val response = User(
-            id = "1",
-            isSignUp = false,
-            nickname = "닉네임",
-            profileImageUrl = ExamplePictureUrl,
-            email = "email@gmail.com",
-            sinceDays = 120,
-            createdDt = "2026-07-28",
-            updatedDt = "2026-07-28",
+    suspend fun userInfoUpdate(signUpForm: SignUpForm?): Response<SignUpForm> = safeApiCall {
+        userApiService.userInfoUpdate(
+            signUpForm?.copy(
+                birthDate = signUpForm.birthDate.replace(".", "-")
+            )
         )
-
-        return Response.success(response)
     }
 
     //회원가입 api 부르기
@@ -85,8 +79,12 @@ class UserRepository @Inject constructor(
     }
 
     //알람설정 api 부르기
-    suspend fun setNotification(enabled: Boolean): Response<String>{
-        return Response.success("success")
+    suspend fun setNotification(enabled: Boolean): Response<SignUpForm> = safeApiCall {
+        userApiService.setNotification(
+            NotificationSetForm(
+                notificationEnabled = enabled
+            )
+        )
     }
 
     //주간 혈당 관리 현황 api 부르기

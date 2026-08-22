@@ -15,13 +15,17 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.diagnosisGroupList
 import com.dangdang.common.utils.mainScreen
@@ -34,6 +38,7 @@ import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.ui.viewmodel.navigation.MyPageViewModel
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -80,6 +85,11 @@ fun MyPageScreen(
     onFaqClick: () -> Unit,
 ){
     val context = LocalContext.current
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        myPageViewModel.getUserInfo()
+    }
+
     val userInfo by myPageViewModel.userInfo.collectAsState()
     var isGrantedPermission by remember {
         mutableStateOf(

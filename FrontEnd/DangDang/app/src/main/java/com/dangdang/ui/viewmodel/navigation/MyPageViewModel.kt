@@ -29,10 +29,6 @@ class MyPageViewModel @Inject constructor(
     )
     val userInfo: StateFlow<PendingModel<SignUpForm>> = _userInfo.asStateFlow()
 
-    init {
-        getUserInfo()
-    }
-
     fun getUserInfo(){
         viewModelScope.launch {
             val response = userRepository.getUserInfoDetail()

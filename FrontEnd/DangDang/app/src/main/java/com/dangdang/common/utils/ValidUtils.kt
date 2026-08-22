@@ -3,23 +3,29 @@ package com.dangdang.common.utils
 import android.util.Patterns
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeParseException
 import java.time.format.ResolverStyle
 
 //생년월일 유효성 확인
 fun isValidBirthDate(dateStr: String): Boolean {
     if (dateStr.length != 10) return false
 
-    return try {
-        val formatter = DateTimeFormatter.ofPattern("uuuu.MM.dd")
-            .withResolverStyle(ResolverStyle.STRICT)
+    val parsedDate = listOf(
+        "uuuu.MM.dd",
+        "uuuu-MM-dd"
+    ).firstNotNullOfOrNull { pattern ->
+        try {
+            LocalDate.parse(
+                dateStr,
+                DateTimeFormatter.ofPattern(pattern)
+                    .withResolverStyle(ResolverStyle.STRICT)
+            )
+        } catch (e: DateTimeParseException) {
+            null
+        }
+    } ?: return false
 
-        val parsedDate = LocalDate.parse(dateStr, formatter)
-
-        !parsedDate.isAfter(LocalDate.now()) &&
-                !parsedDate.isAfter(LocalDate.now().minusYears(14))
-    } catch (e: Exception) {
-        false
-    }
+    return !parsedDate.isAfter(LocalDate.now().minusYears(14))
 }
 
 //이메일 유효성 확인
@@ -35,12 +41,12 @@ fun isValidPassword(password: String): Boolean{
     return password.length >= PasswordMinLength
 }
 
-const val HeightMinValue = 50
-const val HeightMaxValue = 500
+const val HeightMinValue = 50f
+const val HeightMaxValue = 500f
 
 //키 유효성 확인
 fun isValidHeight(input: String): Boolean {
-    val value = input.toIntOrNull() ?: return false
+    val value = input.toFloatOrNull() ?: return false
     return value in HeightMinValue..HeightMaxValue
 }
 
