@@ -5,13 +5,20 @@
 음식 인식/혈당 예측은 이 서비스의 역할이 아니다 — 그건 services/food_recognition.py가
 전담한다. 여긴 순수 대화(페르소나 응답, 논문 기반 Q&A)만 처리한다.
 
+※ 2026-08-19: 예전엔 curated_knowledge_text(요약본)만 있으면 모든 메시지가 무조건
+paper_qa로 흘러갔다. "안녕!"같은 잡담도 논문 근거자료 + 인용지침이 붙은 프롬프트로
+처리되다보니 팀원 피드백("말이 너무 길다", "무조건 논문 출처를 씀", "일상 대화가
+안 됨")이 들어와서, 메시지를 먼저 가볍게 분류(is_diet_health_related)해 당뇨/혈당/
+식사/운동 관련 질문일 때만 paper_qa를 타고, 그 외엔 캐주얼 페르소나 경로로 보낸다.
+
 목차
 1. chat_sessions, user_diagnosis_groups — 사용자별(user_no 기준) 대화/진단군을 메모리에 저장 (서버 재시작 시 초기화)
-2. combined_papers_text, paper_cache — 모듈이 처음 로딩될 때 1회만 만들어지는 논문 캐시
+2. curated_knowledge_text — 모듈이 처음 로딩될 때 1회만 읽어두는 논문 요약본
 3. get_or_create_chat_session() — 사용자 ID별로 대화 세션을 만들거나 가져옴
 4. get_dummy_user_context() — 지금은 더미인 사용자 정보 (추후 DB 연동 예정)
 5. is_medication_dosage_question() — 약물 용량 질문인지 키워드로 판별
-6. answer_chat() — routers/chat.py가 호출하는 실제 진입점, 답변 생성의 전체 흐름
+6. is_diet_health_related() — 당뇨/혈당/식사/운동 관련 질문인지 가볍게 분류 (RAG 라우팅용)
+7. answer_chat() — routers/chat.py가 호출하는 실제 진입점, 답변 생성의 전체 흐름
 """
 
 from core.config import client, MODEL_NAME, log_token_usage
@@ -103,6 +110,42 @@ def is_medication_dosage_question(message: str) -> bool:
     return False
 
 
+# 당뇨/혈당/식사/운동과 무관해 보이는데도 분류기를 매번 태우면 그만큼 지연/비용이
+# 붙으니, 아주 명백한 잡담(인사말 등)은 분류 호출 자체를 생략하는 게 낫다. 다만
+# 이 리스트는 "확실히 캐주얼"만 걸러내는 용도라 넓게 잡지 않는다 — 애매하면
+# 분류기를 태우는 쪽(= RAG 오탐 방지보다 캐주얼 오탐 방지를 우선)이 안전하다.
+OBVIOUS_GREETING_KEYWORDS = ["안녕", "hi", "hello", "고마워", "감사", "잘가", "바이"]
+
+
+def is_diet_health_related(message: str) -> bool:
+    """
+    당뇨/혈당/식사/운동/건강관리와 관련된 질문인지 가볍게 판별 (RAG 라우팅용).
+
+    "떡볶이 먹어도 돼?"처럼 "당뇨"/"혈당" 같은 키워드가 전혀 없는 음식 관련 질문이
+    이 서비스의 핵심 사용 시나리오라 키워드 매칭으로는 못 잡는다 (음식명이 사실상
+    무한함). 그래서 flash-lite로 초경량 YES/NO 분류 호출을 한 번 더 한다 — 프롬프트가
+    짧아서 토큰/지연 부담은 미미하다.
+    """
+    text = message.strip().lower()
+    if any(kw in text for kw in OBVIOUS_GREETING_KEYWORDS) and len(text) <= 10:
+        return False
+
+    response = client.models.generate_content(
+        model=MODEL_NAME,
+        contents=message,
+        config={
+            "system_instruction": (
+                "사용자 메시지가 당뇨병·혈당·식사(특정 음식 포함)·운동·건강관리와 "
+                "관련 있는 질문인지 판단해. 관련 있으면 'YES', 인사/잡담/완전히 "
+                "무관한 주제면 'NO'만 출력해. 다른 말은 절대 하지 마."
+            ),
+            "temperature": 0.0,
+        },
+    )
+    log_token_usage(response, label="chat-route")
+    return response.text.strip().upper().startswith("YES")
+
+
 def answer_chat(user_no: int, message: str, diagnosis_group: str | None) -> str:
     """routers/chat.py의 POST /rag/chat 핸들러가 호출하는 진입점"""
 
@@ -113,13 +156,14 @@ def answer_chat(user_no: int, message: str, diagnosis_group: str | None) -> str:
     if diagnosis_group:
         user_diagnosis_groups[user_no] = diagnosis_group
 
-    # 논문 요약 지식 기반으로 답변 (요약본이라 컨텍스트가 작아서 캐시 없이도 충분히 저렴함)
-    if curated_knowledge_text:
+    # 당뇨/혈당/식사/운동 관련 질문만 논문 요약 지식 기반(RAG)으로 답변
+    if curated_knowledge_text and is_diet_health_related(message):
         response = answer_without_cache(client, MODEL_NAME, message, curated_knowledge_text)
         log_token_usage(response, label="chat-paper")
         return response.text
 
-    # 요약본 파일이 없을 때의 최종 폴백 -> 페르소나 대화 세션
+    # 그 외(잡담 등)는 논문 자료 없이 가벼운 페르소나 대화 세션으로 응답
+    # (요약본 파일이 아예 없을 때도 여기로 온다 — 최종 폴백 겸 캐주얼 경로)
     user_context = get_dummy_user_context(user_no)
     system_prompt = SYSTEM_PROMPT_TEMPLATE.format(
         knowledge=FIXED_KNOWLEDGE,
@@ -127,5 +171,5 @@ def answer_chat(user_no: int, message: str, diagnosis_group: str | None) -> str:
     )
     chat_session = get_or_create_chat_session(user_no, system_prompt)
     response = chat_session.send_message(message)
-    log_token_usage(response, label="chat")
+    log_token_usage(response, label="chat-casual")
     return response.text
