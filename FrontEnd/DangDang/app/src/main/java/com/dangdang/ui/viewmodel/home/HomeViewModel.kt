@@ -6,8 +6,8 @@ import com.dangdang.common.utils.applyResponse
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamInfoModel
-import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
+import com.dangdang.data.model.home.HomeDataResponse
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.data.repository.CommunityRepository
 import com.dangdang.data.repository.UserRepository
@@ -23,37 +23,19 @@ class HomeViewModel @Inject constructor(
     private val userRepository: UserRepository,
     private val communityRepository: CommunityRepository
 ) : ViewModel() {
-    private val _weeklyGlucoseCheckList = MutableStateFlow<PendingModel<List<WeeklyGlucoseCheckModel>>>(
-        PendingModel(emptyList(), LoadingState.Loading)
-    )
-    val weeklyGlucoseCheckList: StateFlow<PendingModel<List<WeeklyGlucoseCheckModel>>> = _weeklyGlucoseCheckList.asStateFlow()
-
-    private val _afterMealGlucoseStatus = MutableStateFlow<PendingModel<AfterMealGlucoseStatusModel>>(
+    private val _homeData = MutableStateFlow<PendingModel<HomeDataResponse>>(
         PendingModel(null, LoadingState.Loading)
     )
-    val afterMealGlucoseStatus: StateFlow<PendingModel<AfterMealGlucoseStatusModel>> =
-        _afterMealGlucoseStatus.asStateFlow()
+    val homeData: StateFlow<PendingModel<HomeDataResponse>> = _homeData.asStateFlow()
 
     private val _teamInfo = MutableStateFlow<PendingModel<TeamInfoModel?>>(
         PendingModel(null, LoadingState.Loading)
     )
     val teamInfo: StateFlow<PendingModel<TeamInfoModel?>> = _teamInfo.asStateFlow()
 
-    init {
-        getWeeklyGlucoseCheckList()
-        getAfterMealGlucoseStatus()
-        getUserTeamInfo()
-    }
-
-    fun getWeeklyGlucoseCheckList(){
+    fun getHomeData(){
         viewModelScope.launch {
-            _weeklyGlucoseCheckList.applyResponse(userRepository.getWeeklyGlucoseCheckList())
-        }
-    }
-
-    fun getAfterMealGlucoseStatus(){
-        viewModelScope.launch {
-            _afterMealGlucoseStatus.applyResponse(userRepository.getAfterMealGlucoseStatus())
+            _homeData.applyResponse(userRepository.getHomeData())
         }
     }
 

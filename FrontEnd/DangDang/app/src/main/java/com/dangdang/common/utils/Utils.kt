@@ -246,8 +246,6 @@ fun <T> getResponseError(response: Response<T>): ResponseErrorModel{
     return errorJson
 }
 
-val CHART_TIMES: List<String> = (6..24).map { "${it}시" }
-
 val GuageColorList = listOf(
     PrimaryBlue,
     DarkGreen,

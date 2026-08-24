@@ -8,6 +8,7 @@ import com.dangdang.common.utils.LoginRetrofit
 import com.dangdang.common.utils.RefreshRetrofit
 import com.dangdang.data.api.ChatApiService
 import com.dangdang.data.api.CommunityApiService
+import com.dangdang.data.api.HomeApiService
 import com.dangdang.data.api.LoginApiService
 import com.dangdang.data.api.RefreshApiService
 import com.dangdang.data.api.UserApiService
@@ -154,11 +155,18 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideHomeApiService(retrofit: Retrofit): HomeApiService {
+        return retrofit.create(HomeApiService::class.java)
+    }
+
+    @Provides
+    @Singleton
     fun provideUserRepository(
         userApiService: UserApiService,
-        loginApiService: LoginApiService
+        loginApiService: LoginApiService,
+        homeApiService: HomeApiService
     ): UserRepository{
-        return UserRepository(userApiService, loginApiService)
+        return UserRepository(userApiService, loginApiService, homeApiService)
     }
 
     @Provides

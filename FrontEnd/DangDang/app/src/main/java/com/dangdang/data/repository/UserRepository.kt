@@ -1,26 +1,23 @@
 package com.dangdang.data.repository
 
-import com.dangdang.Application.Companion.ExamplePictureUrl
-import com.dangdang.common.utils.diagnosisGroupList
 import com.dangdang.common.utils.safeApiCall
+import com.dangdang.data.api.HomeApiService
 import com.dangdang.data.api.LoginApiService
 import com.dangdang.data.api.UserApiService
-import com.dangdang.data.enums.Gender
-import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
-import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
+import com.dangdang.data.model.home.HomeDataResponse
 import com.dangdang.data.model.user.LoginForm
 import com.dangdang.data.model.user.NotificationSetForm
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.SignUpResponse
 import com.dangdang.data.model.user.TokenResponse
-import com.dangdang.data.model.user.User
 import retrofit2.Response
 import javax.inject.Inject
 
 class UserRepository @Inject constructor(
     private val userApiService: UserApiService,
-    private val loginApiService: LoginApiService
+    private val loginApiService: LoginApiService,
+    private val homeApiService: HomeApiService
 ){
     //이메일 로그인 api 부르기
     suspend fun emailLogin(email: String, password: String): Response<TokenResponse> = safeApiCall {
@@ -87,48 +84,8 @@ class UserRepository @Inject constructor(
         )
     }
 
-    //주간 혈당 관리 현황 api 부르기
-    suspend fun getWeeklyGlucoseCheckList(): Response<List<WeeklyGlucoseCheckModel>>{
-        val response = listOf(
-            WeeklyGlucoseCheckModel(
-                day = "월",
-                status = WeeklyAttendanceStatus.MISSED.name
-            ),
-            WeeklyGlucoseCheckModel(
-                day = "화",
-                status = WeeklyAttendanceStatus.DONE.name
-            ),
-            WeeklyGlucoseCheckModel(
-                day = "수",
-                status = WeeklyAttendanceStatus.NONE.name
-            ),
-            WeeklyGlucoseCheckModel(
-                day = "목",
-                status = WeeklyAttendanceStatus.NONE.name
-            ),
-            WeeklyGlucoseCheckModel(
-                day = "금",
-                status = WeeklyAttendanceStatus.NONE.name
-            ),
-            WeeklyGlucoseCheckModel(
-                day = "토",
-                status = WeeklyAttendanceStatus.NONE.name
-            ),
-            WeeklyGlucoseCheckModel(
-                day = "일",
-                status = WeeklyAttendanceStatus.NONE.name
-            )
-        )
-
-        return Response.success(response)
-    }
-
-    //식후 혈당 추이 부르기
-    suspend fun getAfterMealGlucoseStatus(): Response<AfterMealGlucoseStatusModel>{
-        val response = AfterMealGlucoseStatusModel(
-            goal = 180f,
-            afterMealGlucoseStatus = listOf(155f, 148f, 168f, 158f, 178f, 152f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f)
-        )
-        return Response.success(response)
+    //홈 api 부르기
+    suspend fun getHomeData(): Response<HomeDataResponse> = safeApiCall {
+        homeApiService.getHomeData()
     }
 }

@@ -61,7 +61,9 @@ fun WeeklyCheckPreview(
 fun WeeklyCheck(
     weeklyGlucoseCheck: WeeklyGlucoseCheckModel
 ){
-    val status = WeeklyAttendanceStatus.valueOf(weeklyGlucoseCheck.status)
+    val status = WeeklyAttendanceStatus.valueOf(
+        weeklyGlucoseCheck.status ?: WeeklyAttendanceStatus.NONE.name
+    )
     Column(
         modifier = Modifier
             .background(
