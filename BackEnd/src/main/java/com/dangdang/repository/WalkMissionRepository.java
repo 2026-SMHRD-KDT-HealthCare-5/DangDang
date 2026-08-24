@@ -3,7 +3,10 @@ package com.dangdang.repository;
 import com.dangdang.entity.WalkMission;
 import com.dangdang.entity.WalkMissionStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -34,4 +37,24 @@ public interface WalkMissionRepository extends JpaRepository<WalkMission, Intege
     // end_time이 채워진 미션(=COMPLETE/PARTIAL/EXPIRED로 끝난 것)만 걸립니다 — READY/IN_PROGRESS는
     // end_time이 NULL이라 자동으로 빠집니다.
     List<WalkMission> findByUserNoAndEndTimeBetween(Integer userNo, LocalDateTime start, LocalDateTime end);
+
+    /**
+     * [각주] (추가 2026-08-21) GET /api/home 의 "내 걷기 거리" 블록(오늘/이번달)에 씁니다.
+     * 팀 실적 집계랑 똑같이 COMPLETE/PARTIAL만 포함합니다(EXPIRED는 중간에 취소/타임아웃/미활동으로
+     * 끊긴 거라 "걸은 성과"로 안 침, walk-missions 쪽 CANCELLED 정책과 동일한 기준).
+     * 단위는 m — 서비스 계층에서 km로 변환합니다.
+     */
+    @Query("SELECT COALESCE(SUM(w.actualDistance), 0) FROM WalkMission w " +
+            "WHERE w.userNo = :userNo AND w.status IN :statuses " +
+            "AND w.endTime >= :start AND w.endTime < :end")
+    BigDecimal sumDistanceMByUserAndEndTimeBetween(@Param("userNo") Integer userNo,
+                                                     @Param("statuses") List<WalkMissionStatus> statuses,
+                                                     @Param("start") LocalDateTime start,
+                                                     @Param("end") LocalDateTime end);
+
+    /** [각주] 위와 같은 기준, 기간 제한 없이 전체 누적("총 거리")입니다. */
+    @Query("SELECT COALESCE(SUM(w.actualDistance), 0) FROM WalkMission w " +
+            "WHERE w.userNo = :userNo AND w.status IN :statuses")
+    BigDecimal sumTotalDistanceMByUser(@Param("userNo") Integer userNo,
+                                        @Param("statuses") List<WalkMissionStatus> statuses);
 }
