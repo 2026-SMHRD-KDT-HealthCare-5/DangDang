@@ -35,6 +35,11 @@ public enum ActivityLevel {
         return code;
     }
 
+    /** [각주] (추가 2026-08-21) GET /api/users/me 응답에서 DB의 code(정수)를 다시 화면 문구로 돌려줄 때 씁니다. */
+    public String getRawText() {
+        return rawText;
+    }
+
     /**
      * 프론트에서 온 원문 문자열("거의 안함" 등)로 알맞은 enum 값을 찾습니다.
      * 넷 중 어디에도 해당하지 않으면(오타, 새 옵션 추가 누락 등) 400 에러로 명확히 알려줍니다.

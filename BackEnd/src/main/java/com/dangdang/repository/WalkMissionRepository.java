@@ -29,4 +29,9 @@ public interface WalkMissionRepository extends JpaRepository<WalkMission, Intege
     List<WalkMission> findByStatusAndCreatedAtBefore(WalkMissionStatus status, LocalDateTime cutoff);
 
     List<WalkMission> findByStatusAndLastTrackedAtBefore(WalkMissionStatus status, LocalDateTime cutoff);
+
+    // [각주] (추가 2026-08-21) GET /api/home 의 weeklyAttendance/glucoseTrend(POST_WALK) 계산에 씁니다.
+    // end_time이 채워진 미션(=COMPLETE/PARTIAL/EXPIRED로 끝난 것)만 걸립니다 — READY/IN_PROGRESS는
+    // end_time이 NULL이라 자동으로 빠집니다.
+    List<WalkMission> findByUserNoAndEndTimeBetween(Integer userNo, LocalDateTime start, LocalDateTime end);
 }

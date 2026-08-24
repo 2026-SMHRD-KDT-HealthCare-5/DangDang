@@ -2,6 +2,7 @@ package com.dangdang.service;
 
 import com.dangdang.dto.request.TeamCreateRequest;
 import com.dangdang.dto.response.TeamCreateResponse;
+import com.dangdang.dto.response.TeamChallengeSummaryResponse;
 import com.dangdang.dto.response.TeamDetailResponse;
 import com.dangdang.dto.response.TeamSearchResponse;
 import com.dangdang.entity.Team;
@@ -181,6 +182,35 @@ public class TeamService {
                     Team team = teamRepository.findById(myMembership.getTeamNo())
                             .orElseThrow(() -> new BusinessException(ErrorCode.TEAM_NOT_FOUND));
                     return buildDetailResponse(team, userNo);
+                })
+                .orElse(null);
+    }
+
+    /**
+     * [각주] (추가 2026-08-21) GET /api/home 의 teamChallenge 블록에서 씁니다. 팀 상세조회랑
+     * 계산은 거의 같은데, 팀원 전체가 아니라 상위 3명만 잘라서 돌려줍니다(홈 화면 요약용).
+     * 가입한 팀이 없으면 null입니다.
+     */
+    @Transactional(readOnly = true)
+    public TeamChallengeSummaryResponse getTeamChallengeSummary(Integer userNo) {
+        return teamMemberRepository.findByUserNo(userNo)
+                .map(myMembership -> {
+                    Team team = teamRepository.findById(myMembership.getTeamNo())
+                            .orElseThrow(() -> new BusinessException(ErrorCode.TEAM_NOT_FOUND));
+
+                    LocalDateTime[] monthRange = currentMonthRange();
+                    BigDecimal currentDistance = monthlyDistanceKm(team.getTeamNo(), monthRange[0], monthRange[1]);
+                    int progressRate = calculateProgressRate(currentDistance, team.getTargetDistance());
+                    String challengeMonth = YearMonth.now().format(MONTH_FORMATTER);
+
+                    List<TeamChallengeSummaryResponse.TopMember> topMembers = teamMemberRepository
+                            .findMemberDistanceRankingByTeam(team.getTeamNo()).stream()
+                            .limit(3)
+                            .map(row -> new TeamChallengeSummaryResponse.TopMember(row.getNickname(), row.getTotalDistanceKm()))
+                            .toList();
+
+                    return new TeamChallengeSummaryResponse(team.getTeamNo(), team.getTeamName(), challengeMonth,
+                            team.getTargetDistance(), currentDistance, progressRate, topMembers);
                 })
                 .orElse(null);
     }

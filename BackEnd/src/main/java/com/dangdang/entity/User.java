@@ -98,4 +98,30 @@ public class User {
     protected void onCreate() {
         this.joinedAt = LocalDateTime.now();
     }
+
+    /**
+     * [각주] (추가 2026-08-21) PATCH /api/users/me가 호출합니다. 파라미터가 null이면 그 필드는
+     * 그대로 둡니다(부분 수정) — email/password는 여기서 아예 안 받습니다(수정 불가 항목).
+     * nickname/gender/birthDate/height/weight/hba1c/activityLevel/targetGlucose 전부 수정
+     * 가능하게 열어뒀습니다(원래 노션 명세는 weight/hba1c/activityLevel/targetGlucose 4개만
+     * 언급했지만, 사용자 결정으로 나머지 프로필 항목도 같이 열었습니다 — diagnosisGroup은
+     * FastAPI 예측 모델과 직결된 민감한 값이라 제외했습니다).
+     */
+    public void updateProfile(String nickname, String gender, LocalDate birthDate,
+                               BigDecimal height, BigDecimal weight, BigDecimal hba1c,
+                               Integer activityLevel, Integer targetGlucose) {
+        if (nickname != null) this.nickname = nickname;
+        if (gender != null) this.gender = gender;
+        if (birthDate != null) this.birthDate = birthDate;
+        if (height != null) this.height = height;
+        if (weight != null) this.weight = weight;
+        if (hba1c != null) this.hba1c = hba1c;
+        if (activityLevel != null) this.activityLevel = activityLevel;
+        if (targetGlucose != null) this.targetGlucose = targetGlucose;
+    }
+
+    /** [각주] (추가 2026-08-21) PATCH /api/users/me/notification이 호출합니다. */
+    public void updateNotificationEnabled(boolean notificationEnabled) {
+        this.notificationEnabled = notificationEnabled;
+    }
 }
