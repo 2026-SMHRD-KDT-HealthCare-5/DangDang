@@ -133,6 +133,11 @@ fun addComma(number: Int): String {
     return formattedNumber
 }
 
+fun addComma(number: Float): String {
+    val formatter = DecimalFormat("#,##0.0")
+    return formatter.format(number)
+}
+
 fun getMeterToKm(distance: Float): Float{
     return distance / 1000f
 }
