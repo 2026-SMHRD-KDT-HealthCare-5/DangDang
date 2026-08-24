@@ -352,13 +352,13 @@ class StepCounterService : Service(), SensorEventListener {
                         val walkStatusResponseBody = walkStatusResponse.body()
                         totalDistance = walkStatusResponseBody?.actualDistance?:0f
                         updateDistance()
-                        showTrackNotification(false)
+                        //showTrackNotification(false)
                     }else{
                         stopStepCounting(false)
                         StepCounterManager.walkStateLoadingErrorProcess()
                     }
                 }else{
-                    showTrackNotification(true)
+                    //showTrackNotification(true)
                     //목표 달성 시 자동 종료
                     val goalReached = responseBody?.goalReached
                     if (goalReached == true && !isGoalReachedNotified) {

@@ -130,8 +130,12 @@ fun TeamChallengeGraphBox(
             }
 
             Text(
-                text = "${((teamInfo.currentDistance / 
-                        teamInfo.targetDistance)*100).toInt()}%",
+                text = "${String.format(
+                    LocalLocale.current.platformLocale,
+                    "%.2f",
+                    (teamInfo.currentDistance /
+                            teamInfo.targetDistance)*100
+                )}%",
                 style = AppTypography.bodyLarge.bold,
                 color = Black,
             )

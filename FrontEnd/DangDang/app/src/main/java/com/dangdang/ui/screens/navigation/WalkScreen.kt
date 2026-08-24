@@ -24,6 +24,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.component.button.WalkButton
 import com.dangdang.component.dialog.WalkMissionCompleteDialog
@@ -117,18 +121,26 @@ fun WalkScreen(
         }
     }
 
-    LaunchedEffect(shouldAutoStart, walkStatus) {
-        if(!isWalking){
-            if(walkStatus.status == WalkMissionStatus.Loading.name){
-                walkViewModel.getWalkStatus(context)
-            }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
-            if (
-                walkStatus.status != WalkMissionStatus.Loading.name &&
-                shouldAutoStart
-            ) {
-                shouldAutoStart = false
-                startStepCounting()
+    LaunchedEffect(lifecycleOwner, shouldAutoStart) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(
+            Lifecycle.State.RESUMED
+        ) {
+            if (!isWalking) {
+                if (walkStatus.status != WalkMissionStatus.READY.name &&
+                    walkStatus.status != WalkMissionStatus.IN_PROGRESS.name
+                ) {
+                    walkViewModel.getWalkStatus(context)
+                }
+
+                if (
+                    walkStatus.status != WalkMissionStatus.Loading.name &&
+                    shouldAutoStart
+                ) {
+                    shouldAutoStart = false
+                    startStepCounting()
+                }
             }
         }
     }

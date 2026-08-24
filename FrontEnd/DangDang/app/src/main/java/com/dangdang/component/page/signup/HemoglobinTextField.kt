@@ -54,6 +54,7 @@ fun HemoglobinTextField(
     ) {
         //당화혈색소 텍스트필드
         TextField(
+            isEnabled = !isUnknown,
             title = "당화혈색소 (HbA1c)",
             isMaxLengthView = false,
             isRequired = false,

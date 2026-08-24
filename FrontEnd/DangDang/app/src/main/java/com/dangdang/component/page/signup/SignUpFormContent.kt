@@ -23,6 +23,7 @@ import com.dangdang.common.utils.isValidPassword
 import com.dangdang.common.utils.isValidWeight
 import com.dangdang.component.text.selector.Selector
 import com.dangdang.component.text.textfield.TextField
+import com.dangdang.data.enums.DiagnosisGroup
 import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.data.model.user.SignUpForm
@@ -239,7 +240,22 @@ fun SignUpFormContent(
             isUnknown = signUpForm.isHemoglobinRecentResultUnknown,
             onUnknownChange = {
                 onFormChange(
-                    signUpForm.copy(isHemoglobinRecentResultUnknown = !signUpForm.isHemoglobinRecentResultUnknown)
+                    signUpForm.copy(
+                        hba1c = when (signUpForm.diagnosisGroup) {
+                            DiagnosisGroup.Prediabetes.title -> {
+                                "6"
+                            }
+
+                            DiagnosisGroup.DiabetesType2.title -> {
+                                "7"
+                            }
+
+                            else -> {
+                                "5"
+                            }
+                        },
+                        isHemoglobinRecentResultUnknown = !signUpForm.isHemoglobinRecentResultUnknown
+                    )
                 )
             }
         )

@@ -18,14 +18,19 @@ import com.dangdang.common.utils.safeApiCall
 import com.dangdang.common.utils.toMultipart
 import com.dangdang.common.utils.toRequestBody
 import com.dangdang.common.utils.uriToFile
+import com.dangdang.common.utils.uriToResizedFile
 import com.dangdang.data.api.ChatApiService
 import com.dangdang.data.api.WalkApiService
 import com.dangdang.data.enums.ChatCardType
 import com.dangdang.data.enums.ChatUserType
+import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.model.PendingModel
+import com.dangdang.data.model.PendingResponseModel
 import com.dangdang.data.model.chat.AIRecommendWalkModel
 import com.dangdang.data.model.chat.AnalysisFoodModel
 import com.dangdang.data.model.chat.AnalysisNutritionResponse
 import com.dangdang.data.model.chat.ChatHistory
+import com.dangdang.data.model.chat.ChatHistoryResponse
 import com.dangdang.data.model.chat.ChatInputForm
 import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.ChatRecommendQuestionModel
@@ -52,6 +57,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import javax.inject.Inject
+import kotlin.collections.lastIndex
 
 class DangDangRepository @Inject constructor(
     private val chatApiService: ChatApiService,
@@ -68,8 +74,7 @@ class DangDangRepository @Inject constructor(
 
     private val _missionNo = MutableStateFlow<Int?>(null)
 
-    //채팅 리스트 호출하기
-    suspend fun getChattingList(): Response<List<ChatModel>>{
+    suspend fun getChatListParsing(): PendingResponseModel<List<ChatModel>, ChatHistoryResponse>{
         val chatResponse = safeApiCall {
             chatApiService.getChatHistory()
         }
@@ -175,9 +180,32 @@ class DangDangRepository @Inject constructor(
                 )
             }
 
-            return Response.success(chatList)
+            return PendingResponseModel(
+                pendingModel = PendingModel(
+                    data = chatList,
+                    loadingState = LoadingState.Success
+                ),
+                response = chatResponse
+            )
         }else{
-            return Response.error(chatResponse.code(), chatResponse.errorBody())
+            return PendingResponseModel(
+                pendingModel = PendingModel(
+                    data = null,
+                    loadingState = LoadingState.Error
+                ),
+                response = chatResponse
+            )
+        }
+    }
+
+    //채팅 리스트 호출하기
+    suspend fun getChattingList(): Response<List<ChatModel>>{
+        val chatListPending = getChatListParsing()
+
+        return if(chatListPending.pendingModel.loadingState == LoadingState.Success){
+            Response.success(chatListPending.pendingModel.data)
+        }else{
+            Response.error(chatListPending.response.code(), chatListPending.response.errorBody())
         }
     }
 
@@ -311,7 +339,7 @@ class DangDangRepository @Inject constructor(
         var uploadFile: File? = null
         try{
             val ateFoodImagePart = ateFoodImageUri?.let { uri->
-                uploadFile = context.uriToFile(uri)
+                uploadFile = context.uriToResizedFile(uri, maxSize = 512)
 
                 uploadFile.toMultipart()
             }
@@ -499,7 +527,7 @@ class DangDangRepository @Inject constructor(
         var uploadFile: File? = null
         try{
             val ateFoodImagePart = ateFoodImageUri?.let { uri->
-                uploadFile = context.uriToFile(uri)
+                uploadFile = context.uriToResizedFile(uri, maxSize = 512)
 
                 uploadFile.toMultipart()
             }
@@ -727,11 +755,15 @@ class DangDangRepository @Inject constructor(
             walkApiService.getWalkStatus()
         }
         if(walkStatusResponse.isSuccessful){
-            val walkStatus = walkStatusResponse.body()
-            val isMissionHave = walkStatus?.targetDistance != null
+            val chatListPending = getChatListParsing()
 
-            return Response.success(
-                listOf(
+            if(chatListPending.pendingModel.loadingState == LoadingState.Success){
+                val chatList = ArrayList<ChatModel>()
+
+                val walkStatus = walkStatusResponse.body()
+                val isMissionHave = walkStatus?.targetDistance != null
+
+                val walkChatList = listOf(
                     ChatModel(
                         chatUserType = ChatUserType.AI,
                         message = if(isMissionHave){
@@ -758,7 +790,18 @@ class DangDangRepository @Inject constructor(
                         glucoseFeedbackInfo = null
                     )
                 )
-            )
+
+                if(chatListPending.pendingModel.data != null){
+                    chatList.addAll(chatListPending.pendingModel.data)
+                    chatList.addAll(walkChatList)
+
+                    return Response.success(chatList)
+                }else{
+                    return Response.success(walkChatList)
+                }
+            }else{
+                return Response.error(chatListPending.response.code(), chatListPending.response.errorBody())
+            }
         }else{
             return Response.error(walkStatusResponse.code(), walkStatusResponse.errorBody())
         }

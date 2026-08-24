@@ -1,6 +1,10 @@
 package com.dangdang.data.manager
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import com.dangdang.common.utils.AppPrefs
@@ -101,7 +105,18 @@ class SessionManager(
 
         //걷기 미션 종료 처리
         StepCounterManager.reset()
-        StopStepCounting(context, -1)
+        val isGranted = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED
+        }else{
+            true
+        }
+
+        if(isGranted){
+            StopStepCounting(context, -1)
+        }
 
         //소셜 로그아웃 처리
         try {

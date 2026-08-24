@@ -1,6 +1,7 @@
 package com.dangdang.common.utils
 
 import com.dangdang.R
+import com.dangdang.data.enums.DiagnosisGroup
 import com.dangdang.data.enums.Gender
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.UserActivityLevelModel
@@ -30,9 +31,9 @@ val activityLevelList = listOf(
 )
 
 val diagnosisGroupList = listOf(
-    "정상",
-    "전당뇨",
-    "제2형당뇨"
+    DiagnosisGroup.Normal.title,
+    DiagnosisGroup.Prediabetes.title,
+    DiagnosisGroup.DiabetesType2.title
 )
 
 val SignUpDefault = SignUpForm(

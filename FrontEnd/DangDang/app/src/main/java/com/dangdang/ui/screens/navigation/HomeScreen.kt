@@ -22,6 +22,7 @@ import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.home.HomeGuideBox
 import com.dangdang.component.page.home.HomeTeamChallengeStatus
+import com.dangdang.component.page.home.HomeWalkDistanceStatusBox
 import com.dangdang.component.page.home.WeeklyCheckListBox
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.enums.WeeklyAttendanceStatus
@@ -29,6 +30,7 @@ import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
 import com.dangdang.data.model.home.GlucoseChartPointModel
+import com.dangdang.data.model.home.HomeWalkingDistanceModel
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.ui.viewmodel.home.HomeViewModel
 
@@ -83,38 +85,10 @@ fun HomeScreenPreview(
                 ),
             )
         ),
-        teamInfo = TeamInfoModel(
-            teamNo = 1,
-            isCreator = false,
-            teamName = "우리팀 5월 걷기 챌린지",
-            memberCount = 4,
-            capacity = 5,
-            targetDistance = 150f,
-            currentDistance = 30f,
-            profileImageUrl = ExamplePictureUrl,
-            teamIntro = "하루 7천보 이상 함께 걸어요!",
-            members = listOf(
-                TeamMemberChallengeStatusModel(
-                    nickname = "닉네임",
-                    totalDistance = 32.56f,
-                ),
-                TeamMemberChallengeStatusModel(
-                    nickname = "닉네임2",
-                    totalDistance = 20.56f,
-                ),
-                TeamMemberChallengeStatusModel(
-                    nickname = "닉네임3",
-                    totalDistance = 10.56f,
-                ),
-                TeamMemberChallengeStatusModel(
-                    nickname = "닉네임4",
-                    totalDistance = 5.56f,
-                ),
-                TeamMemberChallengeStatusModel(
-                    nickname = "닉네임5",
-                    totalDistance = 3.56f,
-                )
-            )
+        walkingDistance = HomeWalkingDistanceModel(
+            todayDistance = 3.2f,
+            monthlyDistance = 48.6f,
+            totalDistance = 1258.2f
         ),
     )
 }
@@ -128,34 +102,22 @@ fun HomeScreen(
     val homeData by
         homeViewModel.homeData.collectAsState()
 
-    val teamInfo by
-        homeViewModel.teamInfo.collectAsState()
-
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         homeViewModel.getHomeData()
-        homeViewModel.getUserTeamInfo()
     }
 
-    if(homeData.loadingState == LoadingState.Success
-        && teamInfo.loadingState == LoadingState.Success){
+    if(homeData.loadingState == LoadingState.Success){
         
         HomeScreenContent(
             onFoodInputClick = onFoodInputClick,
             onTeamChallengeMoreClick = onTeamChallengeMoreClick,
             weeklyGlucoseCheckList = homeData.data?.weeklyAttendance?:emptyList(),
             afterMealGlucoseStatus = homeData.data?.glucoseTrend,
-            teamInfo = teamInfo.data,
+            walkingDistance = homeData.data?.walkingDistance
         )
     }else{
         ErrorView(
-            loadingState = if(
-                homeData.loadingState == LoadingState.Error
-                 || teamInfo.loadingState == LoadingState.Error
-            ){
-                LoadingState.Error
-            }else{
-                LoadingState.Loading
-            },
+            loadingState = homeData.loadingState,
             message = "홈 화면 데이터 불러오기를 실패했습니다."
         )
     }
@@ -167,7 +129,7 @@ fun HomeScreenContent(
     onTeamChallengeMoreClick: () -> Unit,
     weeklyGlucoseCheckList : List<WeeklyGlucoseCheckModel>,
     afterMealGlucoseStatus: AfterMealGlucoseStatusModel?,
-    teamInfo: TeamInfoModel?,
+    walkingDistance: HomeWalkingDistanceModel?,
 ){
     val scrollState = rememberScrollState()
 
@@ -198,17 +160,18 @@ fun HomeScreenContent(
                 weeklyGlucoseCheckList = weeklyGlucoseCheckList
             )
 
+            walkingDistance?.let{
+                HomeWalkDistanceStatusBox(
+                    todayDistance = it.todayDistance,
+                    monthlyDistance = it.monthlyDistance,
+                    totalDistance = it.totalDistance
+                )
+            }
+
             afterMealGlucoseStatus?.let {
                 GlucoseTrendChart(
                     values = it.points,
                     goal = it.targetGlucose
-                )
-            }
-
-            teamInfo?.let{
-                HomeTeamChallengeStatus(
-                    teamInfo = it,
-                    onMoreClick = onTeamChallengeMoreClick
                 )
             }
         }

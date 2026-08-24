@@ -3,6 +3,7 @@ package com.dangdang.component.chart
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -71,11 +72,13 @@ fun GlucoseTrendChart(
     val modelProducer = remember { CartesianChartModelProducer() }
 
     LaunchedEffect(values) {
-        modelProducer.runTransaction {
-            lineModel {
-                series(values.map {
-                    it.glucose.toFloat()
-                })
+        if (values.isNotEmpty()) {
+            modelProducer.runTransaction {
+                lineModel {
+                    series(values.map {
+                        it.glucose.toFloat()
+                    })
+                }
             }
         }
     }
@@ -112,40 +115,55 @@ fun GlucoseTrendChart(
             )
         }
 
-        CartesianChartHost(
-            chart = rememberCartesianChart(
-                rememberLineCartesianLayer(
-                    lineProvider = LineCartesianLayer.LineProvider.series(
-                        LineCartesianLayer.rememberLine(
-                            fill = LineCartesianLayer.LineFill.single(Fill(Color(0xFF4C6EF5)))
-                        )
-                    ),
-                ),
-                startAxis = VerticalAxis.rememberStart(
-                    itemPlacer = VerticalAxis.ItemPlacer.step({ 20.0 })
-                ),
-                bottomAxis = HorizontalAxis.rememberBottom(
-                    valueFormatter = { _, x, _ ->
-                        values.map{
-                            it.time
-                        }.getOrElse(x.toInt()) { "" }
-                    },
-                ),
-                decorations = listOf(
-                    HorizontalLine(
-                        y = { goal.toDouble() },
-                        line = LineComponent(fill = Fill(Color.Red), thickness = 1.dp),
-                        labelComponent = rememberTextComponent(style = TextStyle(color = Color.Red)),
-                        label = { "$goal (목표)" }
-                    )
+        if (values.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "혈당 데이터가 없습니다.",
+                    style = AppTypography.bodyLarge.regular,
+                    color = Black,
                 )
-            ),
-            modelProducer = modelProducer,
-            scrollState = rememberVicoScrollState(scrollEnabled = false),
-            zoomState = rememberVicoZoomState(initialZoom = Zoom.Content, zoomEnabled = false),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-        )
+            }
+        } else {
+            CartesianChartHost(
+                chart = rememberCartesianChart(
+                    rememberLineCartesianLayer(
+                        lineProvider = LineCartesianLayer.LineProvider.series(
+                            LineCartesianLayer.rememberLine(
+                                fill = LineCartesianLayer.LineFill.single(Fill(Color(0xFF4C6EF5)))
+                            )
+                        ),
+                    ),
+                    startAxis = VerticalAxis.rememberStart(
+                        itemPlacer = VerticalAxis.ItemPlacer.step({ 20.0 })
+                    ),
+                    bottomAxis = HorizontalAxis.rememberBottom(
+                        valueFormatter = { _, x, _ ->
+                            values.map{
+                                it.time
+                            }.getOrElse(x.toInt()) { "" }
+                        },
+                    ),
+                    decorations = listOf(
+                        HorizontalLine(
+                            y = { goal.toDouble() },
+                            line = LineComponent(fill = Fill(Color.Red), thickness = 1.dp),
+                            labelComponent = rememberTextComponent(style = TextStyle(color = Color.Red)),
+                            label = { "$goal (목표)" }
+                        )
+                    )
+                ),
+                modelProducer = modelProducer,
+                scrollState = rememberVicoScrollState(scrollEnabled = false),
+                zoomState = rememberVicoZoomState(initialZoom = Zoom.Content, zoomEnabled = false),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            )
+        }
     }
 }

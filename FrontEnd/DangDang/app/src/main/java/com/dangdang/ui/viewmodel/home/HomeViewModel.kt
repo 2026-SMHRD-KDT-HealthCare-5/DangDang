@@ -20,29 +20,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    private val userRepository: UserRepository,
-    private val communityRepository: CommunityRepository
+    private val userRepository: UserRepository
 ) : ViewModel() {
     private val _homeData = MutableStateFlow<PendingModel<HomeDataResponse>>(
         PendingModel(null, LoadingState.Loading)
     )
     val homeData: StateFlow<PendingModel<HomeDataResponse>> = _homeData.asStateFlow()
 
-    private val _teamInfo = MutableStateFlow<PendingModel<TeamInfoModel?>>(
-        PendingModel(null, LoadingState.Loading)
-    )
-    val teamInfo: StateFlow<PendingModel<TeamInfoModel?>> = _teamInfo.asStateFlow()
-
     fun getHomeData(){
         viewModelScope.launch {
             _homeData.applyResponse(userRepository.getHomeData())
-        }
-    }
-
-    //사용자가 속한 팀 정보 가져오기
-    fun getUserTeamInfo(){
-        viewModelScope.launch {
-            _teamInfo.applyResponse(communityRepository.getUserTeamInfo())
         }
     }
 }

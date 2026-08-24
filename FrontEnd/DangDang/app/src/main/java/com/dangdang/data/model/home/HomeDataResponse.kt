@@ -5,5 +5,6 @@ import androidx.annotation.Keep
 @Keep
 data class HomeDataResponse(
     val weeklyAttendance: List<WeeklyGlucoseCheckModel>,
-    val glucoseTrend: AfterMealGlucoseStatusModel?
+    val glucoseTrend: AfterMealGlucoseStatusModel?,
+    val walkingDistance: HomeWalkingDistanceModel?
 )
