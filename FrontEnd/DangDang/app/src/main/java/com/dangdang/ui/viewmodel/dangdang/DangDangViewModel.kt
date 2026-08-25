@@ -8,6 +8,7 @@ import com.dangdang.common.utils.AnalysisFoodType
 import com.dangdang.common.utils.BeforeMealTipType
 import com.dangdang.common.utils.TodayWalkTargetType
 import com.dangdang.common.utils.applyResponse
+import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.chat.ChatModel
@@ -19,6 +20,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 @HiltViewModel
@@ -69,12 +71,28 @@ class DangDangViewModel @Inject constructor(
     //채팅 전송
     fun chatSend(message: String) {
         chatProcess {
-            val currentChattingList = ArrayList(dangDangRepository.currentChattingList.value)
+            val currentChattingList =
+                ArrayList(dangDangRepository.currentChattingList.value)
 
-            /*_chattingList.value = _chattingList.copy(
-                data =
+            currentChattingList.add(
+                ChatModel(
+                    chatUserType = ChatUserType.User,
+                    message = message,
+                    date = LocalDateTime.now(),
+                    chatType = "",
+                    chatStageType = "",
+                    isChatAble = true,
+                    isInputComplete = false,
+                    analysisFoodInfo = null,
+                    recommendWalkInfo = null,
+                    glucoseFeedbackInfo = null
+                )
             )
-            _chattingList.applyResponse(dangDangRepository.chatSend(message))*/
+
+            _chattingList.value = _chattingList.value.copy(
+                data = currentChattingList
+            )
+            _chattingList.applyResponse(dangDangRepository.chatSend(message))
         }
     }
 
