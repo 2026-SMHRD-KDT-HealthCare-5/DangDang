@@ -1,9 +1,14 @@
 package com.dangdang.data.manager
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.core.content.ContextCompat
 import androidx.credentials.ClearCredentialStateRequest
 import androidx.credentials.CredentialManager
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.StopStepCounting
 import com.kakao.sdk.user.UserApiClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -98,6 +103,22 @@ class SessionManager(
 
         _logoutEvent.tryEmit(Unit)
 
+        //걷기 미션 종료 처리
+        StepCounterManager.reset()
+        val isGranted = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACTIVITY_RECOGNITION
+            ) == PackageManager.PERMISSION_GRANTED
+        }else{
+            true
+        }
+
+        if(isGranted){
+            StopStepCounting(context, -1)
+        }
+
+        //소셜 로그아웃 처리
         try {
             CredentialManager
                 .create(context)

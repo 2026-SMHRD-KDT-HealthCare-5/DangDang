@@ -6,5 +6,5 @@ import androidx.annotation.Keep
 data class FoodNutritionModel(
     val name: String,
     val unit: String,
-    val value: Int
+    val value: Float
 )

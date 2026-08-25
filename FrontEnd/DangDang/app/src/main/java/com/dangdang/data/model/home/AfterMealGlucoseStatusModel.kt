@@ -4,6 +4,6 @@ import androidx.annotation.Keep
 
 @Keep
 data class AfterMealGlucoseStatusModel (
-    var goal: Float,
-    val afterMealGlucoseStatus: List<Float>
+    var targetGlucose: Float,
+    val points: List<GlucoseChartPointModel>
 )

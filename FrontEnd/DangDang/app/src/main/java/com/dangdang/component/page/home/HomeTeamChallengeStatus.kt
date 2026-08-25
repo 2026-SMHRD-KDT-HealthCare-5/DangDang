@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -40,51 +39,36 @@ import com.dangdang.ui.theme.White
 fun HomeTeamChallengeStatusPreview(){
     HomeTeamChallengeStatus(
         teamInfo = TeamInfoModel(
-            isLeader = false,
-            name = "우리팀 5월 걷기 챌린지",
-            currentMemberCount = 4,
-            maxMemberCount = 5,
+            teamNo = 1,
+            isCreator = false,
+            teamName = "우리팀 5월 걷기 챌린지",
+            memberCount = 4,
+            capacity = 5,
             targetDistance = 150f,
-            currentDistance = 20f,
-            currentTeamDistance = 30f,
+            currentDistance = 30f,
             profileImageUrl = ExamplePictureUrl,
-            introduction = "하루 7천보 이상 함께 걸어요!"
-        ),
-        teamMemberChallengeStatusList = listOf(
-            TeamMemberChallengeStatusModel(
-                rank = 1,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임",
-                currentDistance = 32.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 2,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임2",
-                currentDistance = 20.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 3,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임3",
-                currentDistance = 10.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 4,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임4",
-                currentDistance = 5.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 5,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임5",
-                currentDistance = 3.56f,
-                targetDistance = 150f
+            teamIntro = "하루 7천보 이상 함께 걸어요!",
+            members = listOf(
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임",
+                    totalDistance = 32.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임2",
+                    totalDistance = 20.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임3",
+                    totalDistance = 10.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임4",
+                    totalDistance = 5.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임5",
+                    totalDistance = 3.56f,
+                )
             )
         ),
         onMoreClick = {}
@@ -94,7 +78,6 @@ fun HomeTeamChallengeStatusPreview(){
 @Composable
 fun HomeTeamChallengeStatus(
     teamInfo: TeamInfoModel,
-    teamMemberChallengeStatusList: List<TeamMemberChallengeStatusModel>,
     onMoreClick: () -> Unit
 ) {
     Column(
@@ -153,7 +136,7 @@ fun HomeTeamChallengeStatus(
                 text = String.format(
                     LocalLocale.current.platformLocale,
                     "%.2f",
-                    teamInfo.currentTeamDistance
+                    teamInfo.currentDistance
                 ),
                 style = AppTypography.bodyLarge.bold,
                 color = Navy,
@@ -192,7 +175,7 @@ fun HomeTeamChallengeStatus(
             }
 
             Text(
-                text = "${((teamInfo.currentTeamDistance/teamInfo.targetDistance)*100).toInt()}%",
+                text = "${((teamInfo.currentDistance/teamInfo.targetDistance)*100).toInt()}%",
                 style = AppTypography.bodyLarge.bold,
                 color = Black,
             )
@@ -203,8 +186,9 @@ fun HomeTeamChallengeStatus(
         Column(
             verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
-            teamMemberChallengeStatusList.forEach { teamMemberChallengeStatus ->
+            teamInfo.members.forEach { teamMemberChallengeStatus ->
                 ChallengeBar(
+                    targetDistance = teamInfo.targetDistance,
                     teamMemberChallengeStatusModel = teamMemberChallengeStatus
                 )
             }

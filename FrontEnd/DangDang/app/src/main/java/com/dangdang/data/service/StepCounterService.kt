@@ -15,9 +15,17 @@ import android.location.Location
 import android.os.IBinder
 import android.os.Looper
 import android.util.Log
+import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.getMeterToKm
+import com.dangdang.common.utils.getWalkKcal
+import com.dangdang.data.enums.WalkMissionExpiredReason
+import com.dangdang.data.enums.WalkMissionStatus
 import com.dangdang.data.manager.StepCounterManager
+import com.dangdang.data.model.walk.WalkExpireInputForm
+import com.dangdang.data.model.walk.WalkMissionTrackingInputForm
+import com.dangdang.data.repository.UserRepository
 import com.dangdang.data.repository.WalkRepository
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -46,6 +54,9 @@ class StepCounterService : Service(), SensorEventListener {
 
     @Inject
     lateinit var walkRepository: WalkRepository
+
+    @Inject
+    lateinit var userRepository: UserRepository
 
     private val serviceScope = CoroutineScope(
         SupervisorJob() + Dispatchers.IO
@@ -119,7 +130,7 @@ class StepCounterService : Service(), SensorEventListener {
 
             totalDistance += distance
             // m 단위를 km 단위로 변환하여 매니저에 업데이트
-            StepCounterManager.updateWalkDistance(totalDistance / 1000f)
+            updateDistance()
             StepCounterManager.addRoutePoint(location.latitude, location.longitude)
 
             // 마지막 유의미한 이동 시각 갱신
@@ -138,7 +149,7 @@ class StepCounterService : Service(), SensorEventListener {
 
         when (intent?.action) {
             ACTION_START -> startStepCounting(currentStep)
-            ACTION_STOP -> stopStepCounting()
+            ACTION_STOP -> stopStepCounting(true)
         }
 
         return START_NOT_STICKY
@@ -150,23 +161,31 @@ class StepCounterService : Service(), SensorEventListener {
             return
         }
 
-        baseStepCount = currentStepCount
-        startStepCount = -1f
-        totalDistance = 0f
-        lastLocation = null
-        lastMeaningfulMovementTime = System.currentTimeMillis()
-        lastActiveStepCount = currentStepCount
-        isGoalReachedNotified = false
+        serviceScope.launch {
+            startWalkMission(
+                no = missionNo,
+                onSuccess = { sensorEventListener ->
+                    baseStepCount = currentStepCount
+                    startStepCount = -1f
+                    totalDistance = 0f
+                    lastLocation = null
+                    lastMeaningfulMovementTime = System.currentTimeMillis()
+                    lastActiveStepCount = currentStepCount
+                    isGoalReachedNotified = false
 
-        sensorManager.registerListener(this, sensor, SensorManager.SENSOR_DELAY_NORMAL)
-        startLocationUpdates()
+                    sensorManager.registerListener(sensorEventListener, sensor, SensorManager.SENSOR_DELAY_NORMAL)
+                    startLocationUpdates()
 
-        elapsedSecond = 0
-        StepCounterManager.resetStepTime()
-        StepCounterManager.updateWalkingState(true)
-        StepCounterManager.updateWalkDistance(0f)
+                    elapsedSecond = 0
+                    StepCounterManager.resetStepTime()
+                    StepCounterManager.updateWalkingState(true)
+                    StepCounterManager.updateWalkDistance(0f)
+                    StepCounterManager.updateWalkKcal(0)
 
-        startTimer()
+                    startTimer()
+                }
+            )
+        }
     }
 
     @SuppressLint("MissingPermission")
@@ -204,17 +223,32 @@ class StepCounterService : Service(), SensorEventListener {
         updateNotification(totalStepCount, totalDistance)
     }
 
-    private fun stopStepCounting() {
+    private fun stopStepCounting(isEndWalkMission: Boolean) {
         CoroutineScope(Dispatchers.IO).launch {
-            endWalkMission(missionNo)
-            withContext(Dispatchers.Main) {
-                sensorManager.unregisterListener(this@StepCounterService)
-                fusedLocationClient.removeLocationUpdates(locationCallback)
-                timerJob?.cancel()
-                StepCounterManager.updateWalkingState(false)
-                stopSelf()
+            if(isEndWalkMission){
+                endWalkMission(
+                    no = missionNo,
+                    onSuccess = {
+                        withContext(Dispatchers.Main) {
+                            stopProcess()
+                        }
+                    }
+                )
+            }else{
+                withContext(Dispatchers.Main) {
+                    stopProcess()
+                }
             }
         }
+    }
+
+    private fun stopProcess(){
+        sensorManager.unregisterListener(this@StepCounterService)
+        fusedLocationClient.removeLocationUpdates(locationCallback)
+        timerJob?.cancel()
+        StepCounterManager.updateWalkingState(false)
+        StepCounterManager.updateWalkStatus(WalkMissionStatus.EXPIRED.name)
+        stopSelf()
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {}
@@ -253,42 +287,129 @@ class StepCounterService : Service(), SensorEventListener {
 
                 // 30분 경과 -> 세션 만료 서버 호출
                 if (inactiveMillis >= 30 * 60 * 1000L) {
-                    expireWalkMission(missionNo)
-                    withContext(Dispatchers.Main) {
-                        stopStepCounting()
-                    }
+                    expireWalkMission(
+                        no = missionNo,
+                        onSuccess = {
+                            withContext(Dispatchers.Main) {
+                                stopStepCounting(false)
+                            }
+                        }
+                    )
                     break
                 }
             }
         }
     }
 
-    // --- Mock API Calls ---
+    // --- API Calls ---
 
+    private suspend fun startWalkMission(no: Int, onSuccess: (SensorEventListener)-> Unit){
+        if(no == -1) return
+        val response = walkRepository.startWalkMission(no)
+        val userInfoResponse = userRepository.getUserInfoDetail()
+        if(response.isSuccessful && userInfoResponse.isSuccessful){
+            val userInfo = userInfoResponse.body()
+            StepCounterManager.initUserInfo(userInfo)
+
+            onSuccess(this)
+        }else{
+            Toast.makeText(this, "걷기 미션을 시작하는 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    fun updateDistance(){
+        val kmDistance = getMeterToKm(totalDistance)
+        StepCounterManager.updateWalkDistance(kmDistance)
+        StepCounterManager.updateWalkKcal(getWalkKcal(
+            distance = kmDistance,
+            seconds = elapsedSecond,
+            userInfo = StepCounterManager.userInfo.value
+        ))
+    }
+
+    //폴링 처리
     private suspend fun trackWalkMission(no: Int, location: Location?) {
         if (no == -1 || location == null) return
 
-        Log.d("WalkService", "Tracking mission $no at ${location.latitude}, ${location.longitude}")
-        // POST /api/walk-missions/{no}/track
-        // Mock Response handling
-        val goalReached = false // from server response
-        if (goalReached && !isGoalReachedNotified) {
-            isGoalReachedNotified = true
-            if (appPrefs.isNotificationEnabled()) {
-                showGoalReachedNotification()
+        var responseCount = 0
+
+        while(true){
+            val response = walkRepository.trackWalkMission(
+                missionNo = no,
+                walkMissionTrackingInputForm = WalkMissionTrackingInputForm(
+                    latitude = location.latitude.toFloat(),
+                    longitude = location.longitude.toFloat(),
+                    currentDistance = totalDistance
+                )
+            )
+            if(response.isSuccessful){
+                val responseBody = response.body()
+
+                //anomalyDetected가 true일 경우 현재 거리를 서버의 거리로 리셋한다.
+                if(responseBody?.anomalyDetected == true){
+                    val walkStatusResponse = walkRepository.getWalkStatus()
+                    if(walkStatusResponse.isSuccessful){
+                        val walkStatusResponseBody = walkStatusResponse.body()
+                        totalDistance = walkStatusResponseBody?.actualDistance?:0f
+                        updateDistance()
+                        //showTrackNotification(false)
+                    }else{
+                        stopStepCounting(false)
+                        StepCounterManager.walkStateLoadingErrorProcess()
+                    }
+                }else{
+                    //showTrackNotification(true)
+                    //목표 달성 시 자동 종료
+                    val goalReached = responseBody?.goalReached
+                    if (goalReached == true && !isGoalReachedNotified) {
+                        isGoalReachedNotified = true
+                        if (appPrefs.isNotificationEnabled()) {
+                            showGoalReachedNotification()
+                        }
+                        stopStepCounting(true)
+                    }
+                }
+
+                break
+            }
+
+            //실패 시 처리
+            responseCount ++
+            if(responseCount >= 3){
+                stopStepCounting(false)
+                StepCounterManager.walkStateLoadingErrorProcess()
+                break
             }
         }
     }
 
-    private suspend fun expireWalkMission(no: Int) {
+    private suspend fun expireWalkMission(no: Int, onSuccess: suspend () -> Unit) {
         if (no == -1) return
-        Log.d("WalkService", "Expiring mission $no due to inactivity")
-        // POST /walk-missions/{no}/expire (reason: inactive)
+        val response = walkRepository.expireWalkMission(
+            missionNo = no,
+            walkExpireInputForm = WalkExpireInputForm(
+                expireReason = WalkMissionExpiredReason.INACTIVE.name,
+                actualDistance = totalDistance
+            )
+        )
+        if(response.isSuccessful){
+            Toast.makeText(this, "걷기 미션이 자동으로 만료되었습니다.", Toast.LENGTH_SHORT).show()
+            onSuccess()
+        }else{
+            stopStepCounting(false)
+            StepCounterManager.walkStateLoadingErrorProcess()
+        }
     }
 
-    private suspend fun endWalkMission(no: Int) {
+    private suspend fun endWalkMission(no: Int, onSuccess: suspend () -> Unit) {
         if (no == -1) return
-        StepCounterManager.endWalkMission(no)
+        val response = walkRepository.endWalkMission(no)
+        if(response.isSuccessful){
+            StepCounterManager.endWalkMission()
+            onSuccess()
+        }else{
+            Toast.makeText(this, "걷기 미션을 종료하는 중 오류가 발생했습니다.", Toast.LENGTH_SHORT).show()
+        }
     }
 
     // --- Notifications ---
@@ -329,6 +450,20 @@ class StepCounterService : Service(), SensorEventListener {
         notificationManager.notify(GOAL_NOTIFICATION_ID, notification)
     }
 
+    private fun showTrackNotification(isSaved: Boolean){
+        val notification = NotificationCompat.Builder(this, WARNING_CHANNEL_ID)
+            .setContentTitle("걷기 미션 저장 안내")
+            .setContentText(
+                if(isSaved) "걷기 미션이 성공적으로 저장되었어요!"
+                else "이동 속도가 너무 빨라서 이번 구간은 기록에서 제외됐어요"
+            )
+            .setSmallIcon(R.drawable.ic_menu_mylocation)
+            .setAutoCancel(true)
+            .build()
+        val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+        notificationManager.notify(SAVE_NOTIFICATION_ID, notification)
+    }
+
     private fun createNotificationChannel() {
         val channel = NotificationChannel(CHANNEL_ID, "걷기 측정", NotificationManager.IMPORTANCE_LOW)
         val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
@@ -352,5 +487,6 @@ class StepCounterService : Service(), SensorEventListener {
         private const val NOTIFICATION_ID = 1001
         private const val MOVE_NOTIFICATION_ID = 1002
         private const val GOAL_NOTIFICATION_ID = 1003
+        private const val SAVE_NOTIFICATION_ID = 1004
     }
 }

@@ -5,5 +5,5 @@ import androidx.annotation.Keep
 @Keep
 data class WeeklyGlucoseCheckModel(
     val day: String,
-    var status: String
+    var status: String?
 )

@@ -15,13 +15,17 @@ import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.diagnosisGroupList
 import com.dangdang.common.utils.mainScreen
@@ -34,8 +38,11 @@ import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.ui.viewmodel.navigation.MyPageViewModel
+import kotlinx.coroutines.launch
 import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+
 
 @Preview
 @Composable
@@ -57,9 +64,9 @@ fun MyPageScreenPreview(
             isHemoglobinRecentResultUnknown = false,
             targetGlucose = "180",
             activityLevel = "주 1 ~2회",
-            joined_at = "2026-07-28",
+            joinedAt = "2026-07-28",
             profileImageUrl = ExamplePictureUrl,
-            notification_enabled = true,
+            notificationEnabled = true,
             diagnosisGroup = diagnosisGroupList[0]
         ),
         onMyInfoUpdateMove = {},
@@ -78,6 +85,11 @@ fun MyPageScreen(
     onFaqClick: () -> Unit,
 ){
     val context = LocalContext.current
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        myPageViewModel.getUserInfo()
+    }
+
     val userInfo by myPageViewModel.userInfo.collectAsState()
     var isGrantedPermission by remember {
         mutableStateOf(
@@ -97,7 +109,7 @@ fun MyPageScreen(
         isGrantedPermission
     ) {
         derivedStateOf {
-            (userInfo.data?.notification_enabled ?: false)
+            (userInfo.data?.notificationEnabled ?: false)
             && isGrantedPermission
         }
     }
@@ -175,8 +187,9 @@ fun MyPageScreenContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
             val sinceDays = ChronoUnit.DAYS.between(
-                LocalDate.parse(user?.joined_at),
+                LocalDate.parse(user?.joinedAt, formatter),
                 LocalDate.now()
             )
             Profile(

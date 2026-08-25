@@ -1,20 +1,21 @@
 package com.dangdang.data.manager
 
+import com.dangdang.common.utils.WalkStatusDefault
+import com.dangdang.common.utils.getMeterToKm
+import com.dangdang.common.utils.getWalkKcal
+import com.dangdang.data.enums.WalkMissionStatus
+import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.walk.WalkStatus
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import java.time.LocalDateTime
+import java.time.temporal.ChronoUnit
 
 object StepCounterManager {
 
     private val _walkStatus = MutableStateFlow(
-        WalkStatus(
-            missionNo = 0,
-            walkTargetDistance = 0f,
-            currentWalkDistance = 0f,
-            currentWalkCount = 0,
-            currentWalkKcal = 0
-        )
+        WalkStatusDefault
     )
     val walkStatus: StateFlow<WalkStatus> =
         _walkStatus.asStateFlow()
@@ -38,7 +39,14 @@ object StepCounterManager {
     private val _isWalkEndDialog = MutableStateFlow(false)
     val isWalkEndDialog: StateFlow<Boolean> = _isWalkEndDialog.asStateFlow()
 
-    fun endWalkMission(missionNo: Int){
+    private val _userInfo = MutableStateFlow<SignUpForm?>(null)
+    val userInfo: StateFlow<SignUpForm?> = _userInfo.asStateFlow()
+
+    fun initUserInfo(userInfo: SignUpForm?){
+        _userInfo.value = userInfo
+    }
+
+    fun endWalkMission(){
         _isEndWalk.value = true
         _isWalkEndDialog.value = true
     }
@@ -55,22 +63,33 @@ object StepCounterManager {
         }
     }
 
+    fun updateWalkStatus(status: String){
+        _walkStatus.value = _walkStatus.value.copy(
+            status = status
+        )
+    }
+
     fun updateWalkTarget(walkTargetDistance: Float){
         _walkStatus.value = _walkStatus.value.copy(
-            walkTargetDistance = walkTargetDistance
+            targetDistance = walkTargetDistance
         )
     }
 
     fun updateStepCount(stepCount: Int) {
         _walkStatus.value = _walkStatus.value.copy(
             currentWalkCount = stepCount,
-            currentWalkKcal = (stepCount * 0.04f).toInt(),
         )
     }
 
     fun updateWalkDistance(distance: Float) {
         _walkStatus.value = _walkStatus.value.copy(
-            currentWalkDistance = distance
+            actualDistance = distance,
+        )
+    }
+
+    fun updateWalkKcal(kcal: Int){
+        _walkStatus.value = _walkStatus.value.copy(
+            currentWalkKcal = kcal
         )
     }
 
@@ -87,10 +106,23 @@ object StepCounterManager {
     }
 
     fun reset() {
+        _walkStatus.value = WalkStatusDefault
+    }
+
+    fun walkStateLoadingErrorProcess(){
         _walkStatus.value = _walkStatus.value.copy(
-            currentWalkCount = 0,
-            currentWalkDistance = 0f,
+            status = WalkMissionStatus.LoadingError.name
+        )
+    }
+
+    fun loadWalkState(loadedWalkStatus: WalkStatus?){
+        _walkStatus.value = _walkStatus.value.copy(
+            missionNo = loadedWalkStatus?.missionNo?:0,
+            status = loadedWalkStatus?.status?:"",
+            targetDistance = getMeterToKm(loadedWalkStatus?.targetDistance?:0f),
+            currentWalkCount = loadedWalkStatus?.currentWalkCount?:0,
             currentWalkKcal = 0,
+            actualDistance = getMeterToKm(loadedWalkStatus?.actualDistance?:0f),
         )
     }
 }

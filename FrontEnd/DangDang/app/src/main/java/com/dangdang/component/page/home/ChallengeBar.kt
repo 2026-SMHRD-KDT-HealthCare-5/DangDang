@@ -28,18 +28,17 @@ import com.dangdang.ui.theme.White
 @Composable
 fun ChallengeBarPreview(){
     ChallengeBar(
+        targetDistance = 60f,
         teamMemberChallengeStatusModel = TeamMemberChallengeStatusModel(
-            rank = 3,
-            profileImageUrl = ExamplePictureUrl,
             nickname = "닉네임3",
-            currentDistance = 10.56f,
-            targetDistance = 150f
+            totalDistance = 10.56f,
         )
     )
 }
 
 @Composable
 fun ChallengeBar(
+    targetDistance: Float,
     teamMemberChallengeStatusModel: TeamMemberChallengeStatusModel
 ) {
     Row(
@@ -52,7 +51,7 @@ fun ChallengeBar(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Avatar(
-            imageUrl = teamMemberChallengeStatusModel.profileImageUrl,
+            imageUrl = "",
             avatarSize = AvatarSize.XSmall,
         )
 
@@ -69,8 +68,8 @@ fun ChallengeBar(
             GuageBar(
                 size = GuageBarSize.Small,
                 guageColor = PrimaryBlue,
-                current = teamMemberChallengeStatusModel.currentDistance,
-                target = teamMemberChallengeStatusModel.targetDistance
+                current = teamMemberChallengeStatusModel.totalDistance,
+                target = targetDistance
             )
         }
 
@@ -78,7 +77,7 @@ fun ChallengeBar(
             text = "${String.format(
                 LocalLocale.current.platformLocale,
                 "%.2f",
-                teamMemberChallengeStatusModel.currentDistance
+                teamMemberChallengeStatusModel.totalDistance
             )} km",
             style = AppTypography.labelMedium.medium,
             color = Black,

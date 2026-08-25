@@ -6,6 +6,7 @@ import com.dangdang.common.utils.applyResponse
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamRankingStatusModel
+import com.dangdang.data.model.community.TeamRankingStatusResponse
 import com.dangdang.data.repository.CommunityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -18,10 +19,10 @@ import javax.inject.Inject
 class CommunityTeamRankingViewModel @Inject constructor(
     private val communityRepository: CommunityRepository
 ): ViewModel(){
-    private val _teamRankingStatusList = MutableStateFlow<PendingModel<List<TeamRankingStatusModel>>>(
-        PendingModel(emptyList(), LoadingState.Loading)
+    private val _teamRankingStatusList = MutableStateFlow<PendingModel<TeamRankingStatusResponse>>(
+        PendingModel(null, LoadingState.Loading)
     )
-    val teamRankingStatusList: StateFlow<PendingModel<List<TeamRankingStatusModel>>> =
+    val teamRankingStatusList: StateFlow<PendingModel<TeamRankingStatusResponse>> =
         _teamRankingStatusList.asStateFlow()
 
     init {

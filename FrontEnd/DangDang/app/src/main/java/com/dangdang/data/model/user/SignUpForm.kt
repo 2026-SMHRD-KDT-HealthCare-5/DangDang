@@ -5,15 +5,15 @@ import androidx.annotation.Keep
 @Keep
 data class SignUpForm(
     var isSocial: Boolean,
-    var profileImageUrl: String,
-    var joined_at: String,
-    var notification_enabled: Boolean,
+    var profileImageUrl: String?,
+    var joinedAt: String,
+    var notificationEnabled: Boolean,
     var nickname: String,
     var email: String,
     //비밀번호
-    var password: String,
+    var password: String?,
     //비밀번호 확인
-    var passwordCheck: String,
+    var passwordCheck: String?,
     //성별
     var gender: String,
     //생일
@@ -23,7 +23,7 @@ data class SignUpForm(
     //몸무게
     var weight: String,
     //당뇨 유형
-    var diagnosisGroup: String,
+    var diagnosisGroup: String?,
     //당화혈색소
     var hba1c: String,
     var isHemoglobinRecentResultUnknown: Boolean,

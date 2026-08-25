@@ -3,6 +3,8 @@ package com.dangdang.common.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.util.Patterns
 import android.webkit.MimeTypeMap
@@ -41,11 +43,14 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import retrofit2.Response
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.text.DecimalFormat
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.format.ResolverStyle
 import java.util.Locale
+import androidx.core.graphics.scale
 
 //화면마다 공통으로 사용하는 modifier
 fun Modifier.screen() = this
@@ -133,6 +138,15 @@ fun addComma(number: Int): String {
     return formattedNumber
 }
 
+fun addComma(number: Float): String {
+    val formatter = DecimalFormat("#,##0.0")
+    return formatter.format(number)
+}
+
+fun getMeterToKm(distance: Float): Float{
+    return distance / 1000f
+}
+
 fun navigateBottomTab(
     navController: NavHostController,
     route: String
@@ -212,6 +226,70 @@ fun File.deleteSafely(): Boolean {
     }
 }
 
+fun Context.uriToResizedFile(
+    uri: Uri,
+    maxSize: Int = 512
+): File {
+    val bitmap = contentResolver.openInputStream(uri).use { inputStream ->
+        BitmapFactory.decodeStream(inputStream)
+    } ?: throw IOException("이미지를 불러올 수 없습니다.")
+
+    val width = bitmap.width
+    val height = bitmap.height
+
+    // 512 이하라면 원본 크기 그대로 사용
+    if (width <= maxSize && height <= maxSize) {
+        val file = File.createTempFile(
+            "upload_",
+            ".jpg",
+            cacheDir
+        )
+
+        FileOutputStream(file).use { outputStream ->
+            bitmap.compress(
+                Bitmap.CompressFormat.JPEG,
+                100,
+                outputStream
+            )
+        }
+
+        bitmap.recycle()
+
+        return file
+    }
+
+    // 비율 유지하면서 최대 크기를 512로 조정
+    val scale = minOf(
+        maxSize.toFloat() / width,
+        maxSize.toFloat() / height
+    )
+
+    val resizedWidth = (width * scale).toInt()
+    val resizedHeight = (height * scale).toInt()
+
+    val resizedBitmap = bitmap.scale(resizedWidth, resizedHeight)
+
+    bitmap.recycle()
+
+    val file = File.createTempFile(
+        "upload_",
+        ".jpg",
+        cacheDir
+    )
+
+    FileOutputStream(file).use { outputStream ->
+        resizedBitmap.compress(
+            Bitmap.CompressFormat.JPEG,
+            90,
+            outputStream
+        )
+    }
+
+    resizedBitmap.recycle()
+
+    return file
+}
+
 fun String.toRequestBody() =
     toRequestBody("text/plain".toMediaType())
 
@@ -241,8 +319,6 @@ fun <T> getResponseError(response: Response<T>): ResponseErrorModel{
     val errorJson = Gson().fromJson(errorString, ResponseErrorModel::class.java)
     return errorJson
 }
-
-val CHART_TIMES: List<String> = (6..24).map { "${it}시" }
 
 val GuageColorList = listOf(
     PrimaryBlue,

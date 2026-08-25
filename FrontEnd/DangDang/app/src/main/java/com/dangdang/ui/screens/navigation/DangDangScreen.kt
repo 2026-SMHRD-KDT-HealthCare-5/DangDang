@@ -20,8 +20,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -40,6 +42,7 @@ import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.text.textbox.ChatSendBox
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.manager.StepCounterManager
 import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.ChatRecommendQuestionModel
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
@@ -58,6 +61,7 @@ fun DangDangScreenPreview(
         chatMessageValue = "",
         onChatMessageValueChange = {},
         isChatAble = true,
+        isChatLoading = false,
         recommendQuestionList = listOf(
             ChatRecommendQuestionModel(
                 question = "음식 분석 & 걷기",
@@ -110,7 +114,8 @@ fun DangDangScreenPreview(
         onFoodCheckClick = {},
         onFoodAIAnalysisClick = {},
         onFoodKeywordInputClick = {},
-        onFoodInputDirectlyClick = {}
+        onFoodInputDirectlyClick = {},
+        onAteFoodImageCancelClick = {}
     )
 }
 
@@ -125,6 +130,8 @@ fun DangDangScreen(
     val context = LocalContext.current
     val savedStateHandle =
         navController.currentBackStackEntry?.savedStateHandle
+
+    val walkStatus by StepCounterManager.walkStatus.collectAsState()
 
     var chatMessageValue by remember { mutableStateOf("") }
 
@@ -192,10 +199,15 @@ fun DangDangScreen(
 
     var isInitialized by remember { mutableStateOf(false) }
 
-    LaunchedEffect(isWalkComplete, isWalkCompleteByHandle, isFoodInputDirectlySend) {
-        if(isWalkComplete || isWalkCompleteByHandle){
+    var shouldWalkComplete by rememberSaveable {
+        mutableStateOf(isWalkComplete)
+    }
+
+    LaunchedEffect(shouldWalkComplete, isWalkCompleteByHandle, isFoodInputDirectlySend) {
+        if(shouldWalkComplete || isWalkCompleteByHandle){
             dangDangViewModel.completeWalkMission()
             savedStateHandle?.remove<Boolean>("isWalkComplete")
+            shouldWalkComplete = false
             isInitialized = true
         }else if(isFoodInputDirectlySend){
             foodInputDirectlyForm?.let{
@@ -218,6 +230,7 @@ fun DangDangScreen(
             ActivityResultContracts.GetContent()
         ) { uri ->
             ateFoodImageUri = uri
+            ateFoodValue = ""
         }
 
     if(chattingList.loadingState == LoadingState.Success
@@ -228,6 +241,7 @@ fun DangDangScreen(
                 chatMessageValue = it
             },
             isChatAble = isChatAble,
+            isChatLoading = isChatLoading,
             recommendQuestionList = recommendQuestionList.data?:emptyList(),
             chattingList = chattingList.data?:emptyList(),
             onRecommendQuestionClick = {
@@ -254,6 +268,9 @@ fun DangDangScreen(
             onAteFoodImageSelectClick = {
                 galleryLauncher.launch("image/*")
             },
+            onAteFoodImageCancelClick = {
+                ateFoodImageUri = null
+            },
             ateWeightValue = ateWeightValue,
             onAteWeightValueChange = {
                 ateWeightValue = it
@@ -269,7 +286,8 @@ fun DangDangScreen(
             },
             onAfterWalkGlucoseInputCompleteClick = {
                 dangDangViewModel.afterWalkGlucoseSend(
-                    afterWalkGlucoseValue.toInt()
+                    missionNo = walkStatus.missionNo,
+                    glucose = afterWalkGlucoseValue.toInt()
                 )
             },
             onChallengeClick = {
@@ -289,10 +307,11 @@ fun DangDangScreen(
                 dangDangViewModel.foodCheck()
             },
             onFoodAIAnalysisClick = {
-                dangDangViewModel.ateFoodSend(
+                dangDangViewModel.reAnalyzeFood(
                     context = context,
                     ateFoodValue = ateFoodValue,
-                    ateFoodImageUri = ateFoodImageUri
+                    ateFoodImageUri = ateFoodImageUri,
+                    weightValue = ateWeightValue
                 )
             },
             onFoodKeywordInputClick = {
@@ -328,6 +347,7 @@ fun DangDangScreenContent(
     chatMessageValue: String,
     onChatMessageValueChange: (String) -> Unit,
     isChatAble: Boolean,
+    isChatLoading: Boolean,
     recommendQuestionList: List<ChatRecommendQuestionModel>,
     chattingList: List<ChatModel>,
     onRecommendQuestionClick: (ChatRecommendQuestionModel) -> Unit,
@@ -338,6 +358,7 @@ fun DangDangScreenContent(
     onAteFoodSendClick: () -> Unit,
     ateFoodImageUri: Uri?,
     onAteFoodImageSelectClick: () -> Unit,
+    onAteFoodImageCancelClick: () -> Unit,
     ateWeightValue: String,
     onAteWeightValueChange: (String) -> Unit,
     onAteWeightSendClick: () -> Unit,
@@ -366,6 +387,7 @@ fun DangDangScreenContent(
         AIChatListView(
             modifier = Modifier
                 .weight(1f),
+            isChatLoading = isChatLoading,
             chattingList = chattingList,
             glucoseValue = glucoseValue,
             onGlucoseValueChange = onGlucoseValueChange,
@@ -374,6 +396,7 @@ fun DangDangScreenContent(
             onAteFoodSendClick = onAteFoodSendClick,
             ateFoodImageUri = ateFoodImageUri,
             onAteFoodImageSelectClick = onAteFoodImageSelectClick,
+            onAteFoodImageCancelClick = onAteFoodImageCancelClick,
             ateWeightValue = ateWeightValue,
             onAteWeightValueChange = onAteWeightValueChange,
             onAteWeightSendClick = onAteWeightSendClick,

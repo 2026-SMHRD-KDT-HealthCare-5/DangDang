@@ -24,6 +24,11 @@ class Application : Application(){
         const val AuthPath = "/api/auth"
         const val AnalyzePath = "/api/intake-logs"
         const val ChatPath = "/api/chat"
+        const val WalkMissionPath = "/api/walk-missions"
+        const val TeamPath = "/api/teams"
+        const val RankingPath = "/api/rankings"
+        const val UserPath = "/api/users"
+        const val HomePath = "/api/home"
     }
 
     override fun onCreate() {

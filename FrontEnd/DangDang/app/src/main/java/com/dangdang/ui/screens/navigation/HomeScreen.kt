@@ -13,6 +13,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.component.chart.GlucoseTrendChart
@@ -20,12 +22,15 @@ import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.home.HomeGuideBox
 import com.dangdang.component.page.home.HomeTeamChallengeStatus
+import com.dangdang.component.page.home.HomeWalkDistanceStatusBox
 import com.dangdang.component.page.home.WeeklyCheckListBox
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.community.TeamInfoModel
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.home.AfterMealGlucoseStatusModel
+import com.dangdang.data.model.home.GlucoseChartPointModel
+import com.dangdang.data.model.home.HomeWalkingDistanceModel
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.ui.viewmodel.home.HomeViewModel
 
@@ -68,57 +73,23 @@ fun HomeScreenPreview(
             )
         ),
         afterMealGlucoseStatus = AfterMealGlucoseStatusModel(
-            goal = 180f,
-            afterMealGlucoseStatus = listOf(155f, 148f, 168f, 158f, 178f, 152f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f)
-        ),
-        teamInfo = TeamInfoModel(
-            isLeader = false,
-            name = "우리팀 5월 걷기 챌린지",
-            currentMemberCount = 4,
-            maxMemberCount = 5,
-            targetDistance = 150f,
-            currentDistance = 20f,
-            currentTeamDistance = 30f,
-            profileImageUrl = ExamplePictureUrl,
-            introduction = "하루 7천보 이상 함께 걸어요!"
-        ),
-        teamChallengeStatusList = listOf(
-            TeamMemberChallengeStatusModel(
-                rank = 1,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임",
-                currentDistance = 32.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 2,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임2",
-                currentDistance = 20.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 3,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임3",
-                currentDistance = 10.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 4,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임4",
-                currentDistance = 5.56f,
-                targetDistance = 150f
-            ),
-            TeamMemberChallengeStatusModel(
-                rank = 5,
-                profileImageUrl = ExamplePictureUrl,
-                nickname = "닉네임5",
-                currentDistance = 3.56f,
-                targetDistance = 150f
+            targetGlucose = 180f,
+            points = listOf(
+                GlucoseChartPointModel(
+                    time = "12:00",
+                    glucose = 180
+                ),
+                GlucoseChartPointModel(
+                    time = "13:00",
+                    glucose = 170
+                ),
             )
-        )
+        ),
+        walkingDistance = HomeWalkingDistanceModel(
+            todayDistance = 3.2f,
+            monthlyDistance = 48.6f,
+            totalDistance = 1258.2f
+        ),
     )
 }
 
@@ -128,43 +99,25 @@ fun HomeScreen(
     onFoodInputClick: () -> Unit,
     onTeamChallengeMoreClick: () -> Unit
 ){
-    val weeklyGlucoseCheckList by
-        homeViewModel.weeklyGlucoseCheckList.collectAsState()
+    val homeData by
+        homeViewModel.homeData.collectAsState()
 
-    val afterMealGlucoseStatus by
-        homeViewModel.afterMealGlucoseStatus.collectAsState()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        homeViewModel.getHomeData()
+    }
 
-    val teamInfo by
-        homeViewModel.teamInfo.collectAsState()
-
-    val teamChallengeStatusList by
-        homeViewModel.teamChallengeStatusList.collectAsState()
-
-    if(weeklyGlucoseCheckList.loadingState == LoadingState.Success
-        && afterMealGlucoseStatus.loadingState == LoadingState.Success
-        && teamInfo.loadingState == LoadingState.Success
-        && teamChallengeStatusList.loadingState == LoadingState.Success){
+    if(homeData.loadingState == LoadingState.Success){
         
         HomeScreenContent(
             onFoodInputClick = onFoodInputClick,
             onTeamChallengeMoreClick = onTeamChallengeMoreClick,
-            weeklyGlucoseCheckList = weeklyGlucoseCheckList.data?:emptyList(),
-            afterMealGlucoseStatus = afterMealGlucoseStatus.data,
-            teamInfo = teamInfo.data,
-            teamChallengeStatusList = teamChallengeStatusList.data
+            weeklyGlucoseCheckList = homeData.data?.weeklyAttendance?:emptyList(),
+            afterMealGlucoseStatus = homeData.data?.glucoseTrend,
+            walkingDistance = homeData.data?.walkingDistance
         )
     }else{
         ErrorView(
-            loadingState = if(
-                weeklyGlucoseCheckList.loadingState == LoadingState.Error
-                 || afterMealGlucoseStatus.loadingState == LoadingState.Error
-                 || teamInfo.loadingState == LoadingState.Error
-                 || teamChallengeStatusList.loadingState == LoadingState.Error
-            ){
-                LoadingState.Error
-            }else{
-                LoadingState.Loading
-            },
+            loadingState = homeData.loadingState,
             message = "홈 화면 데이터 불러오기를 실패했습니다."
         )
     }
@@ -176,8 +129,7 @@ fun HomeScreenContent(
     onTeamChallengeMoreClick: () -> Unit,
     weeklyGlucoseCheckList : List<WeeklyGlucoseCheckModel>,
     afterMealGlucoseStatus: AfterMealGlucoseStatusModel?,
-    teamInfo: TeamInfoModel?,
-    teamChallengeStatusList: List<TeamMemberChallengeStatusModel>?
+    walkingDistance: HomeWalkingDistanceModel?,
 ){
     val scrollState = rememberScrollState()
 
@@ -208,18 +160,18 @@ fun HomeScreenContent(
                 weeklyGlucoseCheckList = weeklyGlucoseCheckList
             )
 
-            afterMealGlucoseStatus?.let {
-                GlucoseTrendChart(
-                    values = it.afterMealGlucoseStatus,
-                    goal = it.goal
+            walkingDistance?.let{
+                HomeWalkDistanceStatusBox(
+                    todayDistance = it.todayDistance,
+                    monthlyDistance = it.monthlyDistance,
+                    totalDistance = it.totalDistance
                 )
             }
 
-            teamInfo?.let{
-                HomeTeamChallengeStatus(
-                    teamInfo = it,
-                    teamMemberChallengeStatusList = teamChallengeStatusList ?: emptyList(),
-                    onMoreClick = onTeamChallengeMoreClick
+            afterMealGlucoseStatus?.let {
+                GlucoseTrendChart(
+                    values = it.points,
+                    goal = it.targetGlucose
                 )
             }
         }

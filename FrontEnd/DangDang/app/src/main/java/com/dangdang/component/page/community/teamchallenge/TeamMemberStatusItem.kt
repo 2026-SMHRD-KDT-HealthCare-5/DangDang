@@ -19,7 +19,6 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.R
-import com.dangdang.common.utils.bold
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.component.guage.GuageBar
@@ -43,25 +42,23 @@ fun TeamMemberStatusItemPreview(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         TeamMemberStatusItem(
+            rank = 1,
+            targetDistance = 60f,
             isGraph = true,
             guageColor = DarkGreen,
             teamMemberChallengeStatus = TeamMemberChallengeStatusModel(
-                rank = 1,
-                profileImageUrl = ExamplePictureUrl,
                 nickname = "닉네임",
-                currentDistance = 32.56f,
-                targetDistance = 150f
+                totalDistance = 32.56f,
             )
         )
 
         TeamMemberStatusItem(
+            rank = 1,
+            targetDistance = 60f,
             isGraph = false,
             teamMemberChallengeStatus = TeamMemberChallengeStatusModel(
-                rank = 3,
-                profileImageUrl = ExamplePictureUrl,
                 nickname = "닉네임",
-                currentDistance = 20.56f,
-                targetDistance = 150f
+                totalDistance = 20.56f,
             )
         )
     }
@@ -69,6 +66,8 @@ fun TeamMemberStatusItemPreview(
 
 @Composable
 fun TeamMemberStatusItem(
+    rank: Int,
+    targetDistance: Float,
     isGraph: Boolean,
     guageColor: Color = PrimaryBlue,
     teamMemberChallengeStatus: TeamMemberChallengeStatusModel
@@ -91,7 +90,7 @@ fun TeamMemberStatusItem(
                 .padding(vertical = 10.dp)
         ) {
             Text(
-                text = teamMemberChallengeStatus.rank.toString(),
+                text = rank.toString(),
                 style = AppTypography.bodyLarge.medium,
                 color = Black,
             )
@@ -99,7 +98,7 @@ fun TeamMemberStatusItem(
 
         Avatar(
             avatarSize = if(isGraph) AvatarSize.Small else AvatarSize.XSmall,
-            imageUrl = teamMemberChallengeStatus.profileImageUrl,
+            imageUrl = "",
         )
         
         Column(
@@ -120,7 +119,7 @@ fun TeamMemberStatusItem(
                         .weight(1f)
                 )
 
-                if(teamMemberChallengeStatus.rank == 1 && isGraph){
+                if(rank == 1 && isGraph){
                     Image(
                         painter = painterResource(R.drawable.crown),
                         contentDescription = "왕관 이미지",
@@ -133,7 +132,7 @@ fun TeamMemberStatusItem(
                     text = String.format(
                         LocalLocale.current.platformLocale,
                         "%.2f",
-                        teamMemberChallengeStatus.currentDistance),
+                        teamMemberChallengeStatus.totalDistance),
                     style = AppTypography.labelLarge.medium,
                     color = Black,
                 )
@@ -149,8 +148,8 @@ fun TeamMemberStatusItem(
                 GuageBar(
                     size = GuageBarSize.Small,
                     guageColor = guageColor,
-                    current = teamMemberChallengeStatus.currentDistance,
-                    target = teamMemberChallengeStatus.targetDistance
+                    current = teamMemberChallengeStatus.totalDistance,
+                    target = targetDistance
                 )
             }
         }

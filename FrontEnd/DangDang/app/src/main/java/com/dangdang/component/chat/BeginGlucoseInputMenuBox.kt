@@ -39,6 +39,7 @@ import com.dangdang.ui.theme.White
 @Composable
 fun BeginGlucoseInputMenuBoxPreview() {
     BeginGlucoseInputMenuBox(
+        isChatLoading = false,
         glucoseValue = "",
         onGlucoseValueChange = {},
         onGlucoseInputCompleteClick = {},
@@ -48,6 +49,7 @@ fun BeginGlucoseInputMenuBoxPreview() {
 
 @Composable
 fun BeginGlucoseInputMenuBox(
+    isChatLoading: Boolean,
     glucoseValue : String,
     onGlucoseValueChange : (String) -> Unit,
     onGlucoseInputCompleteClick: () -> Unit,
@@ -93,6 +95,7 @@ fun BeginGlucoseInputMenuBox(
                     .weight(1f)
             ) {
                 TextField(
+                    isEnabled = !isChatLoading,
                     isMaxLengthView = false,
                     rightIcon = {
                         Text(
@@ -114,12 +117,15 @@ fun BeginGlucoseInputMenuBox(
 
             PrimaryButton(
                 text = "확인",
-                enabled = glucoseValue.isNotEmpty() && isValidPostPrandialGlucose(glucoseValue),
+                enabled = glucoseValue.isNotEmpty() &&
+                        isValidPostPrandialGlucose(glucoseValue) &&
+                        !isChatLoading,
                 onClick = onGlucoseInputCompleteClick
             )
         }
 
         SecondaryOutlinedButton(
+            enabled = !isChatLoading,
             text = "모르겠어요",
             sizeType = LayoutSize.FillMaxSize,
             onClick = onGlucoseInputCancelClick

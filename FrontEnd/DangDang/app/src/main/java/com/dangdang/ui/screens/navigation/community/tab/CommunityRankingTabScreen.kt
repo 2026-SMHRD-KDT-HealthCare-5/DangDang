@@ -71,7 +71,7 @@ fun CommunityRankingTabScreen(
 
     if(teamRankingStatusList.loadingState == LoadingState.Success){
         CommunityRankingTabScreenContent(
-            teamRankingStatusList = teamRankingStatusList.data?:emptyList()
+            teamRankingStatusList = teamRankingStatusList.data?.rankings?:emptyList()
         )
     }else{
         ErrorView(

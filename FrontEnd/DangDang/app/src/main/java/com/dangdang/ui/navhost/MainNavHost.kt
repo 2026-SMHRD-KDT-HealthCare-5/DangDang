@@ -58,10 +58,11 @@ fun MainNavHost(
                     navArgument("isWalkComplete") {
                         type = NavType.BoolType
                         defaultValue = false
-                    }
+                    },
                 )
             ) { backStackEntry ->
                 val isWalkComplete = backStackEntry.arguments?.getBoolean("isWalkComplete") ?: false
+
                 DangDangScreen(
                     onWalkChallengeMove = {
                         navigateBottomTab(
