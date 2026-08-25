@@ -27,6 +27,7 @@ import org.springframework.web.client.RestTemplate;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -60,13 +61,20 @@ public class ChatService {
     /**
      * POST /api/chat. 노션 명세: user_message/ai_message 둘 다 채워서 1레코드로 저장,
      * chat_type=TEXT, cardData 없음(일반 대화는 카드가 아니라서).
+     *
+     * [각주] (수정 2026-08-24, 버그 9 대응) FastAPI(/rag/chat)는 요청 하나하나를 완전히
+     * 독립적으로 처리해서 직전에 무슨 말을 주고받았는지 전혀 기억하지 못했습니다 — 그래서
+     * "그거 왜 그런거야?" 같은 이어지는 질문에 엉뚱하게 답하는 등 대화가 뚝뚝 끊기는
+     * 느낌이 났습니다. 대화 이력은 Spring(ai_chat 테이블)이 원본이니, 여기서 최근 대화
+     * 몇 턴을 같이 실어 보내서 FastAPI가 맥락을 참고하게 했습니다.
      */
     @Transactional
     public ChatResponse chat(Integer userNo, String message) {
         User user = userRepository.findById(userNo)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
-        String reply = callFastApiChat(userNo, message, user.getDiagnosisGroup());
+        List<FastApiChatTurn> history = buildRecentHistory(userNo);
+        String reply = callFastApiChat(userNo, message, user.getDiagnosisGroup(), history);
 
         AiChat aiChat = AiChat.builder()
                 .userNo(userNo)
@@ -136,8 +144,23 @@ public class ChatService {
         }
     }
 
-    private String callFastApiChat(Integer userNo, String message, String diagnosisGroup) {
-        FastApiChatRequest requestBody = new FastApiChatRequest(userNo, message, diagnosisGroup);
+    /**
+     * [각주] (추가 2026-08-24) chatType=TEXT인 최근 대화만 최대 6건(=3턴) 뽑아서
+     * 시간순(오래된 것 먼저)으로 뒤집습니다. TEXT만 쓰는 이유/건수는 AiChatRepository 각주 참고.
+     */
+    private List<FastApiChatTurn> buildRecentHistory(Integer userNo) {
+        List<AiChat> recentTextChats = aiChatRepository
+                .findTop6ByUserNoAndChatTypeOrderByChattedAtDesc(userNo, ChatType.TEXT);
+
+        return recentTextChats.stream()
+                .sorted(Comparator.comparing(AiChat::getChattedAt))
+                .map(chat -> new FastApiChatTurn(chat.getUserMessage(), chat.getAiMessage()))
+                .toList();
+    }
+
+    private String callFastApiChat(Integer userNo, String message, String diagnosisGroup,
+                                    List<FastApiChatTurn> history) {
+        FastApiChatRequest requestBody = new FastApiChatRequest(userNo, message, diagnosisGroup, history);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
@@ -164,7 +187,19 @@ public class ChatService {
     private record FastApiChatRequest(
             @JsonProperty("user_no") Integer userNo,
             String message,
-            @JsonProperty("diagnosis_group") String diagnosisGroup
+            @JsonProperty("diagnosis_group") String diagnosisGroup,
+            List<FastApiChatTurn> history
+    ) {
+    }
+
+    /**
+     * [각주] (추가 2026-08-24) FastAPI schemas/chat.py의 ChatTurn과 맞춘 대화 1턴(질문+답변)
+     * 형식입니다. userMessage가 null인 카드성 레코드는 buildRecentHistory()에서 TEXT만
+     * 걸러서 애초에 안 들어오지만, 혹시 몰라 필드 자체는 nullable로 둡니다.
+     */
+    private record FastApiChatTurn(
+            @JsonProperty("user_message") String userMessage,
+            @JsonProperty("ai_message") String aiMessage
     ) {
     }
 

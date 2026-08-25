@@ -25,7 +25,7 @@ def chat(req: ChatRequest):
     /rag/intake-logs/predict가 전담한다. 여긴 순수 대화(페르소나 응답,
     논문 기반 Q&A)만 처리한다.
     """
-    reply = answer_chat(req.user_no, req.message, req.diagnosis_group)
+    reply = answer_chat(req.user_no, req.message, req.diagnosis_group, req.history)
 
     # PowerShell(Windows) 등 일부 클라이언트가 charset 없는 응답을
     # 잘못 해석해 한글이 깨지는 문제 방지 위해 charset 명시

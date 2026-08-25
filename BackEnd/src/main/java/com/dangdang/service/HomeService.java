@@ -30,7 +30,11 @@ import java.util.List;
  * [각주] (수정 2026-08-21) 원래 있던 팀 챌린지 요약 블록은 삭제하고 개인 걷기 거리 요약으로
  * 교체하면서, TeamService 의존성도 같이 뺐습니다(더 이상 홈에서 팀 정보를 안 씀).
  *
- * @lastModified 2026-08-21
+ * [각주] (수정 2026-08-24) 주간 출석(weeklyAttendance)에서 오늘 실패는 바로 X 처리하지
+ * 않도록 buildWeeklyAttendance()에 today 파라미터를 추가했습니다 — 오늘 안에 재도전할
+ * 여지를 남겨두기 위함(버그 리포트 6번, 사용자 결정).
+ *
+ * @lastModified 2026-08-24
  */
 @Service
 @RequiredArgsConstructor
@@ -58,7 +62,7 @@ public class HomeService {
         // glucoseTrend의 POST_WALK 포인트(오늘 것만) 둘 다에 재사용합니다 — DB 쿼리 한 번으로 충분.
         List<WalkMission> weekMissions = walkMissionRepository.findByUserNoAndEndTimeBetween(userNo, weekStart, weekEnd);
 
-        List<HomeResponse.WeeklyAttendanceDay> weeklyAttendance = buildWeeklyAttendance(monday, weekMissions);
+        List<HomeResponse.WeeklyAttendanceDay> weeklyAttendance = buildWeeklyAttendance(monday, weekMissions, today);
         HomeResponse.GlucoseTrend glucoseTrend = buildGlucoseTrend(userNo, today, weekMissions);
         HomeResponse.WalkingDistanceSummary walkingDistance = buildWalkingDistanceSummary(userNo, today);
 
@@ -66,11 +70,16 @@ public class HomeService {
     }
 
     /**
-     * [각주] 하루라도 COMPLETE 미션이 있으면 DONE, 없는데 끝난 미션(PARTIAL/EXPIRED)은 있으면
-     * MISSED, 그날 끝난 미션 자체가 없으면(미래 요일 포함) status는 null입니다 — "NONE" 문자열은
+     * [각주] 하루라도 COMPLETE 미션이 있으면 DONE입니다.
+     *
+     * [각주] (수정 2026-08-24) 오늘(today)은 실패(PARTIAL/EXPIRED)해도 바로 MISSED(X)를
+     * 띄우지 않습니다 — 사용자 결정: "오늘은 성공했을 때만 O 표시, X는 다음날로 넘어가면".
+     * 아직 하루가 끝나지 않았으니 오늘 안에 다시 시도해서 성공(COMPLETE)할 기회를 남겨두는
+     * 겁니다. 그래서 MISSED는 **오늘보다 이전 날짜(day.isBefore(today))** 에만 매깁니다.
+     * 오늘 실패만 있고 아직 COMPLETE가 없으면 null(빈 칸)로 남습니다 — "NONE" 문자열은
      * 안 씁니다(WeeklyAttendanceStatus 각주 참고).
      */
-    private List<HomeResponse.WeeklyAttendanceDay> buildWeeklyAttendance(LocalDate monday, List<WalkMission> weekMissions) {
+    private List<HomeResponse.WeeklyAttendanceDay> buildWeeklyAttendance(LocalDate monday, List<WalkMission> weekMissions, LocalDate today) {
         List<HomeResponse.WeeklyAttendanceDay> result = new ArrayList<>();
         for (int i = 0; i < 7; i++) {
             LocalDate day = monday.plusDays(i);
@@ -81,7 +90,7 @@ public class HomeService {
             WeeklyAttendanceStatus status = null;
             if (dayMissions.stream().anyMatch(mission -> mission.getStatus() == WalkMissionStatus.COMPLETE)) {
                 status = WeeklyAttendanceStatus.DONE;
-            } else if (!dayMissions.isEmpty()) {
+            } else if (!dayMissions.isEmpty() && day.isBefore(today)) {
                 status = WeeklyAttendanceStatus.MISSED;
             }
 

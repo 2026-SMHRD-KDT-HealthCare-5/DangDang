@@ -74,10 +74,14 @@ def _build_recognize_response(
             "chatbotMessage": "식약처 데이터에서 찾았어요! 이 음식이 맞나요?",
         }
     # DD_101: 조회 실패 시 자동 AI 분석 수행하지 않음 — 안내만 표시
+    # [각주] (수정 2026-08-24) 예전엔 foodName에 Gemini가 추정한 이름(food_name)을 그대로
+    # 돌려줬는데, 이러면 화면에 "검증 안 된 이름"이 마치 매칭된 것처럼 보여서 혼란을 줬습니다
+    # (사용자 결정 — 화면 시안: "검색 결과가 없어요"만 보여주고 이름 자체를 안 보여줌).
+    # 그래서 매칭 실패 시엔 foodName도 null로 보냅니다. food_name 값 자체는 로그로만 남깁니다.
     return {
         "matched": False,
         "foodNo": None,
-        "foodName": food_name,
+        "foodName": None,
         "serving_size": None,
         "nutrition": None,
         "source": None,
@@ -138,6 +142,12 @@ async def recognize(image, message, baseline, diagnosis_group) -> tuple[int, dic
     # DB 매칭
     db_match = food_db.get_best_match(food_name, brand=brand)
     matched = db_match is not None and db_match["match_score"] >= MATCH_SCORE_THRESHOLD
+
+    # [각주] (추가 2026-08-24) 매칭 실패 시 응답의 foodName은 null로 나가서(위 [수정] 참고)
+    # Gemini가 뭐라고 추정했었는지가 응답에서는 안 보입니다. 디버깅/DB 보강 시 참고할 수 있게
+    # 서버 로그에만 남겨둡니다 (사용자에게는 노출 안 됨).
+    if not matched:
+        print(f"[food_recognition] 매칭 실패 — Gemini 추정명: '{food_name}' (brand={brand})")
 
     return 200, _build_recognize_response(matched, food_name, db_match if matched else None)
 

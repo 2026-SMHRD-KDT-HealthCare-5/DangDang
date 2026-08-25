@@ -103,8 +103,34 @@ def is_medication_dosage_question(message: str) -> bool:
     return False
 
 
-def answer_chat(user_no: int, message: str, diagnosis_group: str | None) -> str:
-    """routers/chat.py의 POST /rag/chat 핸들러가 호출하는 진입점"""
+def _format_history(history: list | None) -> str:
+    """
+    [각주] (추가 2026-08-24, 버그 9) Spring이 ai_chat에서 조회해 보내준 최근 대화 턴을
+    "사용자: .../ 당당이: ..." 형식의 텍스트로 풀어서, answer_without_cache()의 프롬프트에
+    그대로 끼워 넣을 수 있게 만듭니다. history가 비어있으면(첫 대화 등) 빈 문자열을 반환합니다.
+    """
+    if not history:
+        return ""
+
+    lines = []
+    for turn in history:
+        user_message = getattr(turn, "user_message", None)
+        ai_message = getattr(turn, "ai_message", None)
+        if user_message:
+            lines.append(f"사용자: {user_message}")
+        if ai_message:
+            lines.append(f"당당이: {ai_message}")
+    return "\n".join(lines)
+
+
+def answer_chat(user_no: int, message: str, diagnosis_group: str | None,
+                 history: list | None = None) -> str:
+    """routers/chat.py의 POST /rag/chat 핸들러가 호출하는 진입점
+
+    [각주] (수정 2026-08-24, 버그 9) history 파라미터를 추가했습니다 — 이전엔 매 요청을
+    완전히 독립적으로 처리해서 직전 대화를 전혀 기억 못 했습니다(대화가 뚝뚝 끊기는
+    느낌의 원인). Spring이 최근 대화 몇 턴을 실어 보내면 그걸 프롬프트에 같이 넣어줍니다.
+    """
 
     # 인슐린/약물 용량 관련 질문은 Gemini 호출 전에 키워드로 먼저 차단
     if is_medication_dosage_question(message):
@@ -115,7 +141,8 @@ def answer_chat(user_no: int, message: str, diagnosis_group: str | None) -> str:
 
     # 논문 요약 지식 기반으로 답변 (요약본이라 컨텍스트가 작아서 캐시 없이도 충분히 저렴함)
     if curated_knowledge_text:
-        response = answer_without_cache(client, MODEL_NAME, message, curated_knowledge_text)
+        history_text = _format_history(history)
+        response = answer_without_cache(client, MODEL_NAME, message, curated_knowledge_text, history_text)
         log_token_usage(response, label="chat-paper")
         return response.text
 

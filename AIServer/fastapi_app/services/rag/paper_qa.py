@@ -68,11 +68,22 @@ def load_combined_text() -> str:
     return COMBINED_TEXT_PATH.read_text(encoding="utf-8")
 
 
-def answer_without_cache(client, model_name: str, question: str, combined_text: str):
+def answer_without_cache(client, model_name: str, question: str, combined_text: str, history_text: str = ""):
     """
     매번 논문 요약 텍스트 전체를 프롬프트에 직접 넣어서 호출 (지금 유일하게 쓰는 경로).
     요약본이라 컨텍스트가 작아서(~6,446토큰) 캐시 없이도 비용 부담이 크지 않음.
+
+    [각주] (추가 2026-08-24, 버그 9) history_text — 직전 대화 몇 턴을 "사용자: .../
+    당당이: ..." 형식으로 풀어놓은 문자열(services/rag_chat.py._format_history()가 만듦).
+    이게 없으면(빈 문자열) 매 질문을 완전히 독립적으로 처리해서 방금 한 이야기를 전혀
+    기억 못 하는 문제가 있었습니다. 채팅 세션(client.chats.create)을 안 쓰는 이유는
+    이 함수가 매번 논문 요약 전체를 새로 붙이는 stateless 호출 방식이라서인데, 그 안에서도
+    "직전 대화"만큼은 텍스트로 같이 넣어주면 맥락 있는 답변이 가능합니다.
     """
-    prompt = f"{PAPER_QA_INSTRUCTION}\n\n{combined_text}\n\n사용자 질문: {question}"
+    history_block = (
+        f"\n[최근 대화 흐름 — 이어지는 맥락으로 참고, 답변에 그대로 나열하지 말 것]\n{history_text}\n"
+        if history_text else ""
+    )
+    prompt = f"{PAPER_QA_INSTRUCTION}\n\n{combined_text}\n{history_block}\n사용자 질문: {question}"
     response = client.models.generate_content(model=model_name, contents=prompt)
     return response
