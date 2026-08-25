@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.data.model.home.GlucoseChartPointModel
@@ -42,9 +43,11 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.cartesian.Zoom
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvider
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.LineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
+import kotlin.math.max
 
 @Preview
 @Composable
@@ -70,6 +73,9 @@ fun GlucoseTrendChart(
     goal: Float
 ) {
     val modelProducer = remember { CartesianChartModelProducer() }
+
+    val maxGlucose = values.maxOfOrNull { it.glucose.toFloat() } ?: 0f
+    val chartMaxY = max(maxGlucose, goal)
 
     LaunchedEffect(values) {
         if (values.isNotEmpty()) {
@@ -137,6 +143,11 @@ fun GlucoseTrendChart(
                                 fill = LineCartesianLayer.LineFill.single(Fill(Color(0xFF4C6EF5)))
                             )
                         ),
+                        // rangeProvider를 설정하여 Y축의 최대값을 조절합니다.
+                        rangeProvider = CartesianLayerRangeProvider.fixed(
+                            minY = 0.0, // Y축 시작점을 0으로 고정하고 싶을 경우
+                            maxY = chartMaxY + 20.0 // 목표값보다 조금 더 여유 있게 표시
+                        )
                     ),
                     startAxis = VerticalAxis.rememberStart(
                         itemPlacer = VerticalAxis.ItemPlacer.step({ 20.0 })
