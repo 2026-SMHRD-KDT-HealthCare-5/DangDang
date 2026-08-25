@@ -499,7 +499,7 @@ class DangDangRepository @Inject constructor(
                         predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0f,
                         beginGlucose = _preGlucose.value?:0f,
                         foodInfo = analyzeFoodToFoodInfoModel(
-                            isMatched = analyzeFood?.matched?:false,
+                            isMatched = (analyzeFood?.foodNo?:0) > 0,
                             foodName = analyzeFood?.foodName?:"",
                             nutrition = foodPredict?.nutritionUsed,
                             servingSize = analyzeFood?.serving_size?:0,
@@ -597,7 +597,7 @@ class DangDangRepository @Inject constructor(
                                 predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0f,
                                 beginGlucose = _preGlucose.value?:0f,
                                 foodInfo = analyzeFoodToFoodInfoModel(
-                                    isMatched = analyzeFood?.matched?:false,
+                                    isMatched = (analyzeFood?.foodNo?:0) > 0,
                                     foodName = analyzeFood?.foodName?:"",
                                     nutrition = foodPredict?.nutritionUsed,
                                     servingSize = analyzeFood?.serving_size?:0,

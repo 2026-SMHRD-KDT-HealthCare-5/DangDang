@@ -4,7 +4,6 @@ import androidx.annotation.Keep
 
 @Keep
 data class FoodAnalysisResponse (
-    val matched: Boolean,
     val foodNo: Int,
     val foodName: String,
     val nutrition: AnalysisNutritionResponse,
