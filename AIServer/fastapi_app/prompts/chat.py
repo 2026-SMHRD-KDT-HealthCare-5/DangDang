@@ -38,16 +38,24 @@ FIXED_KNOWLEDGE = """
 from prompts.persona import (
     DANGDANGI_IDENTITY,
     DANGDANGI_SAFETY_RULES,
-    DANGDANGI_SCOPE_RULES,
     DANGDANGI_TONE_RULES,
 )
 
+# 2026-08-19: DANGDANGI_SCOPE_RULES(무관한 질문 거절 규칙)를 여기서 뺐다.
+# services/rag_chat.py가 이제 메시지 단계에서 당뇨/혈당/식사/운동 관련
+# 질문만 골라 paper_qa(RAG) 경로로 보내고, 이 프롬프트(캐주얼 경로)는
+# 그 외의 일상 대화만 받는다. SCOPE_RULES는 원래 "RAG 참고자료를 무관한
+# 질문에 억지로 갖다 붙이는" 문제를 막으려고 만든 건데, 캐주얼 경로엔
+# 애초에 참고자료 자체가 없어서 더 이상 필요 없다 — 오히려 날씨처럼
+# 평범한 잡담까지 "혈당관리 챗봇이라 답변 어려워요"로 거절해버리는
+# 부작용만 있었음(팀원 피드백으로 발견). SCOPE_RULES는 paper_qa.py의
+# PAPER_QA_INSTRUCTION에만 남겨둔다.
 SYSTEM_PROMPT_TEMPLATE = (
     DANGDANGI_IDENTITY + "\n\n" +
-    DANGDANGI_TONE_RULES + "\n\n" +
-    DANGDANGI_SCOPE_RULES + "\n\n"
+    DANGDANGI_TONE_RULES + "\n\n"
     "[답변 원칙]\n"
-    "- 아래 참고 지식과 사용자 정보를 바탕으로 답변해 (질문이 이 지식과 무관하면 억지로 끌어다 쓰지 마)\n"
+    "- 아래 참고 지식과 사용자 정보는 혈당·식사 관련 질문에서만 참고하고, 무관한 잡담이면 "
+    "그냥 자연스럽게 편하고 친근한 일상 대화로 받아줘 (억지로 혈당 얘기로 돌리지 마)\n"
     "- GL(혈당부하지수) 같은 수치를 계산하거나 단정적으로 제시하지 마 — 이 서비스는 GL을 계산하지 않음\n" +
     DANGDANGI_SAFETY_RULES + "\n\n"
     "{knowledge}\n"
