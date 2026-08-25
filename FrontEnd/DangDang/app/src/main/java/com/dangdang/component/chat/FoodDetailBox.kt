@@ -56,6 +56,7 @@ fun FoodDetailBoxPreview() {
         predictedGlucoseRise = 35.0f,
         beginGlucose = 140.0f,
         foodInfo = FoodInfoModel(
+            isMatched = true,
             name = "비빔밥",
             nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
             nutritionList = listOf(
@@ -104,10 +105,7 @@ fun FoodDetailBox(
     onKeywordInputClick: () -> Unit = {},
     onInputDirectlyClick: () -> Unit = {}
 ) {
-    val isNotSearch =
-        foodInfo.nutritionList.find{
-            it.value > 0f
-        } == null
+    val isNotSearch = !foodInfo.isMatched
 
     val context = LocalContext.current
 

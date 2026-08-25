@@ -141,6 +141,7 @@ class DangDangRepository @Inject constructor(
                                         predictedGlucoseRise = 0f,
                                         beginGlucose = 0f,
                                         foodInfo = analyzeFoodToFoodInfoModel(
+                                            isMatched = true,
                                             foodName = cardData.foodName,
                                             nutrition = cardData.nutrition,
                                             servingSize = cardData.servingSize,
@@ -408,12 +409,14 @@ class DangDangRepository @Inject constructor(
     }
 
     fun analyzeFoodToFoodInfoModel(
+        isMatched: Boolean,
         foodName: String,
         nutrition: AnalysisNutritionResponse?,
         servingSize: Int,
         calorie: Float
     ): FoodInfoModel{
         return FoodInfoModel(
+            isMatched = isMatched,
             name = foodName,
             nutritionInfo = "총 내용량 ${servingSize}g 1인분(1개) / " +
                     "${calorie}kcal",
@@ -496,6 +499,7 @@ class DangDangRepository @Inject constructor(
                         predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0f,
                         beginGlucose = _preGlucose.value?:0f,
                         foodInfo = analyzeFoodToFoodInfoModel(
+                            isMatched = analyzeFood?.matched?:false,
                             foodName = analyzeFood?.foodName?:"",
                             nutrition = foodPredict?.nutritionUsed,
                             servingSize = analyzeFood?.serving_size?:0,
@@ -593,6 +597,7 @@ class DangDangRepository @Inject constructor(
                                 predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0f,
                                 beginGlucose = _preGlucose.value?:0f,
                                 foodInfo = analyzeFoodToFoodInfoModel(
+                                    isMatched = analyzeFood?.matched?:false,
                                     foodName = analyzeFood?.foodName?:"",
                                     nutrition = foodPredict?.nutritionUsed,
                                     servingSize = analyzeFood?.serving_size?:0,
@@ -655,6 +660,7 @@ class DangDangRepository @Inject constructor(
                         predictedGlucoseRise = checkFood?.predictedGlucoseRise?:0f,
                         beginGlucose = _preGlucose.value?:0f,
                         foodInfo = analyzeFoodToFoodInfoModel(
+                            isMatched = true,
                             foodName = foodInputDirectlyForm.foodName,
                             nutrition = AnalysisNutritionResponse(
                                 carb = foodInputDirectlyForm.carb.toFloat(),
@@ -732,6 +738,7 @@ class DangDangRepository @Inject constructor(
                         predictedGlucoseRise = checkFood?.predictedGlucoseRise?:0f,
                         beginGlucose = _preGlucose.value?:0f,
                         foodInfo = analyzeFoodToFoodInfoModel(
+                            isMatched = true,
                             foodName = _analyzeFood.value?.foodName?:"",
                             nutrition = _foodPredict.value?.nutritionUsed,
                             servingSize = _analyzeFood.value?.serving_size?:0,

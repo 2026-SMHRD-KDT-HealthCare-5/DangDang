@@ -195,6 +195,7 @@ fun AIChatMenuPreview2(){
                     predictedGlucoseRise = 35.0f,
                     beginGlucose = 140.0f,
                     foodInfo = FoodInfoModel(
+                        isMatched = true,
                         name = "비빔밥",
                         nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
                         nutritionList = listOf(
@@ -262,6 +263,7 @@ fun AIChatMenuPreview3(){
                     predictedGlucoseRise = 35.0f,
                     beginGlucose = 140.0f,
                     foodInfo = FoodInfoModel(
+                        isMatched = true,
                         name = "비빔밥",
                         nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
                         nutritionList = listOf(
@@ -542,6 +544,7 @@ fun AIChatMenu(
                                     ?.beginGlucose?:0f,
                                 foodInfo = chatModel.analysisFoodInfo?.foodInfo
                                     ?: FoodInfoModel(
+                                        isMatched = false,
                                         name = "",
                                         nutritionInfo = "",
                                         nutritionList = emptyList()
