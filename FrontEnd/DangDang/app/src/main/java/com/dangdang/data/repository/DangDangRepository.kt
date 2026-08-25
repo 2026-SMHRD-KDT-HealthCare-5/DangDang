@@ -597,7 +597,8 @@ class DangDangRepository @Inject constructor(
                                 predictedGlucoseRise = foodPredict?.predictedGlucoseRise?:0f,
                                 beginGlucose = _preGlucose.value?:0f,
                                 foodInfo = analyzeFoodToFoodInfoModel(
-                                    isMatched = (analyzeFood?.foodName?.isNotEmpty() == true),
+                                    isMatched = (analyzeFood?.foodName?.isNotEmpty() == true &&
+                                            !analyzeFood.foodName.contains("없음")),
                                     foodName = analyzeFood?.foodName?:"",
                                     nutrition = foodPredict?.nutritionUsed,
                                     servingSize = analyzeFood?.serving_size?:0,
@@ -711,14 +712,38 @@ class DangDangRepository @Inject constructor(
     //음식 확정 선택 시
     suspend fun foodCheck(): Response<List<ChatModel>>{
         val chatResponse = safeApiCall {
-            chatApiService.foodConfirm(
-                FoodConfirmInputForm(
-                    foodNo = _analyzeFood.value?.foodNo,
-                    customFood = null,
-                    preGlucose = _preGlucose.value,
-                    portion = _portion.value
+            if(_analyzeFood.value?.source?.contains("AI") == true){
+                val nutrition = _foodPredict.value?.nutritionUsed
+                //틀려요 ai 분석
+                chatApiService.foodConfirm(
+                    FoodConfirmInputForm(
+                        foodNo = null,
+                        customFood = FoodInputDirectlyForm(
+                            foodName = _analyzeFood.value?.foodName?:"",
+                            servingSize = _analyzeFood.value?.serving_size.toString(),
+                            calorie = nutrition?.calorie.toString(),
+                            carb = nutrition?.carb.toString(),
+                            sugar = nutrition?.sugar.toString(),
+                            fiber = nutrition?.fiber.toString(),
+                            protein = nutrition?.protein.toString(),
+                            fat = nutrition?.fat.toString(),
+                            source = _analyzeFood.value?.source?:""
+                        ),
+                        preGlucose = _preGlucose.value,
+                        portion = _portion.value
+                    )
                 )
-            )
+            }else{
+                //한번에 맞아요 했을 시
+                chatApiService.foodConfirm(
+                    FoodConfirmInputForm(
+                        foodNo = _analyzeFood.value?.foodNo,
+                        customFood = null,
+                        preGlucose = _preGlucose.value,
+                        portion = _portion.value
+                    )
+                )
+            }
         }
 
 
