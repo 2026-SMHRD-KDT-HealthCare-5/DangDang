@@ -14,6 +14,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.component.errorview.ErrorView
@@ -68,6 +70,10 @@ fun CommunityRankingTabScreen(
 ) {
     val teamRankingStatusList by
         communityTeamRankingViewModel.teamRankingStatusList.collectAsState()
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        communityTeamRankingViewModel.getTeamRankingStatusList()
+    }
 
     if(teamRankingStatusList.loadingState == LoadingState.Success){
         CommunityRankingTabScreenContent(

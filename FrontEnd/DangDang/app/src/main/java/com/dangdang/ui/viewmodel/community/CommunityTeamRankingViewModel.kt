@@ -25,10 +25,6 @@ class CommunityTeamRankingViewModel @Inject constructor(
     val teamRankingStatusList: StateFlow<PendingModel<TeamRankingStatusResponse>> =
         _teamRankingStatusList.asStateFlow()
 
-    init {
-        getTeamRankingStatusList()
-    }
-
     fun getTeamRankingStatusList(){
         viewModelScope.launch {
             _teamRankingStatusList.applyResponse(communityRepository.getTeamRankingStatusList())
