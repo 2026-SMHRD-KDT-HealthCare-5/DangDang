@@ -143,6 +143,7 @@ fun FoodInputDirectlyScreenContent(
             }
 
             PrimaryButton(
+                enabled = foodInputDirectlyForm.foodName.isNotEmpty(),
                 text = "저장하고 확인하기",
                 sizeType = LayoutSize.FillMaxSize,
                 onClick = onSendClick

@@ -638,7 +638,29 @@ class DangDangRepository @Inject constructor(
             chatApiService.foodConfirm(
                 FoodConfirmInputForm(
                     foodNo = null,
-                    customFood = foodInputDirectlyForm,
+                    customFood = foodInputDirectlyForm.copy(
+                        servingSize = foodInputDirectlyForm.servingSize.ifEmpty {
+                            "0"
+                        },
+                        calorie = foodInputDirectlyForm.calorie.ifEmpty {
+                            "0"
+                        },
+                        carb = foodInputDirectlyForm.carb.ifEmpty {
+                            "0"
+                        },
+                        sugar = foodInputDirectlyForm.sugar.ifEmpty {
+                            "0"
+                        },
+                        fiber = foodInputDirectlyForm.fiber.ifEmpty {
+                            "0"
+                        },
+                        protein = foodInputDirectlyForm.protein.ifEmpty {
+                            "0"
+                        },
+                        fat = foodInputDirectlyForm.fat.ifEmpty {
+                            "0"
+                        }
+                    ),
                     preGlucose = _preGlucose.value,
                     portion = null
                 )
@@ -664,15 +686,15 @@ class DangDangRepository @Inject constructor(
                             isMatched = true,
                             foodName = foodInputDirectlyForm.foodName,
                             nutrition = AnalysisNutritionResponse(
-                                carb = foodInputDirectlyForm.carb.toFloat(),
-                                sugar = foodInputDirectlyForm.sugar.toFloat(),
-                                protein = foodInputDirectlyForm.protein.toFloat(),
-                                fat = foodInputDirectlyForm.fat.toFloat(),
-                                fiber = foodInputDirectlyForm.fiber.toFloat(),
-                                calorie = foodInputDirectlyForm.calorie.toFloat()
+                                carb = foodInputDirectlyForm.carb.toFloatOrNull()?:0f,
+                                sugar = foodInputDirectlyForm.sugar.toFloatOrNull()?:0f,
+                                protein = foodInputDirectlyForm.protein.toFloatOrNull()?:0f,
+                                fat = foodInputDirectlyForm.fat.toFloatOrNull()?:0f,
+                                fiber = foodInputDirectlyForm.fiber.toFloatOrNull()?:0f,
+                                calorie = foodInputDirectlyForm.calorie.toFloatOrNull()?:0f
                             ),
-                            servingSize = foodInputDirectlyForm.servingSize.toInt(),
-                            calorie = foodInputDirectlyForm.calorie.toFloat()
+                            servingSize = foodInputDirectlyForm.servingSize.toIntOrNull()?:0,
+                            calorie = foodInputDirectlyForm.calorie.toFloatOrNull()?:0f
                         )
                     ),
                     recommendWalkInfo = AIRecommendWalkModel(
