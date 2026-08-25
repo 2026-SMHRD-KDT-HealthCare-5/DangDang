@@ -1,5 +1,6 @@
 package com.dangdang.component.chat
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -102,6 +104,13 @@ fun FoodDetailBox(
     onKeywordInputClick: () -> Unit = {},
     onInputDirectlyClick: () -> Unit = {}
 ) {
+    val isNotSearch =
+        foodInfo.nutritionList.find{
+            it.value > 0f
+        } == null
+
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -155,83 +164,87 @@ fun FoodDetailBox(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = White,
-                    shape = MediumRoundShape
-                )
-                .border(
-                    width = ThinLineDp,
-                    color = Gray,
-                    shape = MediumRoundShape
-                )
-                .padding(
-                    horizontal = 12.dp,
-                    vertical = 8.dp
-                ),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Row(
+        if(isNotSearch){
+            FoodNotRecognizeBox()
+        }else{
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .fillMaxWidth()
+                    .background(
+                        color = White,
+                        shape = MediumRoundShape
+                    )
+                    .border(
+                        width = ThinLineDp,
+                        color = Gray,
+                        shape = MediumRoundShape
+                    )
+                    .padding(
+                        horizontal = 12.dp,
+                        vertical = 8.dp
+                    ),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = "영양정보",
-                    style = AppTypography.bodyLarge.regular,
-                    color = Black,
-                )
-
-                Text(
-                    text = foodInfo.nutritionInfo,
-                    style = AppTypography.labelSmall.regular,
-                    color = DarkGray,
-                )
-            }
-
-            Divider(
-                position = DividerPosition.Horizontal,
-                color = Gray
-            )
-
-            foodInfo.nutritionList.forEachIndexed { index, nutrition ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = nutrition.name,
-                        style = AppTypography.labelSmall.regular,
+                        text = "영양정보",
+                        style = AppTypography.bodyLarge.regular,
                         color = Black,
                     )
 
                     Text(
-                        text = "${nutrition.value} ${nutrition.unit}",
+                        text = foodInfo.nutritionInfo,
                         style = AppTypography.labelSmall.regular,
                         color = DarkGray,
                     )
                 }
 
-                //마지막 아이템이 아닐 경우 구분선
-                if(index != foodInfo.nutritionList.lastIndex){
-                    Divider(
-                        position = DividerPosition.Horizontal,
-                        color = Gray
-                    )
+                Divider(
+                    position = DividerPosition.Horizontal,
+                    color = Gray
+                )
+
+                foodInfo.nutritionList.forEachIndexed { index, nutrition ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = nutrition.name,
+                            style = AppTypography.labelSmall.regular,
+                            color = Black,
+                        )
+
+                        Text(
+                            text = "${nutrition.value} ${nutrition.unit}",
+                            style = AppTypography.labelSmall.regular,
+                            color = DarkGray,
+                        )
+                    }
+
+                    //마지막 아이템이 아닐 경우 구분선
+                    if(index != foodInfo.nutritionList.lastIndex){
+                        Divider(
+                            position = DividerPosition.Horizontal,
+                            color = Gray
+                        )
+                    }
                 }
             }
-        }
 
-        if(predictedGlucoseRise > 0f ||
-            beginGlucose > 0f){
-            PredictedGlucoseRiseBox(
-                predictedGlucoseRise = predictedGlucoseRise,
-                beginGlucose = beginGlucose
-            )
+            if(predictedGlucoseRise > 0f ||
+                beginGlucose > 0f){
+                PredictedGlucoseRiseBox(
+                    predictedGlucoseRise = predictedGlucoseRise,
+                    beginGlucose = beginGlucose
+                )
+            }
         }
 
         if(isMenuShow){
@@ -249,7 +262,17 @@ fun FoodDetailBox(
                     )
                 },
                 sizeType = LayoutSize.FillMaxSize,
-                onClick = onCheckClick
+                onClick = if(isNotSearch){
+                    {
+                        Toast.makeText(
+                            context,
+                            "검색 결과가 없습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }else{
+                    onCheckClick
+                }
             )
 
             PrimaryOutlinedButton(

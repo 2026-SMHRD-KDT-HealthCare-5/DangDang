@@ -10,6 +10,8 @@ val Purple40 = Color(0xFF6650a4)
 val PurpleGrey40 = Color(0xFF625b71)
 val Pink40 = Color(0xFF7D5260)
 
+val LightBlack = Color(0xFF4A4747)
+
 val Black = Color(0xFF000000)
 val BlackOpacity25 = Color(0x40000000)
 val White = Color(0xFFFFFFFF)
@@ -24,7 +26,8 @@ val SkyBlueOpacity30 = Color(0x4D87CEFA)
 val SapphireBlue = Color(0xFF93B5FF)
 val LightBlue = Color(0xFFF5F9FE)
 
-
+val LightWhiteSmoke = Color(0xFFFAFAFA)
+val WhiteSmoke = Color(0xFFE9EBED)
 val LightGray = Color(0xFFD9D9D9)
 val Gray = Color(0xFFA9A9A9)
 val GrayOpacity30 = Color(0x4DA9A9A9)

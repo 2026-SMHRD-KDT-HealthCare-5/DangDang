@@ -34,6 +34,7 @@ import com.dangdang.component.dialog.WalkMissionCompleteDialog
 import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.walk.WalkInfo
+import com.dangdang.component.page.walk.WalkNoMissionBox
 import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.enums.WalkMissionStatus
 import com.dangdang.data.model.walk.WalkStatus
@@ -62,7 +63,8 @@ fun WalkScreenPreview(
         routePoints = emptyList(),
         onWalkButtonClick = {},
         isWalkEndDialog = false,
-        onSendGlucoseClick = {}
+        onSendGlucoseClick = {},
+        onNoMissionClick = {}
     )
 }
 
@@ -70,7 +72,8 @@ fun WalkScreenPreview(
 fun WalkScreen(
     walkViewModel: WalkViewModel = hiltViewModel(),
     isStart: Boolean,
-    onSendGlucoseClick: () -> Unit
+    onSendGlucoseClick: () -> Unit,
+    onNoMissionClick: ()->Unit
 ){
     val context = LocalContext.current
 
@@ -165,7 +168,8 @@ fun WalkScreen(
             isWalkEndDialog = isWalkEndDialog,
             onSendGlucoseClick = {
                 onSendGlucoseClick()
-            }
+            },
+            onNoMissionClick = onNoMissionClick
         )
     }else{
         ErrorView(
@@ -187,7 +191,8 @@ fun WalkScreenContent(
     routePoints: List<Pair<Double, Double>> = emptyList(),
     onWalkButtonClick: () -> Unit,
     isWalkEndDialog: Boolean,
-    onSendGlucoseClick: () -> Unit
+    onSendGlucoseClick: () -> Unit,
+    onNoMissionClick: ()->Unit
 ){
     val scrollState = rememberScrollState()
     Column(
@@ -197,27 +202,36 @@ fun WalkScreenContent(
         TopNavigation(
             title = "걷기",
         )
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(scrollState)
-                .padding(
-                    vertical = 20.dp,
-                    horizontal = 30.dp
-                ),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            WalkInfo(
-                walkStatus = walkStatus,
-                stepTime = stepTime,
-                routePoints = routePoints
-            )
 
-            WalkButton(
-                isWalking = isWalking,
-                onClick = onWalkButtonClick
+        if (walkStatus.status != WalkMissionStatus.READY.name &&
+            walkStatus.status != WalkMissionStatus.IN_PROGRESS.name
+        ){
+            WalkNoMissionBox(
+                onMissionButtonClick = onNoMissionClick
             )
+        }else{
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(scrollState)
+                    .padding(
+                        vertical = 20.dp,
+                        horizontal = 30.dp
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                WalkInfo(
+                    walkStatus = walkStatus,
+                    stepTime = stepTime,
+                    routePoints = routePoints
+                )
+
+                WalkButton(
+                    isWalking = isWalking,
+                    onClick = onWalkButtonClick
+                )
+            }
         }
     }
     

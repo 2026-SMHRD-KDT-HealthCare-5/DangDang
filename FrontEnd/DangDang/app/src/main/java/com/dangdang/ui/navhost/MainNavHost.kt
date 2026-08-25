@@ -105,6 +105,12 @@ fun MainNavHost(
                         )
                         // 탭 복원(restoreState) 시 인자가 유실되는 경우를 대비해 savedStateHandle에도 저장
                         navController.currentBackStackEntry?.savedStateHandle?.set("isWalkComplete", true)
+                    },
+                    onNoMissionClick = {
+                        navigateBottomTab(
+                            navController = navController,
+                            route = MainRoute.DangDang.route
+                        )
                     }
                 )
             }
