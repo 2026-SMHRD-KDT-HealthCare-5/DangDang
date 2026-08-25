@@ -37,6 +37,7 @@ __pycache__/
 .mypy_cache/
 .ipynb_checkpoints/
 *.egg-info/
+docker-compose.yml
 
 # 테스트 실행 결과 (매번 새로 생성되는 파일이라 git에 안 올림)
 AIServer/scripts/test_results.txt
