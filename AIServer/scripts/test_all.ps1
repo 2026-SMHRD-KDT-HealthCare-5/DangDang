@@ -43,14 +43,19 @@ function Invoke-Utf8FormPost($uri, $bodyObj) {
 Write-Host "`n========== 1. 헬스체크 ==========" -ForegroundColor Cyan
 Invoke-RestMethod -Uri "$base/" -Method Get | ConvertTo-Json
 
-Write-Host "`n========== 4. AI 재분석 - '틀려요, AI로 분석하기' (텍스트) ==========" -ForegroundColor Cyan
-$r4 = Invoke-Utf8FormPost "$base/rag/intake-logs/reanalyze" @{
-    food_name = "구구콘"
-    baseline = 110
-    diagnosis_group = "전당뇨"
+Write-Host "`n========== 3. 음식 인식 - 텍스트, DB에 없는 음식 (matched=false 확인) ==========" -ForegroundColor Cyan
+$r3 = Invoke-Utf8FormPost "$base/rag/intake-logs/recognize" @{
+    message = "엄마가 해준 특제 스튜"
+    diagnosis_group = "건강군"
 }
+$r3 | ConvertTo-Json -Depth 5
 
-$r4 | ConvertTo-Json -Depth 5
+Write-Host "`n========== 6. 일반 건강 질문 (RAG 논문 기반 답변) ==========" -ForegroundColor Cyan
+$r6 = Invoke-Utf8Post "$base/rag/chat" @{
+    user_no = 1
+    message = "당뇨병 환자는 운동을 얼마나 해야 하나요?"
+}
+Write-Host $r6.reply
 
 
 <#
@@ -64,14 +69,16 @@ $r2 | ConvertTo-Json -Depth 5
 
 
 
-Write-Host "`n========== 3. 음식 인식 - 텍스트, DB에 없는 음식 (matched=false 확인) ==========" -ForegroundColor Cyan
-$r3 = Invoke-Utf8FormPost "$base/rag/intake-logs/recognize" @{
-    message = "엄마가 해준 특제 스튜"
-    diagnosis_group = "건강군"
+
+
+Write-Host "`n========== 4. AI 재분석 - '틀려요, AI로 분석하기' (텍스트) ==========" -ForegroundColor Cyan
+$r4 = Invoke-Utf8FormPost "$base/rag/intake-logs/reanalyze" @{
+    food_name = "구구콘"
+    baseline = 110
+    diagnosis_group = "전당뇨"
 }
-$r3 | ConvertTo-Json -Depth 5
 
-
+$r4 | ConvertTo-Json -Depth 5
 
 Write-Host "`n========== 5. portion 반영 재예측 (최종 확정 직전) ==========" -ForegroundColor Cyan
 $r5 = Invoke-Utf8Post "$base/rag/intake-logs/predict" @{
@@ -82,12 +89,7 @@ $r5 = Invoke-Utf8Post "$base/rag/intake-logs/predict" @{
 }
 $r5 | ConvertTo-Json -Depth 5
 
-Write-Host "`n========== 6. 일반 건강 질문 (RAG 논문 기반 답변) ==========" -ForegroundColor Cyan
-$r6 = Invoke-Utf8Post "$base/rag/chat" @{
-    user_no = 1
-    message = "당뇨병 환자는 운동을 얼마나 해야 하나요?"
-}
-Write-Host $r6.reply
+
 
 Write-Host "`n========== 7. 약물 용량 질문 차단 확인 ==========" -ForegroundColor Cyan
 $r7 = Invoke-Utf8Post "$base/rag/chat" @{
