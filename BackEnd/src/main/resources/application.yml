@@ -5,6 +5,12 @@
 server:
   # [각주] .env의 SERVER_PORT 값을 읽습니다. 없으면 8080을 기본값으로 씁니다.
   port: ${SERVER_PORT:8080} # 설계 문서 기준: 로컬에서는 Nginx 없이 앱이 Spring 포트를 직접 호출
+  # [각주] (추가 2026-08-25) Nginx가 보내주는 X-Forwarded-Proto/X-Forwarded-For/X-Forwarded-Host
+  # 헤더를 Spring이 "믿고" 그대로 반영하게 하는 설정입니다. 기본값(none)이면 이 헤더들이 와도
+  # Spring이 무시해서, 요청이 실제로는 https(Cloudflare Tunnel 경유)로 들어왔어도 Spring은
+  # "그냥 http로 들어왔다"고 착각합니다. 이게 Swagger의 API 서버 주소 자동감지(springdoc)를
+  # 틀리게 만들어서 로그인 테스트 시 Execute가 안 먹히던 원인이었습니다(nginx.conf 각주 4 참고).
+  forward-headers-strategy: framework
 
 spring:
   application:

@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
+import java.util.UUID;
 
 /**
  * [각주 F] JWT(JSON Web Token)란?
@@ -54,12 +55,22 @@ public class JwtProvider {
         return createToken(userNo, refreshTokenExpirationMs, TYPE_REFRESH);
     }
 
+    /**
+     * [각주] (수정 2026-08-25) .id(UUID) 추가 — 원인: 같은 유저에게 같은 초(second) 안에
+     * 토큰을 두 번 발급하면(예: 앱이 네트워크 재시도로 로그인/refresh를 순간적으로 두 번 호출),
+     * 예전엔 subject/type/issuedAt/expiration이 완전히 똑같아서 JWT 문자열 자체가 토씨 하나
+     * 안 틀리고 동일하게 나왔습니다. refresh_token.token_hash는 그 문자열을 그대로 SHA-256
+     * 해시한 값이라, 두 번째 INSERT가 "duplicate key value violates unique constraint
+     * refresh_token_token_hash_key"로 실패했습니다(운영 로그에서 실제 발견). jti(JWT ID)
+     * 클레임에 매번 새 UUID를 넣어주면 같은 초에 발급해도 토큰 문자열이 절대 겹치지 않습니다.
+     */
     private String createToken(Integer userNo, long expirationMs, String type) {
         Date now = new Date();
         Date expiry = new Date(now.getTime() + expirationMs);
 
         return Jwts.builder()
                 .subject(String.valueOf(userNo)) // 토큰의 주인(사용자 식별자)
+                .id(UUID.randomUUID().toString()) // jti — 토큰마다 고유값을 줘서 완전 동일한 토큰이 생기지 않게 함
                 .claim(CLAIM_TYPE, type)          // access인지 refresh인지 구분하는 값
                 .issuedAt(now)
                 .expiration(expiry)

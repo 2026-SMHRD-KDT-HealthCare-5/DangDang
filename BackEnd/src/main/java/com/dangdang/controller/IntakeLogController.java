@@ -117,10 +117,15 @@ public class IntakeLogController {
     /**
      * [각주 BQ] "틀려요, AI로 분석하기" — recognize가 식약처 DB에서 못 찾았거나 사용자가
      * 결과가 틀렸다고 할 때 호출합니다. image/foodName 중 최소 하나는 필수입니다.
-     * recognize/predict와 동일하게 순수 프록시라 DB에는 아무것도 저장하지 않습니다.
-     * 여기서 나온 결과가 마음에 들면 "맞아요"(confirm)를 눌러야 저장됩니다.
      *
-     * @lastModified 2026-08-18
+     * [각주] (수정 2026-08-25) recognize/predict와 달리 이제 순수 프록시가 아닙니다 — 프론트가
+     * customFoodNo를 참조용으로 받아야 해서, 호출할 때마다 바로 custom_food에 저장하고 그
+     * PK를 응답에 실어줍니다(RecognizeProxyService/CustomFood 엔티티 각주 참고). "맞아요"
+     * (confirm)를 누르면 그때 또 별도로 저장됩니다 — 지금 이 reanalyze 응답의 customFoodNo를
+     * confirm 요청에 재사용하는 기능은 아직 없고, 여전히 값 자체(foodName/nutrition 등)를
+     * customFood 바디에 실어 보내야 합니다.
+     *
+     * @lastModified 2026-08-25
      */
     @PostMapping(value = "/reanalyze", consumes = "multipart/form-data")
     public ResponseEntity<ReanalyzeResponse> reanalyze(

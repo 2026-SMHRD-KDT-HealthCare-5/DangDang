@@ -13,9 +13,10 @@ JSONResponse(status_code=status_code, content=content)로 감싸기만 하면 �
 
 목차
 1. parse_gemini_json() — Gemini가 ```json 코드블록으로 감싼 응답까지 안전하게 파싱
-2. _build_recognize_response() — 인식 결과를 최종 응답 형태로 조립
-3. recognize() — routers/recognize.py가 호출하는 진입점 (음식 인식 2단계 파이프라인)
-4. reanalyze() — routers/reanalyze.py가 호출하는 진입점 (AI 재분석)
+2. _to_number() / _to_int() — Gemini가 숫자 칸에 "없음"/"모름" 같은 문자열을 넣었을 때 걸러냄
+3. _build_recognize_response() — 인식 결과를 최종 응답 형태로 조립
+4. recognize() — routers/recognize.py가 호출하는 진입점 (음식 인식 2단계 파이프라인)
+5. reanalyze() — routers/reanalyze.py가 호출하는 진입점 (AI 재분석)
 
 [수정] predictedGlucoseRise를 recognize/reanalyze 단계에서 미리 계산하던 로직을 없앴습니다.
 이 시점엔 portion(몇 인분)을 몰라서 항상 1인분 가정으로만 계산됐고, 어차피 /predict가
@@ -40,6 +41,40 @@ def parse_gemini_json(text: str) -> dict:
     cleaned = text.strip()
     cleaned = re.sub(r"^```json\s*|\s*```$", "", cleaned, flags=re.MULTILINE).strip()
     return json.loads(cleaned)
+
+
+def _to_number(value):
+    """
+    [각주] (추가 2026-08-25, 사용자 발견) reanalyze()가 Gemini의 nutrition 값을
+    검증 없이 그대로 응답에 실어보내고 있었습니다. Gemini는 확신이 없는 값을 숫자 대신
+    "없음", "모름", "-" 같은 문자열로 채워넣을 때가 있는데, 이게 그대로 Spring에
+    전달되면 BigDecimal 필드로 역직렬화(JSON → 자바 객체 변환)하다가 실패해서
+    /api/intake-logs/reanalyze 호출 자체가 깨졌습니다(reanalyze가 "작동 안 됨" 이슈의 원인).
+
+    숫자로 안전하게 변환되는 값만 통과시키고, 안 되면(문자열 쓰레기값 포함) None으로
+    바꿔서 돌려줍니다 — Spring 쪽에서는 이미 null이면 0으로 대체하도록 처리해뒀습니다
+    (RecognizeProxyService.zeroIfNull 참고).
+    """
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return value
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        print(f"[food_recognition] 영양성분 값이 숫자가 아니라서 null로 대체함: {value!r}")
+        return None
+
+
+def _to_int(value):
+    """
+    [각주] serving_size 전용입니다. Spring 쪽 필드가 정확히 Integer라서(ReanalyzeResponse.
+    servingSize), _to_number()가 돌려주는 float(예: 250.0)를 그대로 보내면 Jackson이
+    "Integer 필드에 소수점 값이 왔다"며 또 역직렬화 에러를 냅니다. 그래서 정수로 한 번 더
+    반올림해서 보냅니다.
+    """
+    number = _to_number(value)
+    return round(number) if number is not None else None
 
 
 def _build_recognize_response(
@@ -202,16 +237,18 @@ async def reanalyze(image, food_name, baseline, diagnosis_group) -> tuple[int, d
     # 사진만 준 경우(food_name 없음)는 Gemini가 음식 자체를 식별해야 하니 그대로 둡니다.
     resolved_food_name = food_name if food_name else analysis.get("food_name", "알 수 없는 음식")
 
+    # [각주] (수정 2026-08-25) 아래 6개 값 전부 _to_number()를 거칩니다 — Gemini가 "없음" 같은
+    # 문자열을 넣어도 여기서 걸러져서 null로 나갑니다(위 _to_number 각주 참고).
     return 200, {
         "foodName": resolved_food_name,
-        "serving_size": analysis.get("serving_size"),
+        "serving_size": _to_int(analysis.get("serving_size")),
         "nutrition": {
-            "carb": nutrition.get("carb"),
-            "sugar": nutrition.get("sugar"),
-            "protein": nutrition.get("protein"),
-            "fat": nutrition.get("fat"),
-            "fiber": nutrition.get("fiber"),
-            "calorie": nutrition.get("calorie"),
+            "carb": _to_number(nutrition.get("carb")),
+            "sugar": _to_number(nutrition.get("sugar")),
+            "protein": _to_number(nutrition.get("protein")),
+            "fat": _to_number(nutrition.get("fat")),
+            "fiber": _to_number(nutrition.get("fiber")),
+            "calorie": _to_number(nutrition.get("calorie")),
         },
         "source": "AI추정",
         "chatbotMessage": f"{source_msg} 정확하지 않을 수 있으니 확인해 주세요!",
