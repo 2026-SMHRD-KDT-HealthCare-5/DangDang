@@ -69,7 +69,12 @@ class DangDangViewModel @Inject constructor(
     //채팅 전송
     fun chatSend(message: String) {
         chatProcess {
-            _chattingList.applyResponse(dangDangRepository.chatSend(message))
+            val currentChattingList = ArrayList(dangDangRepository.currentChattingList.value)
+
+            /*_chattingList.value = _chattingList.copy(
+                data =
+            )
+            _chattingList.applyResponse(dangDangRepository.chatSend(message))*/
         }
     }
 

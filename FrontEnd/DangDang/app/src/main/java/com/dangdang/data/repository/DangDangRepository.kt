@@ -65,6 +65,10 @@ class DangDangRepository @Inject constructor(
 ){
     private val gson = Gson()
     private val _analyzeChattingList = MutableStateFlow<List<ChatModel>>(emptyList())
+
+    private val _currentChattingList = MutableStateFlow<List<ChatModel>>(emptyList())
+    val currentChattingList = _currentChattingList.asStateFlow()
+
     private val _analyzeFood = MutableStateFlow<FoodAnalysisResponse?>(null)
     private val _foodPredict = MutableStateFlow<FoodPredictResponse?>(null)
     private val _preGlucose = MutableStateFlow<Float?>(null)
@@ -179,6 +183,8 @@ class DangDangRepository @Inject constructor(
                     )
                 )
             }
+
+            _currentChattingList.value = chatList
 
             return PendingResponseModel(
                 pendingModel = PendingModel(
