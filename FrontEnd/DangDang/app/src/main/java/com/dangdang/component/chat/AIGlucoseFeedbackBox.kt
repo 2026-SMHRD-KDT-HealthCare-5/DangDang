@@ -26,6 +26,8 @@ import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.ForestGreen
 import com.dangdang.ui.theme.LightBlue
+import com.dangdang.ui.theme.MediumLineDp
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.SapphireBlue
 
 @Preview
@@ -65,12 +67,12 @@ fun AIGlucoseFeedbackBox(
             .fillMaxWidth()
             .background(
                 color = LightBlue,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 2.dp,
+                width = MediumLineDp,
                 color = SapphireBlue,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(
                 horizontal = 35.dp,
@@ -118,19 +120,6 @@ fun AIGlucoseFeedbackBox(
                         },
                 style = AppTypography.labelMedium.bold,
                 color = Black,
-            )
-
-            Image(
-                painter = painterResource(
-                    if(isSuccess){
-                        R.drawable.green_checkbox
-                    }else{
-                        R.drawable.failed_icon
-                    }
-                ),
-                contentDescription = "green checkbox",
-                modifier = Modifier
-                    .size(12.dp)
             )
         }
     }

@@ -1,16 +1,23 @@
 package com.dangdang.component.chat
 
+import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.dangdang.data.enums.ChatUserType
 import com.dangdang.data.model.chat.ChatModel
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
@@ -42,12 +49,19 @@ fun AIChatListViewPreview(){
 @Composable
 fun AIChatListView(
     modifier: Modifier = Modifier,
+    isChatLoading: Boolean = false,
     chattingList: List<ChatModel>,
     glucoseValue: String = "",
     onGlucoseValueChange: (String) -> Unit = {},
+    ateFoodImageUri: Uri? = null,
     ateFoodValue: String = "",
     onAteFoodValueChange: (String) -> Unit = {},
     onAteFoodSendClick: () -> Unit = {},
+    onAteFoodImageSelectClick: () -> Unit = {},
+    onAteFoodImageCancelClick: () -> Unit = {},
+    ateWeightValue: String = "",
+    onAteWeightValueChange: (String) -> Unit = {},
+    onAteWeightSendClick: () -> Unit = {},
     afterWalkGlucoseValue: String = "",
     onAfterWalkGlucoseValueChange: (String) -> Unit = {},
     onAfterWalkGlucoseInputCompleteClick: () -> Unit = {},
@@ -60,6 +74,14 @@ fun AIChatListView(
     onFoodInputDirectlyClick: () -> Unit = {}
 ) {
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
+
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        scope.launch {
+            withFrameNanos { }
+            scrollState.scrollTo(scrollState.maxValue)
+        }
+    }
 
     Column(
         modifier = modifier
@@ -72,12 +94,19 @@ fun AIChatListView(
     ) {
         chattingList.forEach { chatting ->
             AIChatMenu(
+                isChatLoading = isChatLoading,
                 chatModel = chatting,
                 glucoseValue = glucoseValue,
                 onGlucoseValueChange = onGlucoseValueChange,
                 ateFoodValue = ateFoodValue,
                 onAteFoodValueChange = onAteFoodValueChange,
                 onAteFoodSendClick = onAteFoodSendClick,
+                onAteFoodImageCancelClick = onAteFoodImageCancelClick,
+                ateFoodImageUri = ateFoodImageUri,
+                onAteFoodImageSelectClick = onAteFoodImageSelectClick,
+                ateWeightValue = ateWeightValue,
+                onAteWeightValueChange = onAteWeightValueChange,
+                onAteWeightSendClick = onAteWeightSendClick,
                 afterWalkGlucoseValue = afterWalkGlucoseValue,
                 onAfterWalkGlucoseValueChange = onAfterWalkGlucoseValueChange,
                 onAfterWalkGlucoseInputCompleteClick = onAfterWalkGlucoseInputCompleteClick,

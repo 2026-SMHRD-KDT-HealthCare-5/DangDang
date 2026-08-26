@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -18,7 +17,6 @@ import com.dangdang.component.text.textfield.TextField
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
 import com.dangdang.ui.theme.AppTypography
-import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.White
 
@@ -27,11 +25,11 @@ import com.dangdang.ui.theme.White
 fun FoodInputDirectlyBoxPreview() {
     FoodInputDirectlyBox(
         foodInputDirectlyForm = FoodInputDirectlyForm(
-            name = "",
-            intake = "",
-            kcal = "",
-            carbohydrate = "",
-            dietaryFiber = "",
+            foodName = "",
+            servingSize = "",
+            calorie = "",
+            carb = "",
+            fiber = "",
             protein = "",
             fat = "",
             sugar = ""
@@ -57,11 +55,11 @@ fun FoodInputDirectlyBox(
             title = "음식 이름",
             isMaxLengthView = false,
             isRequired = false,
-            value = foodInputDirectlyForm.name,
+            value = foodInputDirectlyForm.foodName,
             onValueChange = {
                 onFormChange(
                     foodInputDirectlyForm.copy(
-                        name = it
+                        foodName = it
                     )
                 )
             },
@@ -74,11 +72,11 @@ fun FoodInputDirectlyBox(
             title = "섭취량(g)",
             isMaxLengthView = false,
             isRequired = false,
-            value = foodInputDirectlyForm.intake,
+            value = foodInputDirectlyForm.servingSize,
             onValueChange = {
                 onFormChange(
                     foodInputDirectlyForm.copy(
-                        intake = it
+                        servingSize = it
                     )
                 )
             },
@@ -99,11 +97,11 @@ fun FoodInputDirectlyBox(
             title = "칼로리(kcal)",
             isMaxLengthView = false,
             isRequired = false,
-            value = foodInputDirectlyForm.kcal,
+            value = foodInputDirectlyForm.calorie,
             onValueChange = {
                 onFormChange(
                     foodInputDirectlyForm.copy(
-                        kcal = it
+                        calorie = it
                     )
                 )
             },
@@ -124,11 +122,11 @@ fun FoodInputDirectlyBox(
             title = "탄수화물(g)",
             isMaxLengthView = false,
             isRequired = false,
-            value = foodInputDirectlyForm.carbohydrate,
+            value = foodInputDirectlyForm.carb,
             onValueChange = {
                 onFormChange(
                     foodInputDirectlyForm.copy(
-                        carbohydrate = it
+                        carb = it
                     )
                 )
             },
@@ -188,11 +186,11 @@ fun FoodInputDirectlyBox(
                     title = "식이섬유(g)",
                     isMaxLengthView = false,
                     isRequired = false,
-                    value = foodInputDirectlyForm.dietaryFiber,
+                    value = foodInputDirectlyForm.fiber,
                     onValueChange = {
                         onFormChange(
                             foodInputDirectlyForm.copy(
-                                dietaryFiber = it
+                                fiber = it
                             )
                         )
                     },

@@ -1,5 +1,6 @@
 package com.dangdang.data.model.chat
 
+import android.net.Uri
 import androidx.annotation.Keep
 import com.dangdang.data.enums.ChatUserType
 import java.time.LocalDateTime
@@ -8,6 +9,7 @@ import java.time.LocalDateTime
 data class ChatModel(
     val chatUserType: ChatUserType,
     val message: String,
+    val messageImageUri: Uri? = null,
     val date: LocalDateTime,
     val chatType: String,
     val chatStageType: String,

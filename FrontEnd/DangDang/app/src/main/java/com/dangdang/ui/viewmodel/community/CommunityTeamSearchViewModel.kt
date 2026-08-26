@@ -1,7 +1,13 @@
 package com.dangdang.ui.viewmodel.community
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.dangdang.common.utils.applyResponse
+import com.dangdang.common.utils.getResponseError
+import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamSearchInfoModel
 import com.dangdang.data.repository.CommunityRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,8 +20,10 @@ import javax.inject.Inject
 class CommunityTeamSearchViewModel @Inject constructor(
     private val communityRepository: CommunityRepository
 ): ViewModel(){
-    private val _teamList = MutableStateFlow<List<TeamSearchInfoModel>>(emptyList())
-    val teamList: StateFlow<List<TeamSearchInfoModel>> = _teamList
+    private val _teamList = MutableStateFlow<PendingModel<List<TeamSearchInfoModel>>>(
+        PendingModel(emptyList(), LoadingState.Loading)
+    )
+    val teamList: StateFlow<PendingModel<List<TeamSearchInfoModel>>> = _teamList
 
     init {
         getTeamList("")
@@ -23,21 +31,17 @@ class CommunityTeamSearchViewModel @Inject constructor(
 
     fun getTeamList(keyword: String){
         viewModelScope.launch {
-            val response = communityRepository.getTeamList()
-            if(response.isSuccessful){
-                val responseBody = response.body()
-                _teamList.value = (responseBody ?: emptyList()).filter {
-                    it.name.contains(keyword)
-                }
-            }
+            _teamList.applyResponse(communityRepository.getTeamList(keyword))
         }
     }
 
-    fun joinTeam(teamId: Long, onJoinSuccess: () -> Unit) {
+    fun joinTeam(context: Context, teamId: Long, onJoinSuccess: () -> Unit) {
         viewModelScope.launch {
             val response = communityRepository.joinTeam(teamId)
             if (response.isSuccessful) {
                 onJoinSuccess()
+            }else{
+                Toast.makeText(context, getResponseError(response).message, Toast.LENGTH_SHORT).show()
             }
         }
     }

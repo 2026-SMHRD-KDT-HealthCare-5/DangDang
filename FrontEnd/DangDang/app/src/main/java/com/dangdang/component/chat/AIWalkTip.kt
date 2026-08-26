@@ -20,6 +20,8 @@ import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.EmeraldGreen
 import com.dangdang.ui.theme.ForestGreen
 import com.dangdang.ui.theme.LightGreen
+import com.dangdang.ui.theme.MediumLineDp
+import com.dangdang.ui.theme.MediumRoundShape
 
 @Preview
 @Composable
@@ -36,12 +38,12 @@ fun AIWalkTip(
             .fillMaxWidth()
             .background(
                 color = LightGreen,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 2.dp,
+                width = MediumLineDp,
                 color = EmeraldGreen,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)

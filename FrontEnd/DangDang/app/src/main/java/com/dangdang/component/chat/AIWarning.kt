@@ -22,6 +22,8 @@ import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.ForestGreen
 import com.dangdang.ui.theme.LightYellow
+import com.dangdang.ui.theme.MediumLineDp
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.Yellow
 
 @Preview
@@ -39,12 +41,12 @@ fun AIWarning(
             .fillMaxWidth()
             .background(
                 color = LightYellow,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 2.dp,
+                width = MediumLineDp,
                 color = Yellow,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(10.dp),
         horizontalArrangement = Arrangement.spacedBy(10.dp)

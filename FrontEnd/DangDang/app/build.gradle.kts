@@ -63,13 +63,20 @@ android {
             "API_BASE_URL",
             "\"${localProperties.getProperty("API_BASE_URL", "")}\""
         )
+
+        manifestPlaceholders["KAKAO_AUTH_SCHEME"] =
+            "kakao${localProperties.getProperty("KAKAO_NATIVE_APP_KEY", "")}"
     }
 
     buildTypes {
         release {
-            optimization {
-                enable = false
-            }
+            isMinifyEnabled = true
+            isShrinkResources = true
+
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {

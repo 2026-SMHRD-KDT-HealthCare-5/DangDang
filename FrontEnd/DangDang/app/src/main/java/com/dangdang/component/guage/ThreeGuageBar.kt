@@ -14,6 +14,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.data.enums.GuageBarSize
 import com.dangdang.ui.theme.BlackOpacity25
+import com.dangdang.ui.theme.CapsuleRoundShape
 import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.DarkGreen
 import com.dangdang.ui.theme.White
@@ -40,7 +41,7 @@ fun ThreeGuageBar(
             .height(10.dp)
             .background(
                 color = BlackOpacity25,
-                shape = RoundedCornerShape(100.dp)
+                shape = CapsuleRoundShape
             )
     ) {
         //팀 전체 게이지
@@ -50,7 +51,7 @@ fun ThreeGuageBar(
                 .fillMaxHeight()
                 .background(
                     color = White,
-                    shape = RoundedCornerShape(100.dp)
+                    shape = CapsuleRoundShape
                 )
         )
 
@@ -61,7 +62,7 @@ fun ThreeGuageBar(
                 .fillMaxHeight()
                 .background(
                     color = DarkGreen,
-                    shape = RoundedCornerShape(100.dp)
+                    shape = CapsuleRoundShape
                 )
         )
     }

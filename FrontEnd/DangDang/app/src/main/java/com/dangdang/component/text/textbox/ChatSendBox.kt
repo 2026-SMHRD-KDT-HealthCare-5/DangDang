@@ -28,8 +28,10 @@ import com.dangdang.R
 import com.dangdang.common.utils.componentWidthModifier
 import com.dangdang.common.utils.regular
 import com.dangdang.ui.theme.AppTypography
+import com.dangdang.ui.theme.CapsuleRoundShape
 import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -77,12 +79,12 @@ fun ChatSendBox(
                     modifier = Modifier
                         .background(
                             color = if(enabled) White else Gray,
-                            shape = RoundedCornerShape(100.dp)
+                            shape = CapsuleRoundShape
                         )
                         .border(
-                            width = 1.dp,
+                            width = ThinLineDp,
                             color = Gray,
-                            shape = RoundedCornerShape(100.dp)
+                            shape = CapsuleRoundShape
                         )
                         .padding(12.dp),
                     verticalAlignment = Alignment.CenterVertically,

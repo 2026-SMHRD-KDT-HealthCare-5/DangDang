@@ -12,12 +12,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.Application.Companion.ExamplePictureUrl
-import com.dangdang.common.utils.GuageColorList
 import com.dangdang.component.divider.Divider
-import com.dangdang.component.page.community.teamchallenge.TeamMemberStatusItem
 import com.dangdang.data.enums.DividerPosition
 import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -28,32 +28,32 @@ fun TeamRankingStatusBoxPreview(){
             TeamRankingStatusModel(
                 rank = 1,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임",
-                currentDistance = 32.56f,
+                teamName = "닉네임",
+                monthlyDistance = 32.56f,
             ),
             TeamRankingStatusModel(
                 rank = 2,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임2",
-                currentDistance = 20.56f,
+                teamName = "닉네임2",
+                monthlyDistance = 20.56f,
             ),
             TeamRankingStatusModel(
                 rank = 3,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임3",
-                currentDistance = 10.56f,
+                teamName = "닉네임3",
+                monthlyDistance = 10.56f,
             ),
             TeamRankingStatusModel(
                 rank = 4,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임4",
-                currentDistance = 5.56f,
+                teamName = "닉네임4",
+                monthlyDistance = 5.56f,
             ),
             TeamRankingStatusModel(
                 rank = 5,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임5",
-                currentDistance = 3.56f,
+                teamName = "닉네임5",
+                monthlyDistance = 3.56f,
             )
         )
     )
@@ -68,12 +68,12 @@ fun TeamRankingStatusBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)

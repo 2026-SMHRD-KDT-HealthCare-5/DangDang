@@ -1,21 +1,40 @@
 package com.dangdang.component.chat
 
+import android.net.Uri
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.Icon
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
+import com.dangdang.R
 import com.dangdang.common.utils.AIFeedbackStage
 import com.dangdang.common.utils.AfterWalkGlucoseInputStage
 import com.dangdang.common.utils.AnalysisFoodStage
 import com.dangdang.common.utils.AnalysisFoodType
 import com.dangdang.common.utils.BeforeMealGlucoseInputStage
 import com.dangdang.common.utils.InputAteFoodStage
+import com.dangdang.common.utils.InputAteWeightStage
 import com.dangdang.common.utils.RecommendWalkDistanceStage
 import com.dangdang.common.utils.TodayWalkTargetType
+import com.dangdang.common.utils.regular
 import com.dangdang.component.button.PrimaryButton
 import com.dangdang.component.text.textfield.TextField
 import com.dangdang.data.enums.ChatUserType
@@ -26,6 +45,9 @@ import com.dangdang.data.model.chat.ChatModel
 import com.dangdang.data.model.chat.FoodInfoModel
 import com.dangdang.data.model.chat.FoodNutritionModel
 import com.dangdang.data.model.chat.GlucoseFeedbackModel
+import com.dangdang.ui.theme.AppTypography
+import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.White
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -42,6 +64,23 @@ fun AIChatMenuPreview(){
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         //일반 채팅
+        AIChatMenu(
+            chatModel = ChatModel(
+                chatUserType = ChatUserType.User,
+                message = "안녕하세요!",
+                date = LocalDateTime.of(
+                    LocalDate.now(),
+                    LocalTime.of(8, 30)
+                ),
+                chatType = "",
+                isChatAble = true,
+                isInputComplete = false,
+                chatStageType = "",
+                analysisFoodInfo = null,
+                recommendWalkInfo = null,
+                glucoseFeedbackInfo = null
+            )
+        )
         AIChatMenu(
             chatModel = ChatModel(
                 chatUserType = ChatUserType.AI,
@@ -153,36 +192,37 @@ fun AIChatMenuPreview2(){
                 isInputComplete = false,
                 chatStageType = AnalysisFoodStage,
                 analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
+                    predictedGlucoseRise = 35.0f,
+                    beginGlucose = 140.0f,
                     foodInfo = FoodInfoModel(
+                        isMatched = true,
                         name = "비빔밥",
                         nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
                         nutritionList = listOf(
                             FoodNutritionModel(
                                 name = "탄수화물",
                                 unit = "g",
-                                value = 15
+                                value = 15.0f
                             ),
                             FoodNutritionModel(
                                 name = "식이섬유",
                                 unit = "g",
-                                value = 2
+                                value = 2.0f
                             ),
                             FoodNutritionModel(
                                 name = "단백질",
                                 unit = "g",
-                                value = 20
+                                value = 20.0f
                             ),
                             FoodNutritionModel(
                                 name = "지방",
                                 unit = "g",
-                                value = 10
+                                value = 10.0f
                             ),
                             FoodNutritionModel(
                                 name = "칼로리",
                                 unit = "kcal",
-                                value = 250
+                                value = 250.0f
                             )
                         )
                     )
@@ -220,36 +260,37 @@ fun AIChatMenuPreview3(){
                 isInputComplete = false,
                 chatStageType = RecommendWalkDistanceStage,
                 analysisFoodInfo = AnalysisFoodModel(
-                    predictedGlucoseRise = 35,
-                    beginGlucose = 140,
+                    predictedGlucoseRise = 35.0f,
+                    beginGlucose = 140.0f,
                     foodInfo = FoodInfoModel(
+                        isMatched = true,
                         name = "비빔밥",
                         nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
                         nutritionList = listOf(
                             FoodNutritionModel(
                                 name = "탄수화물",
                                 unit = "g",
-                                value = 15
+                                value = 15.0f
                             ),
                             FoodNutritionModel(
                                 name = "식이섬유",
                                 unit = "g",
-                                value = 2
+                                value = 2.0f
                             ),
                             FoodNutritionModel(
                                 name = "단백질",
                                 unit = "g",
-                                value = 20
+                                value = 20.0f
                             ),
                             FoodNutritionModel(
                                 name = "지방",
                                 unit = "g",
-                                value = 10
+                                value = 10.0f
                             ),
                             FoodNutritionModel(
                                 name = "칼로리",
                                 unit = "kcal",
-                                value = 250
+                                value = 250.0f
                             )
                         )
                     )
@@ -323,12 +364,19 @@ fun AIChatMenuPreview4(){
 
 @Composable
 fun AIChatMenu(
+    isChatLoading: Boolean = false,
     chatModel: ChatModel,
     glucoseValue: String = "",
     onGlucoseValueChange: (String) -> Unit = {},
+    ateFoodImageUri: Uri? = null,
     ateFoodValue: String = "",
     onAteFoodValueChange: (String) -> Unit = {},
     onAteFoodSendClick: () -> Unit = {},
+    onAteFoodImageSelectClick: () -> Unit = {},
+    onAteFoodImageCancelClick: () -> Unit = {},
+    ateWeightValue: String = "",
+    onAteWeightValueChange: (String) -> Unit = {},
+    onAteWeightSendClick: () -> Unit = {},
     afterWalkGlucoseValue: String = "",
     onAfterWalkGlucoseValueChange: (String) -> Unit = {},
     onAfterWalkGlucoseInputCompleteClick: () -> Unit = {},
@@ -345,12 +393,26 @@ fun AIChatMenu(
             .fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(15.dp)
     ) {
-        if(chatModel.chatUserType == ChatUserType.User)
-            UserChatView(
-                message = chatModel.message,
-                sendTime = chatModel.date
-            )
-        else{
+        if(chatModel.chatUserType == ChatUserType.User) {
+            if (chatModel.message.isNotEmpty()) {
+                UserChatView(
+                    message = chatModel.message,
+                    sendTime = chatModel.date
+                )
+            }
+
+            if (chatModel.messageImageUri != null) {
+                AsyncImage(
+                    model = chatModel.messageImageUri,
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(1f)
+                        .clip(MediumRoundShape),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }else{
             AIChatView(
                 message = chatModel.message,
                 sendTime = chatModel.date
@@ -359,18 +421,21 @@ fun AIChatMenu(
             if(chatModel.chatType.isNotEmpty()){
                 //오늘 걷기 목표 타입일 경우
                 if(chatModel.chatType == TodayWalkTargetType){
-                    AIRecommendWalkChallengeBox(
-                        targetDistance =
-                            chatModel.recommendWalkInfo?.targetDistance?:0f,
-                        minute = chatModel.recommendWalkInfo?.minute?:0,
-                        onChallengeClick = onChallengeClick
-                    )
+                    if(chatModel.recommendWalkInfo != null){
+                        AIRecommendWalkChallengeBox(
+                            targetDistance =
+                                chatModel.recommendWalkInfo.targetDistance,
+                            minute = chatModel.recommendWalkInfo.minute,
+                            onChallengeClick = onChallengeClick
+                        )
+                    }
                 }else if(chatModel.chatType == AnalysisFoodType){
                     //음식 분석 타입인 경우
                     when(chatModel.chatStageType){
                         BeforeMealGlucoseInputStage -> {
                             if(!chatModel.isInputComplete){
                                 BeginGlucoseInputMenuBox(
+                                    isChatLoading = isChatLoading,
                                     glucoseValue = glucoseValue,
                                     onGlucoseValueChange = onGlucoseValueChange,
                                     onGlucoseInputCompleteClick = onGlucoseInputCompleteClick,
@@ -380,19 +445,91 @@ fun AIChatMenu(
                         }
                         InputAteFoodStage -> {
                             if(!chatModel.isInputComplete){
+                                if(ateFoodImageUri != null){
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .aspectRatio(1f)
+                                    ){
+                                        AsyncImage(
+                                            model = ateFoodImageUri,
+                                            contentDescription = null,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .aspectRatio(1f)
+                                                .clip(MediumRoundShape),
+                                            contentScale = ContentScale.Crop
+                                        )
+                                        if(!isChatLoading){
+                                            Image(
+                                                painter = painterResource(R.drawable.wrong_round_red),
+                                                contentDescription = null,
+                                                modifier = Modifier
+                                                    .size(20.dp)
+                                                    .align(Alignment.TopEnd)
+                                                    .clickable(
+                                                        onClick = onAteFoodImageCancelClick
+                                                    )
+                                            )
+                                        }
+                                    }
+                                }
                                 TextField(
+                                    isEnabled = !isChatLoading &&
+                                            ateFoodImageUri == null,
                                     isMaxLengthView = false,
                                     value = ateFoodValue,
                                     onValueChange = onAteFoodValueChange,
                                     placeholderText = "예) 김치찌개, 닭가슴살 샐러드",
                                     maxLength = 100,
-                                    sizeType = LayoutSize.FillMaxSize
+                                    sizeType = LayoutSize.FillMaxSize,
+                                    rightIcon = {
+                                        Icon(
+                                            painter = painterResource(id = R.drawable.image_send),
+                                            contentDescription = "카메라",
+                                            modifier = Modifier
+                                                .size(24.dp)
+                                                .clickable(
+                                                    onClick = onAteFoodImageSelectClick
+                                                )
+                                        )
+                                    }
                                 )
                                 PrimaryButton(
                                     text = "확인",
-                                    enabled = ateFoodValue.isNotEmpty(),
+                                    enabled = (ateFoodValue.isNotEmpty() ||
+                                        ateFoodImageUri != null) &&
+                                        !isChatLoading,
                                     sizeType = LayoutSize.FillMaxSize,
                                     onClick = onAteFoodSendClick
+                                )
+                            }
+                        }
+                        InputAteWeightStage ->{
+                            if(!chatModel.isInputComplete){
+                                TextField(
+                                    isEnabled = !isChatLoading,
+                                    isMaxLengthView = false,
+                                    value = ateWeightValue,
+                                    onValueChange = onAteWeightValueChange,
+                                    placeholderText = "예)0.7",
+                                    maxLength = 20,
+                                    sizeType = LayoutSize.FillMaxSize,
+                                    keyboardType = KeyboardType.Number,
+                                    rightIcon = {
+                                        Text(
+                                            text = "인분",
+                                            style = AppTypography.labelLarge.regular,
+                                            color = Gray,
+                                        )
+                                    }
+                                )
+                                PrimaryButton(
+                                    text = "입력 완료",
+                                    enabled = ateWeightValue.isNotEmpty() &&
+                                        !isChatLoading,
+                                    sizeType = LayoutSize.FillMaxSize,
+                                    onClick = onAteWeightSendClick
                                 )
                             }
                         }
@@ -401,17 +538,19 @@ fun AIChatMenu(
                                 predictedGlucoseRise =
                                     chatModel
                                         .analysisFoodInfo
-                                        ?.predictedGlucoseRise?:0,
+                                        ?.predictedGlucoseRise?:0f,
                                 beginGlucose = chatModel
                                     .analysisFoodInfo
-                                    ?.beginGlucose?:0,
+                                    ?.beginGlucose?:0f,
                                 foodInfo = chatModel.analysisFoodInfo?.foodInfo
                                     ?: FoodInfoModel(
+                                        isMatched = false,
                                         name = "",
                                         nutritionInfo = "",
                                         nutritionList = emptyList()
                                     ),
-                                isMenuShow = !chatModel.isInputComplete,
+                                isMenuShow = !chatModel.isInputComplete &&
+                                    !isChatLoading,
                                 onCheckClick = onFoodCheckClick,
                                 onAIAnalysisClick = onFoodAIAnalysisClick,
                                 onKeywordInputClick = onFoodKeywordInputClick,
@@ -419,37 +558,38 @@ fun AIChatMenu(
                             )
                         }
                         RecommendWalkDistanceStage -> {
-                            FoodDetailBox(
-                                predictedGlucoseRise =
-                                    chatModel
+                            if(chatModel.analysisFoodInfo != null){
+                                FoodDetailBox(
+                                    predictedGlucoseRise =
+                                        chatModel
+                                            .analysisFoodInfo
+                                            .predictedGlucoseRise,
+                                    beginGlucose = chatModel
                                         .analysisFoodInfo
-                                        ?.predictedGlucoseRise?:0,
-                                beginGlucose = chatModel
-                                    .analysisFoodInfo
-                                    ?.beginGlucose?:0,
-                                foodInfo = chatModel.analysisFoodInfo?.foodInfo
-                                    ?: FoodInfoModel(
-                                        name = "",
-                                        nutritionInfo = "",
-                                        nutritionList = emptyList()
-                                    ),
-                                isMenuShow = false,
-                            )
-                            AIWalkTip()
-                            AIWarning()
-                            AIRecommendWalkChallengeBox(
-                                targetDistance =
-                                    chatModel.recommendWalkInfo?.targetDistance?:0f,
-                                minute = chatModel.recommendWalkInfo?.minute?:0,
-                                onChallengeClick = onChallengeClick
-                            )
+                                        .beginGlucose,
+                                    foodInfo = chatModel.analysisFoodInfo.foodInfo,
+                                    isMenuShow = false,
+                                )
+                            }
+                            if(chatModel.recommendWalkInfo != null){
+                                AIWalkTip()
+                                AIWarning()
+                                AIRecommendWalkChallengeBox(
+                                    targetDistance =
+                                        chatModel.recommendWalkInfo.targetDistance,
+                                    minute = chatModel.recommendWalkInfo.minute,
+                                    onChallengeClick = onChallengeClick
+                                )
+                            }
                         }
                         AfterWalkGlucoseInputStage -> {
-                            AfterWalkGlucoseInputMenuBox(
-                                afterWalkGlucoseValue = afterWalkGlucoseValue,
-                                onAfterWalkGlucoseValueChange = onAfterWalkGlucoseValueChange,
-                                onGlucoseInputCompleteClick = onAfterWalkGlucoseInputCompleteClick
-                            )
+                            if(!chatModel.isInputComplete){
+                                AfterWalkGlucoseInputMenuBox(
+                                    afterWalkGlucoseValue = afterWalkGlucoseValue,
+                                    onAfterWalkGlucoseValueChange = onAfterWalkGlucoseValueChange,
+                                    onGlucoseInputCompleteClick = onAfterWalkGlucoseInputCompleteClick
+                                )
+                            }
                         }
                         AIFeedbackStage -> {
                             chatModel.glucoseFeedbackInfo?.let {

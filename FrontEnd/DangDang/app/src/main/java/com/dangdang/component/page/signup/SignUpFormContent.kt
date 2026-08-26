@@ -4,13 +4,18 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.HeightMaxValue
+import com.dangdang.common.utils.HeightMinValue
+import com.dangdang.common.utils.PasswordMinLength
+import com.dangdang.common.utils.WeightMaxValue
+import com.dangdang.common.utils.WeightMinValue
 import com.dangdang.common.utils.activityLevelList
+import com.dangdang.common.utils.diagnosisGroupList
 import com.dangdang.common.utils.isValidBirthDate
 import com.dangdang.common.utils.isValidEmail
 import com.dangdang.common.utils.isValidHeight
@@ -18,6 +23,7 @@ import com.dangdang.common.utils.isValidPassword
 import com.dangdang.common.utils.isValidWeight
 import com.dangdang.component.text.selector.Selector
 import com.dangdang.component.text.textfield.TextField
+import com.dangdang.data.enums.DiagnosisGroup
 import com.dangdang.data.enums.Gender
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.data.model.user.SignUpForm
@@ -36,14 +42,18 @@ fun SignUpFormContentPreview(
             email = "",
             password = "",
             passwordCheck = "",
-            gender = Gender.Male,
-            birthday = "",
+            gender = Gender.male.name,
+            birthDate = "",
             height = "",
             weight = "",
-            hemoglobin = "",
+            hba1c = "",
             isHemoglobinRecentResultUnknown = false,
-            goalGlucose = "",
-            activityLevel = "거의 안함"
+            targetGlucose = "",
+            activityLevel = "거의 안함",
+            joinedAt = "",
+            profileImageUrl = "",
+            notificationEnabled = false,
+            diagnosisGroup = diagnosisGroupList[0]
         ),
         onFormChange = {}
     )
@@ -105,9 +115,9 @@ fun SignUpFormContent(
             isMaxLengthView = false,
             isRequired = false,
             isBorder = true,
-            value = signUpForm.password,
-            isError = !isValidPassword(signUpForm.password),
-            errorText = "비밀번호는 8자 이상이어야 합니다.",
+            value = signUpForm.password?:"",
+            isError = !isValidPassword(signUpForm.password?:""),
+            errorText = "비밀번호는 ${PasswordMinLength}자 이상이어야 합니다.",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(password = it)
@@ -125,7 +135,7 @@ fun SignUpFormContent(
             isMaxLengthView = false,
             isRequired = false,
             isBorder = true,
-            value = signUpForm.passwordCheck,
+            value = signUpForm.passwordCheck?:"",
             isError = signUpForm.password != signUpForm.passwordCheck,
             errorText = "비밀번호가 일치하지 않습니다.",
             onValueChange = {
@@ -140,10 +150,10 @@ fun SignUpFormContent(
         )
         //성별
         GenderCheckView(
-            gender = signUpForm.gender,
+            gender = Gender.valueOf(signUpForm.gender),
             onGenderChange = {
                 onFormChange(
-                    signUpForm.copy(gender = it)
+                    signUpForm.copy(gender = it.name)
                 )
             }
         )
@@ -153,12 +163,12 @@ fun SignUpFormContent(
             isMaxLengthView = false,
             isRequired = false,
             isBorder = true,
-            value = signUpForm.birthday,
-            isError = !isValidBirthDate(signUpForm.birthday),
+            value = signUpForm.birthDate,
+            isError = !isValidBirthDate(signUpForm.birthDate),
             errorText = "만 14세 이상이어야 하며, 유효한 날짜여야 합니다.",
             onValueChange = {
                 onFormChange(
-                    signUpForm.copy(birthday = it)
+                    signUpForm.copy(birthDate = it)
                 )
             },
             placeholderText = "YYYY.MM.DD",
@@ -173,13 +183,15 @@ fun SignUpFormContent(
             isBorder = true,
             value = signUpForm.height,
             isError = !isValidHeight(signUpForm.height),
-            errorText = "키를 숫자로 입력해주세요(50~500)",
+            errorText = "키를 숫자로 입력해주세요(" +
+                    "${HeightMinValue}~${HeightMaxValue})",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(height = it)
                 )
             },
-            placeholderText = "키를 숫자로 입력해주세요(50~500)",
+            placeholderText = "키를 숫자로 입력해주세요(" +
+                    "${HeightMinValue}~${HeightMaxValue})",
             maxLength = 3,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
@@ -192,38 +204,67 @@ fun SignUpFormContent(
             isBorder = true,
             value = signUpForm.weight,
             isError = !isValidWeight(signUpForm.weight),
-            errorText = "몸무게를 숫자로 입력해주세요(20~300)",
+            errorText = "몸무게를 숫자로 입력해주세요(" +
+                    "${WeightMinValue.toInt()}~${WeightMaxValue.toInt()})",
             onValueChange = {
                 onFormChange(
                     signUpForm.copy(weight = it)
                 )
             },
-            placeholderText = "몸무게를 숫자로 입력해주세요(20~300)",
+            placeholderText = "몸무게를 숫자로 입력해주세요(" +
+                    "${WeightMinValue.toInt()}~${WeightMaxValue.toInt()})",
             maxLength = 5,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number
         )
 
+        Selector(
+            title = "당뇨 유형",
+            items = diagnosisGroupList,
+            selectedItem = signUpForm.diagnosisGroup,
+            itemText = { it?:"" },
+            onSelected = {
+                onFormChange(
+                    signUpForm.copy(diagnosisGroup = it)
+                )
+            }
+        )
+
         HemoglobinTextField(
-            value = signUpForm.hemoglobin,
+            value = signUpForm.hba1c,
             onValueChange = {
                 onFormChange(
-                    signUpForm.copy(hemoglobin = it)
+                    signUpForm.copy(hba1c = it)
                 )
             },
             isUnknown = signUpForm.isHemoglobinRecentResultUnknown,
             onUnknownChange = {
                 onFormChange(
-                    signUpForm.copy(isHemoglobinRecentResultUnknown = !signUpForm.isHemoglobinRecentResultUnknown)
+                    signUpForm.copy(
+                        hba1c = when (signUpForm.diagnosisGroup) {
+                            DiagnosisGroup.Prediabetes.title -> {
+                                "6"
+                            }
+
+                            DiagnosisGroup.DiabetesType2.title -> {
+                                "7"
+                            }
+
+                            else -> {
+                                "5"
+                            }
+                        },
+                        isHemoglobinRecentResultUnknown = !signUpForm.isHemoglobinRecentResultUnknown
+                    )
                 )
             }
         )
 
         GoalGlucoseTextField(
-            value = signUpForm.goalGlucose,
+            value = signUpForm.targetGlucose,
             onValueChange = {
                 onFormChange(
-                    signUpForm.copy(goalGlucose = it)
+                    signUpForm.copy(targetGlucose = it)
                 )
             }
         )

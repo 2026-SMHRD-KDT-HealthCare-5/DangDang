@@ -21,6 +21,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -32,11 +33,13 @@ import com.dangdang.common.utils.SignUpDefault
 import com.dangdang.common.utils.regular
 import com.dangdang.common.utils.screen
 import com.dangdang.component.button.PrimaryButton
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.signup.SignUpFormContent
 import com.dangdang.component.text.heading.Heading
 import com.dangdang.data.enums.BackgroundType
 import com.dangdang.data.enums.LayoutSize
+import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.viewmodel.first.SignUpViewModel
@@ -64,6 +67,7 @@ fun SignUpScreen(
     isSocial: Boolean? = null,
     isEmailDisable: Boolean
 ){
+    val context = LocalContext.current
     val userInfoDetail by
         signUpViewModel.userInfoDetail.collectAsState()
 
@@ -74,35 +78,47 @@ fun SignUpScreen(
         signUpViewModel.getUserInfoDetail(isUpdate, isSocial)
     }
 
-    SignUpScreenContent(
-        signUpViewModel = signUpViewModel,
-        isUserInfoInputComplete = isUserInfoInputComplete,
-        onBackClick = {
-            navController.popBackStack()
-        },
-        onSignUpCompleteClick = {
-            signUpViewModel.userInfoUpdate(
-                //회원정보 수정 성공 시
-                onSuccess = {
-                    if(isUpdate){
-                        //마이페이지 화면으로 이동
-                        navController.popBackStack()
-                    }else{
-                        //회원가입 완료로 이동
-                        navController.navigate(AppRoute.SignUpComplete.route) {
-                            popUpTo(0) {
-                                inclusive = true
-                            }
-                            launchSingleTop = true
+    if(userInfoDetail.loadingState == LoadingState.Success){
+        SignUpScreenContent(
+            signUpViewModel = signUpViewModel,
+            isUserInfoInputComplete = isUserInfoInputComplete,
+            onBackClick = {
+                navController.popBackStack()
+            },
+            onSignUpCompleteClick = {
+                if(isUpdate){
+                    signUpViewModel.userInfoUpdate(
+                        context = context,
+                        //회원정보 수정 성공 시
+                        onSuccess = {
+                            navController.popBackStack()
                         }
-                    }
+                    )
+                }else{
+                    signUpViewModel.signUp(
+                        context = context,
+                        onSuccess = {
+                            //회원가입 완료로 이동
+                            navController.navigate(AppRoute.SignUpComplete.route) {
+                                popUpTo(0) {
+                                    inclusive = true
+                                }
+                                launchSingleTop = true
+                            }
+                        }
+                    )
                 }
-            )
-        },
-        isUpdate = isUpdate,
-        isEmailDisable = isEmailDisable,
-        signUpForm = userInfoDetail ?: SignUpDefault
-    )
+            },
+            isUpdate = isUpdate,
+            isEmailDisable = isEmailDisable,
+            signUpForm = userInfoDetail.data ?: SignUpDefault
+        )
+    }else{
+        ErrorView(
+            loadingState = userInfoDetail.loadingState,
+            message = "회원정보 불러오기를 실패했습니다."
+        )
+    }
 }
 
 @Composable

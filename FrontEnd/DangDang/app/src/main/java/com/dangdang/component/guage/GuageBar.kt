@@ -15,6 +15,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.data.enums.GuageBarSize
 import com.dangdang.ui.theme.BlackOpacity25
+import com.dangdang.ui.theme.CapsuleRoundShape
 import com.dangdang.ui.theme.PrimaryBlue
 
 @Preview
@@ -52,7 +53,7 @@ fun GuageBar(
             .height(size.height)
             .background(
                 color = BlackOpacity25,
-                shape = RoundedCornerShape(100.dp)
+                shape = CapsuleRoundShape
             )
     ) {
         Box(
@@ -61,7 +62,7 @@ fun GuageBar(
                 .height(size.height)
                 .background(
                     color = guageColor,
-                    shape = RoundedCornerShape(100.dp)
+                    shape = CapsuleRoundShape
                 )
         )
     }

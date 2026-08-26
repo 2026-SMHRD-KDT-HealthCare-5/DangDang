@@ -3,6 +3,7 @@ package com.dangdang.component.chart
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,11 +20,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
+import com.dangdang.data.model.home.GlucoseChartPointModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 import com.patrykandpatrick.vico.compose.cartesian.CartesianChartHost
 import com.patrykandpatrick.vico.compose.cartesian.axis.HorizontalAxis
@@ -38,35 +43,49 @@ import com.patrykandpatrick.vico.compose.cartesian.rememberCartesianChart
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoScrollState
 import com.patrykandpatrick.vico.compose.cartesian.rememberVicoZoomState
 import com.patrykandpatrick.vico.compose.cartesian.Zoom
+import com.patrykandpatrick.vico.compose.cartesian.data.CartesianLayerRangeProvider
 import com.patrykandpatrick.vico.compose.common.Fill
 import com.patrykandpatrick.vico.compose.common.component.LineComponent
 import com.patrykandpatrick.vico.compose.common.component.rememberTextComponent
+import kotlin.math.max
 
 @Preview
 @Composable
 fun GlucoseTrendChartPreview(){
     GlucoseTrendChart(
-        values = listOf(155f, 148f, 168f, 158f, 178f, 152f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f, 160f),
+        values = listOf(
+            GlucoseChartPointModel(
+                time = "12:00",
+                glucose = 180
+            ),
+            GlucoseChartPointModel(
+                time = "13:00",
+                glucose = 170
+            ),
+        ),
         goal = 180f
     )
 }
 
 @Composable
 fun GlucoseTrendChart(
-    values: List<Float>,
+    values: List<GlucoseChartPointModel>,
     goal: Float
 ) {
-    val times = ArrayList<String>()
-
-    for (i in 6..24){
-        times.add("${i}시")
-    }
-
     val modelProducer = remember { CartesianChartModelProducer() }
 
+    val maxGlucose = values.maxOfOrNull { it.glucose.toFloat() } ?: 0f
+    val chartMaxY = max(maxGlucose, goal)
+
     LaunchedEffect(values) {
-        modelProducer.runTransaction {
-            lineModel { series(values) }
+        if (values.isNotEmpty()) {
+            modelProducer.runTransaction {
+                lineModel {
+                    series(values.map {
+                        it.glucose.toFloat()
+                    })
+                }
+            }
         }
     }
 
@@ -75,12 +94,12 @@ fun GlucoseTrendChart(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
@@ -102,36 +121,60 @@ fun GlucoseTrendChart(
             )
         }
 
-        CartesianChartHost(
-            chart = rememberCartesianChart(
-                rememberLineCartesianLayer(
-                    lineProvider = LineCartesianLayer.LineProvider.series(
-                        LineCartesianLayer.rememberLine(
-                            fill = LineCartesianLayer.LineFill.single(Fill(Color(0xFF4C6EF5)))
+        if (values.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(150.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = "혈당 데이터가 없습니다.",
+                    style = AppTypography.bodyLarge.regular,
+                    color = Black,
+                )
+            }
+        } else {
+            CartesianChartHost(
+                chart = rememberCartesianChart(
+                    rememberLineCartesianLayer(
+                        lineProvider = LineCartesianLayer.LineProvider.series(
+                            LineCartesianLayer.rememberLine(
+                                fill = LineCartesianLayer.LineFill.single(Fill(Color(0xFF4C6EF5)))
+                            )
+                        ),
+                        // rangeProvider를 설정하여 Y축의 최대값을 조절합니다.
+                        rangeProvider = CartesianLayerRangeProvider.fixed(
+                            minY = 0.0, // Y축 시작점을 0으로 고정하고 싶을 경우
+                            maxY = chartMaxY + 20.0 // 목표값보다 조금 더 여유 있게 표시
                         )
                     ),
-                ),
-                startAxis = VerticalAxis.rememberStart(
-                    itemPlacer = VerticalAxis.ItemPlacer.step({ 20.0 })
-                ),
-                bottomAxis = HorizontalAxis.rememberBottom(
-                    valueFormatter = { _, x, _ -> times.getOrElse(x.toInt()) { "" } },
-                ),
-                decorations = listOf(
-                    HorizontalLine(
-                        y = { goal.toDouble() },
-                        line = LineComponent(fill = Fill(Color.Red), thickness = 1.dp),
-                        labelComponent = rememberTextComponent(style = TextStyle(color = Color.Red)),
-                        label = { "$goal (목표)" }
+                    startAxis = VerticalAxis.rememberStart(
+                        itemPlacer = VerticalAxis.ItemPlacer.step({ 20.0 })
+                    ),
+                    bottomAxis = HorizontalAxis.rememberBottom(
+                        valueFormatter = { _, x, _ ->
+                            values.map{
+                                it.time
+                            }.getOrElse(x.toInt()) { "" }
+                        },
+                    ),
+                    decorations = listOf(
+                        HorizontalLine(
+                            y = { goal.toDouble() },
+                            line = LineComponent(fill = Fill(Color.Red), thickness = 1.dp),
+                            labelComponent = rememberTextComponent(style = TextStyle(color = Color.Red)),
+                            label = { "$goal (목표)" }
+                        )
                     )
-                )
-            ),
-            modelProducer = modelProducer,
-            scrollState = rememberVicoScrollState(scrollEnabled = false),
-            zoomState = rememberVicoZoomState(initialZoom = Zoom.Content, zoomEnabled = false),
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
-        )
+                ),
+                modelProducer = modelProducer,
+                scrollState = rememberVicoScrollState(scrollEnabled = false),
+                zoomState = rememberVicoZoomState(initialZoom = Zoom.Content, zoomEnabled = false),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(200.dp)
+            )
+        }
     }
 }

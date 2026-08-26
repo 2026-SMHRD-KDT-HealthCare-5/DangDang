@@ -12,6 +12,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.Hba1cMaxValue
+import com.dangdang.common.utils.Hba1cMinValue
 import com.dangdang.common.utils.isValidHbA1c
 import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
@@ -52,6 +54,7 @@ fun HemoglobinTextField(
     ) {
         //당화혈색소 텍스트필드
         TextField(
+            isEnabled = !isUnknown,
             title = "당화혈색소 (HbA1c)",
             isMaxLengthView = false,
             isRequired = false,
@@ -59,8 +62,10 @@ fun HemoglobinTextField(
             value = value,
             onValueChange = onValueChange,
             isError = !isValidHbA1c(value),
-            errorText = "4~15% 범위여야 합니다.",
-            placeholderText = "% 단위로 숫자만 입력해주세요(4~15)",
+            errorText = "${Hba1cMinValue.toInt()}~${Hba1cMaxValue.toInt()}% " +
+                    "범위여야 합니다.",
+            placeholderText = "% 단위로 숫자만 입력해주세요(" +
+                    "${Hba1cMinValue.toInt()}~${Hba1cMaxValue.toInt()})",
             maxLength = 4,
             sizeType = LayoutSize.FillMaxSize,
             keyboardType = KeyboardType.Number

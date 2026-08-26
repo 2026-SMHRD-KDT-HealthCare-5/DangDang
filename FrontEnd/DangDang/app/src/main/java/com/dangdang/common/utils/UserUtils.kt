@@ -1,6 +1,7 @@
 package com.dangdang.common.utils
 
 import com.dangdang.R
+import com.dangdang.data.enums.DiagnosisGroup
 import com.dangdang.data.enums.Gender
 import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.data.model.user.UserActivityLevelModel
@@ -14,19 +15,25 @@ val activityLevelList = listOf(
     ),
     UserActivityLevelModel(
         titleIconResourceId = R.drawable.exercise_low,
-        title = "주 1 ~2회",
+        title = "주 1~2회",
         description = "가벼운 운동을 일주일에 1~2회 해요"
     ),
     UserActivityLevelModel(
         titleIconResourceId = R.drawable.exercise_medium,
-        title = "주 3 ~5회",
+        title = "주 3~5회",
         description = "보통 강도의 운동을 일주일에 3~5회 해요"
     ),
     UserActivityLevelModel(
         titleIconResourceId = R.drawable.exercise_high,
-        title = "거의 매일",
+        title = "매일",
         description = "거의 매일 꾸준히 운동해요"
     )
+)
+
+val diagnosisGroupList = listOf(
+    DiagnosisGroup.Normal.title,
+    DiagnosisGroup.Prediabetes.title,
+    DiagnosisGroup.DiabetesType2.title
 )
 
 val SignUpDefault = SignUpForm(
@@ -35,12 +42,16 @@ val SignUpDefault = SignUpForm(
     email = "",
     password = "",
     passwordCheck = "",
-    gender = Gender.Male,
-    birthday = "",
+    gender = Gender.male.name,
+    birthDate = "",
     height = "",
     weight = "",
-    hemoglobin = "",
+    diagnosisGroup = diagnosisGroupList[0],
+    hba1c = "",
     isHemoglobinRecentResultUnknown = false,
-    goalGlucose = "",
-    activityLevel = activityLevelList[0].title
+    targetGlucose = "",
+    activityLevel = activityLevelList[0].title,
+    profileImageUrl = "",
+    joinedAt = "",
+    notificationEnabled = false
 )

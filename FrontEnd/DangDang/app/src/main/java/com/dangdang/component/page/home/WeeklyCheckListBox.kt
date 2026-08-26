@@ -14,11 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.common.utils.medium
-import com.dangdang.common.utils.regular
+import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 import java.time.LocalDate
 
@@ -28,32 +30,32 @@ fun WeeklyCheckListBoxPreview() {
     WeeklyCheckListBox(
         weeklyGlucoseCheckList = listOf(
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "월",
-                isGlucoseManagement = false
+                day = "월",
+                status = WeeklyAttendanceStatus.MISSED.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "화",
-                isGlucoseManagement = true
+                day = "화",
+                status = WeeklyAttendanceStatus.DONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "수",
-                isGlucoseManagement = false
+                day = "수",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "목",
-                isGlucoseManagement = false
+                day = "목",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "금",
-                isGlucoseManagement = false
+                day = "금",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "토",
-                isGlucoseManagement = false
+                day = "토",
+                status = WeeklyAttendanceStatus.NONE.name
             ),
             WeeklyGlucoseCheckModel(
-                dayOfWeek = "일",
-                isGlucoseManagement = false
+                day = "일",
+                status = WeeklyAttendanceStatus.NONE.name
             )
         )
     )
@@ -68,12 +70,12 @@ fun WeeklyCheckListBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -89,10 +91,8 @@ fun WeeklyCheckListBox(
                 .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            val todayIndex = LocalDate.now().dayOfWeek.value - 1
-            weeklyGlucoseCheckList.forEachIndexed { index, it ->
+            weeklyGlucoseCheckList.forEach {
                 WeeklyCheck(
-                    isPast = index < todayIndex,
                     weeklyGlucoseCheck = it
                 )
             }

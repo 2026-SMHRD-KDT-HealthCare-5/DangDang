@@ -10,7 +10,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.Application.Companion.ExamplePictureUrl
-import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.data.model.community.TeamRankingStatusModel
 import com.dangdang.ui.theme.White
 
@@ -22,32 +21,32 @@ fun RankingIn3BoxPreview(){
             TeamRankingStatusModel(
                 rank = 1,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임",
-                currentDistance = 32.56f,
+                teamName = "닉네임",
+                monthlyDistance = 32.56f,
             ),
             TeamRankingStatusModel(
                 rank = 2,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임2",
-                currentDistance = 20.56f,
+                teamName = "닉네임2",
+                monthlyDistance = 20.56f,
             ),
             TeamRankingStatusModel(
                 rank = 3,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임3",
-                currentDistance = 10.56f,
+                teamName = "닉네임3",
+                monthlyDistance = 10.56f,
             ),
             TeamRankingStatusModel(
                 rank = 4,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임4",
-                currentDistance = 5.56f,
+                teamName = "닉네임4",
+                monthlyDistance = 5.56f,
             ),
             TeamRankingStatusModel(
                 rank = 5,
                 profileImageUrl = ExamplePictureUrl,
-                name = "닉네임5",
-                currentDistance = 3.56f,
+                teamName = "닉네임5",
+                monthlyDistance = 3.56f,
             )
         )
     )
@@ -60,17 +59,9 @@ fun RankingIn3Box(
     //2위, 1위, 3위 순서대로 나오게 섞는다.
     val mixedTeamMemberChallengeStatusList =
         listOf(
-            if(teamRankingStatusList.size >= 2){
-                teamRankingStatusList[1]
-            }else{
-                null
-            },
-            teamRankingStatusList[0],
-            if(teamRankingStatusList.size >= 3){
-                teamRankingStatusList[2]
-            }else{
-                null
-            }
+            teamRankingStatusList.getOrNull(1),
+            teamRankingStatusList.getOrNull(0),
+            teamRankingStatusList.getOrNull(2)
         )
 
     Row(

@@ -30,7 +30,6 @@ import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.data.enums.LayoutSize
 import com.dangdang.data.model.chat.FoodInputDirectlyForm
 import com.dangdang.ui.theme.AppTypography
-import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.GrayOpacity30
 import java.time.LocalDateTime
@@ -40,12 +39,12 @@ import java.time.LocalDateTime
 fun FoodInputDirectlyScreenPreview(){
     FoodInputDirectlyScreenContent(
         foodInputDirectlyForm = FoodInputDirectlyForm(
-            name = "",
-            intake = "",
-            kcal = "",
-            carbohydrate = "",
+            foodName = "",
+            servingSize = "",
+            calorie = "",
+            carb = "",
             sugar = "",
-            dietaryFiber = "",
+            fiber = "",
             protein = "",
             fat = ""
         ),
@@ -60,12 +59,12 @@ fun FoodInputDirectlyScreen(
 ) {
     var foodInputDirectlyForm by remember {
         mutableStateOf(FoodInputDirectlyForm(
-            name = "",
-            intake = "",
-            kcal = "",
-            carbohydrate = "",
+            foodName = "",
+            servingSize = "",
+            calorie = "",
+            carb = "",
             sugar = "",
-            dietaryFiber = "",
+            fiber = "",
             protein = "",
             fat = ""
         ))
@@ -144,6 +143,7 @@ fun FoodInputDirectlyScreenContent(
             }
 
             PrimaryButton(
+                enabled = foodInputDirectlyForm.foodName.isNotEmpty(),
                 text = "저장하고 확인하기",
                 sizeType = LayoutSize.FillMaxSize,
                 onClick = onSendClick

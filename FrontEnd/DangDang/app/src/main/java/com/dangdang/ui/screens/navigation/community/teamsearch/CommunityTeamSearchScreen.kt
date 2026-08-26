@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,13 +15,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -31,12 +30,13 @@ import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.R
 import com.dangdang.common.utils.mainScreen
 import com.dangdang.common.utils.medium
-import com.dangdang.common.utils.regular
 import com.dangdang.component.button.PrimaryButton
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.community.teamsearch.TeamSearchInfoBox
 import com.dangdang.component.text.textfield.TextField
 import com.dangdang.data.enums.LayoutSize
+import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.model.PendingModel
 import com.dangdang.data.model.community.TeamSearchInfoModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
@@ -49,58 +49,58 @@ fun CommunityTeamSearchScreenPreview(){
     CommunityTeamSearchScreenContent(
         searchValue = "",
         onSearchValueChange = {},
-        teamList = listOf(
+        teamList = PendingModel(listOf(
             TeamSearchInfoModel(
-                id = 1,
+                teamNo = 1,
                 profileImageUrl = ExamplePictureUrl,
-                name = "건강한 습관 만들기",
-                currentMemberCount = 4,
-                maxMemberCount = 5,
+                teamName = "건강한 습관 만들기",
+                memberCount = 4,
+                capacity = 5,
                 currentDistance = 30.2f,
                 targetDistance = 150f,
-                introduction = "하루 7천보 이상 함께 걸어요!"
+                teamIntro = "하루 7천보 이상 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 2,
+                teamNo = 2,
                 profileImageUrl = ExamplePictureUrl,
-                name = "매일 만보 걷기",
-                currentMemberCount = 3,
-                maxMemberCount = 5,
+                teamName = "매일 만보 걷기",
+                memberCount = 3,
+                capacity = 5,
                 currentDistance = 60.2f,
                 targetDistance = 150f,
-                introduction = "만보 걷기 습관을 만들어요!"
+                teamIntro = "만보 걷기 습관을 만들어요!"
             ),
             TeamSearchInfoModel(
-                id = 3,
+                teamNo = 3,
                 profileImageUrl = ExamplePictureUrl,
-                name = "아침 걷기 챌린지",
-                currentMemberCount = 2,
-                maxMemberCount = 5,
+                teamName = "아침 걷기 챌린지",
+                memberCount = 2,
+                capacity = 5,
                 currentDistance = 40.2f,
                 targetDistance = 150f,
-                introduction = "아침에 함께 걸어요!"
+                teamIntro = "아침에 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 4,
+                teamNo = 4,
                 profileImageUrl = ExamplePictureUrl,
-                name = "건강한 습관 만들기",
-                currentMemberCount = 1,
-                maxMemberCount = 5,
+                teamName = "건강한 습관 만들기",
+                memberCount = 1,
+                capacity = 5,
                 currentDistance = 10.2f,
                 targetDistance = 150f,
-                introduction = "하루 7천보 이상 함께 걸어요!"
+                teamIntro = "하루 7천보 이상 함께 걸어요!"
             ),
             TeamSearchInfoModel(
-                id = 5,
+                teamNo = 5,
                 profileImageUrl = ExamplePictureUrl,
-                name = "주말 러닝 & 걷기",
-                currentMemberCount = 1,
-                maxMemberCount = 5,
+                teamName = "주말 러닝 & 걷기",
+                memberCount = 1,
+                capacity = 5,
                 currentDistance = 50.2f,
                 targetDistance = 150f,
-                introduction = "주말에 함께 러닝과 걷기!"
+                teamIntro = "주말에 함께 러닝과 걷기!"
             )
-        ),
+        ), LoadingState.Success),
         onSearchClick = {},
         onTeamMakeMove = {},
         onJoinClick = {}
@@ -113,6 +113,7 @@ fun CommunityTeamSearchScreen(
     communityTeamSearchViewModel: CommunityTeamSearchViewModel = hiltViewModel(),
     onTeamMakeMove: () -> Unit
 ) {
+    val context = LocalContext.current
     var searchValue by remember { mutableStateOf("") }
     val teamList by
         communityTeamSearchViewModel.teamList.collectAsState()
@@ -128,7 +129,8 @@ fun CommunityTeamSearchScreen(
         onTeamMakeMove = onTeamMakeMove,
         onJoinClick = {
             communityTeamSearchViewModel.joinTeam(
-                teamId = it.id,
+                context = context,
+                teamId = it.teamNo,
                 onJoinSuccess = {
                     communityViewModel?.getUserTeamInfo()
                 }
@@ -145,7 +147,7 @@ fun CommunityTeamSearchScreenContent(
     onSearchClick: () -> Unit,
     onTeamMakeMove: () -> Unit,
     onJoinClick: (TeamSearchInfoModel) -> Unit,
-    teamList: List<TeamSearchInfoModel>,
+    teamList: PendingModel<List<TeamSearchInfoModel>>,
 ){
     val scrollState = rememberScrollState()
     
@@ -202,27 +204,37 @@ fun CommunityTeamSearchScreenContent(
 
             Spacer(Modifier.height(20.dp))
 
-            Text(
-                text = "검색 결과(${teamList.size})",
-                style = AppTypography.labelLarge.medium,
-                color = Black,
-            )
-
-            Spacer(Modifier.height(8.dp))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
-                    .verticalScroll(scrollState),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                teamList.forEach { team ->
-                    TeamSearchInfoBox(
-                        teamSearchInfoModel = team,
-                        onJoinClick = onJoinClick
+            if(teamList.loadingState == LoadingState.Success){
+                teamList.data?.let{
+                    Text(
+                        text = "검색 결과(${it.size})",
+                        style = AppTypography.labelLarge.medium,
+                        color = Black,
                     )
+
+                    Spacer(Modifier.height(8.dp))
+
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f)
+                            .verticalScroll(scrollState),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        it.forEach { team ->
+                            TeamSearchInfoBox(
+                                teamSearchInfoModel = team,
+                                onJoinClick = onJoinClick
+                            )
+                        }
+                    }
                 }
+            }else if(teamList.loadingState == LoadingState.Error){
+                Text(
+                    text = "팀 검색 결과를 불러오는데 실패했습니다.",
+                    style = AppTypography.labelLarge.medium,
+                    color = Black,
+                )
             }
         }
     }

@@ -17,12 +17,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.R
-import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
+import com.dangdang.data.enums.WeeklyAttendanceStatus
 import com.dangdang.data.model.home.WeeklyGlucoseCheckModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -34,26 +35,23 @@ fun WeeklyCheckPreview(
         horizontalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         WeeklyCheck(
-            isPast = true,
             weeklyGlucoseCheck = WeeklyGlucoseCheckModel(
-                dayOfWeek = "월",
-                isGlucoseManagement = false
+                day = "월",
+                status = WeeklyAttendanceStatus.MISSED.name
             )
         )
 
         WeeklyCheck(
-            isPast = false,
             weeklyGlucoseCheck = WeeklyGlucoseCheckModel(
-                dayOfWeek = "화",
-                isGlucoseManagement = true
+                day = "화",
+                status = WeeklyAttendanceStatus.DONE.name
             )
         )
 
         WeeklyCheck(
-            isPast = false,
             weeklyGlucoseCheck = WeeklyGlucoseCheckModel(
-                dayOfWeek = "수",
-                isGlucoseManagement = false
+                day = "수",
+                status = WeeklyAttendanceStatus.NONE.name
             )
         )
     }
@@ -61,9 +59,11 @@ fun WeeklyCheckPreview(
 
 @Composable
 fun WeeklyCheck(
-    isPast: Boolean,
     weeklyGlucoseCheck: WeeklyGlucoseCheckModel
 ){
+    val status = WeeklyAttendanceStatus.valueOf(
+        weeklyGlucoseCheck.status ?: WeeklyAttendanceStatus.NONE.name
+    )
     Column(
         modifier = Modifier
             .background(
@@ -73,12 +73,12 @@ fun WeeklyCheck(
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Text(
-            text = weeklyGlucoseCheck.dayOfWeek,
+            text = weeklyGlucoseCheck.day,
             style = AppTypography.labelMedium.regular,
             color = Black,
         )
 
-        if(!isPast && !weeklyGlucoseCheck.isGlucoseManagement){
+        if(status == WeeklyAttendanceStatus.NONE){
             Box(
                 modifier = Modifier
                     .size(24.dp)
@@ -87,7 +87,7 @@ fun WeeklyCheck(
                         shape = CircleShape
                     )
                     .border(
-                        width = 2.dp,
+                        width = MediumLineDp,
                         color = Gray,
                         shape = CircleShape
                     )
@@ -95,7 +95,7 @@ fun WeeklyCheck(
         }else{
             Image(
                 painter = painterResource(
-                    if(weeklyGlucoseCheck.isGlucoseManagement){
+                    if(status == WeeklyAttendanceStatus.DONE){
                         R.drawable.check_round_green
                     }else{
                         R.drawable.wrong_round_red

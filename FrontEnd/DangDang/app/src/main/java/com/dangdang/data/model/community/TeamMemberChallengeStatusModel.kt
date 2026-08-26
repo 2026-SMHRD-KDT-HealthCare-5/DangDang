@@ -4,9 +4,6 @@ import androidx.annotation.Keep
 
 @Keep
 data class TeamMemberChallengeStatusModel(
-    var rank: Int,
-    var profileImageUrl: String,
     var nickname: String,
-    var currentDistance: Float,
-    var targetDistance: Float
+    var totalDistance: Float,
 )

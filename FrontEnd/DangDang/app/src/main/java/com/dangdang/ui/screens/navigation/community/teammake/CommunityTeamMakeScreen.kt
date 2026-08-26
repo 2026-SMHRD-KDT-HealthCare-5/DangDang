@@ -35,9 +35,9 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.navigation.NavController
-import com.dangdang.common.utils.createImageUri
+import com.dangdang.common.utils.createImage
+import com.dangdang.common.utils.deleteSafely
 import com.dangdang.common.utils.mainScreen
-import com.dangdang.common.utils.medium
 import com.dangdang.common.utils.regular
 import com.dangdang.component.button.ImageSelectButton
 import com.dangdang.component.button.PrimaryButton
@@ -63,8 +63,8 @@ fun CommunityTeamMakeScreenPreview(){
         onCameraClick = {},
         teamMakeForm = TeamMakeForm(
             uri = null,
-            name = "",
-            introduction = "",
+            teamName = "",
+            teamIntro = "",
             targetDistance = ""
         ),
         onFormChange = {},
@@ -80,16 +80,18 @@ fun CommunityTeamMakeScreen(
     val context = LocalContext.current
     val activity = context as Activity
 
-    var photoUri by remember {
-        mutableStateOf(context.createImageUri())
+    var cameraImage by remember {
+        mutableStateOf(
+            context.createImage()
+        )
     }
 
     var teamMakeForm by remember {
         mutableStateOf(
     TeamMakeForm(
                 uri = null,
-                name = "",
-                introduction = "",
+                teamName = "",
+                teamIntro = "",
                 targetDistance = ""
             )
         )
@@ -110,7 +112,7 @@ fun CommunityTeamMakeScreen(
         ) { success ->
             if (success) {
                 teamMakeForm = teamMakeForm.copy(
-                    uri = photoUri
+                    uri = cameraImage.uri
                 )
             }
         }
@@ -120,8 +122,8 @@ fun CommunityTeamMakeScreen(
             ActivityResultContracts.RequestPermission()
         ) { granted ->
             if (granted) {
-                photoUri = context.createImageUri()
-                cameraLauncher.launch(photoUri)
+                cameraImage = context.createImage()
+                cameraLauncher.launch(cameraImage.uri)
             } else {
                 Toast
                     .makeText(
@@ -146,8 +148,8 @@ fun CommunityTeamMakeScreen(
                     context,
                     Manifest.permission.CAMERA
                 ) == PackageManager.PERMISSION_GRANTED -> {
-                    photoUri = context.createImageUri()
-                    cameraLauncher.launch(photoUri)
+                    cameraImage = context.createImage()
+                    cameraLauncher.launch(cameraImage.uri)
                 }
 
                 ActivityCompat.shouldShowRequestPermissionRationale(
@@ -181,10 +183,14 @@ fun CommunityTeamMakeScreen(
                 context = context,
                 teamMakeForm = teamMakeForm,
                 onMakeSuccess = {
-                    navController.previousBackStackEntry
-                        ?.savedStateHandle
-                        ?.set("isMakeTeamSuccess", true)
-                    navController.popBackStack()
+                    try{
+                        navController.previousBackStackEntry
+                            ?.savedStateHandle
+                            ?.set("isMakeTeamSuccess", true)
+                        navController.popBackStack()
+                    }finally {
+                        cameraImage.file.deleteSafely()
+                    }
                 }
             )
         }
@@ -245,11 +251,11 @@ fun CommunityTeamMakeScreenContent(
             TextField(
                 title = "팀 이름",
                 isRequired = true,
-                value = teamMakeForm.name,
+                value = teamMakeForm.teamName,
                 onValueChange = {
                     onFormChange(
                         teamMakeForm.copy(
-                            name = it
+                            teamName = it
                         )
                     )
                 },
@@ -271,11 +277,11 @@ fun CommunityTeamMakeScreenContent(
             TextBox(
                 title = "팀 소개",
                 isRequired = true,
-                value = teamMakeForm.introduction,
+                value = teamMakeForm.teamIntro,
                 onValueChange = {
                     onFormChange(
                         teamMakeForm.copy(
-                            introduction = it
+                            teamIntro = it
                         )
                     )
                 },
@@ -333,8 +339,8 @@ fun CommunityTeamMakeScreenContent(
             PrimaryButton(
                 text = "팀 만들기",
                 enabled =
-                    teamMakeForm.name.isNotEmpty()
-                            && teamMakeForm.introduction.isNotEmpty()
+                    teamMakeForm.teamName.isNotEmpty()
+                            && teamMakeForm.teamIntro.isNotEmpty()
                             && teamMakeForm.targetDistance.isNotEmpty(),
                 onClick = onDoneClick,
                 sizeType = LayoutSize.FillMaxSize

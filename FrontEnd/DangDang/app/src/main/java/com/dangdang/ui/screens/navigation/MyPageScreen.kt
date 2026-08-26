@@ -9,30 +9,42 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.dangdang.Application.Companion.ExamplePictureUrl
-import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.diagnosisGroupList
 import com.dangdang.common.utils.mainScreen
-import com.dangdang.common.utils.regular
 import com.dangdang.common.utils.sendMail
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.image.Profile
 import com.dangdang.component.navigation.topnavigation.TopNavigation
 import com.dangdang.component.page.mypage.MyPageMenu
-import com.dangdang.data.model.user.User
-import com.dangdang.ui.theme.AppTypography
+import com.dangdang.data.enums.Gender
+import com.dangdang.data.enums.LoadingState
+import com.dangdang.data.model.user.SignUpForm
 import com.dangdang.ui.viewmodel.navigation.MyPageViewModel
+import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoField
+import java.time.temporal.ChronoUnit
+
 
 @Preview
 @Composable
@@ -40,15 +52,24 @@ fun MyPageScreenPreview(
 
 ){
     MyPageScreenContent(
-        user = User(
-            id = "1",
-            isSignUp = true,
-            nickname = "닉네임",
-            profileImageUrl = ExamplePictureUrl,
+        user = SignUpForm(
+            isSocial = true,
+            nickname = "닉네임8",
             email = "email@gmail.com",
-            sinceDays = 120,
-            createdDt = "2026-07-28",
-            updatedDt = "2026-07-28",
+            password = "",
+            passwordCheck = "",
+            gender = Gender.male.name,
+            birthDate = "1997.05.16",
+            height = "170",
+            weight = "70",
+            hba1c = "12",
+            isHemoglobinRecentResultUnknown = false,
+            targetGlucose = "180",
+            activityLevel = "주 1 ~2회",
+            joinedAt = "2026-07-28",
+            profileImageUrl = ExamplePictureUrl,
+            notificationEnabled = true,
+            diagnosisGroup = diagnosisGroupList[0]
         ),
         onMyInfoUpdateMove = {},
         isSwitchChecked = true,
@@ -62,50 +83,88 @@ fun MyPageScreenPreview(
 @Composable
 fun MyPageScreen(
     myPageViewModel: MyPageViewModel = hiltViewModel(),
-    appPrefs: AppPrefs,
     onMyInfoUpdateMove: ()-> Unit,
     onFaqClick: () -> Unit,
 ){
     val context = LocalContext.current
-    val userInfo by myPageViewModel.userInfo.collectAsState()
 
-    val isNotification by appPrefs.notificationFlow.collectAsState()
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        myPageViewModel.getUserInfo()
+    }
+
+    val userInfo by myPageViewModel.userInfo.collectAsState()
+    var isGrantedPermission by remember {
+        mutableStateOf(
+            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU){
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            }else{
+                true
+            }
+        )
+    }
+
+    val isNotification by remember(
+        userInfo,
+        isGrantedPermission
+    ) {
+        derivedStateOf {
+            (userInfo.data?.notificationEnabled ?: false)
+            && isGrantedPermission
+        }
+    }
 
     val permissionLauncher =
         rememberLauncherForActivityResult(
             contract = ActivityResultContracts.RequestPermission()
         ) { isGranted ->
             if (isGranted) {
+                isGrantedPermission = true
                 // 권한 허용됨
-                myPageViewModel.setNotification(!isNotification)
+                myPageViewModel.setNotification(
+                    context = context,
+                    isNotification = true,
+                )
             }
         }
 
-    MyPageScreenContent(
-        user = userInfo,
-        onMyInfoUpdateMove = onMyInfoUpdateMove,
-        isSwitchChecked = isNotification,
-        onSwitchCheckChange = {
-            if(!isNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED){
-                //권한 요청
-                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }else{
-                myPageViewModel.setNotification(!isNotification)
+    if(userInfo.loadingState == LoadingState.Success){
+        MyPageScreenContent(
+            user = userInfo.data,
+            onMyInfoUpdateMove = onMyInfoUpdateMove,
+            isSwitchChecked = isNotification,
+            onSwitchCheckChange = {
+                if(!isNotification && Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED){
+                    //권한 요청
+                    permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                }else{
+                    myPageViewModel.setNotification(
+                        context = context,
+                        isNotification = !isNotification
+                    )
+                }
+            },
+            onFaqClick = onFaqClick,
+            onInquiryClick = {
+                sendMail(context)
+            },
+            onLogoutClick = {
+                myPageViewModel.logout(context)
             }
-        },
-        onFaqClick = onFaqClick,
-        onInquiryClick = {
-            sendMail(context)
-        },
-        onLogoutClick = {
-            myPageViewModel.logout()
-        }
-    )
+        )
+    }else{
+        ErrorView(
+            loadingState = userInfo.loadingState,
+            message = "유저 정보 불러오기를 실패했습니다."
+        )
+    }
 }
 
 @Composable
 fun MyPageScreenContent(
-    user: User?,
+    user: SignUpForm?,
     onMyInfoUpdateMove: ()-> Unit,
     isSwitchChecked: Boolean,
     onSwitchCheckChange: () -> Unit,
@@ -130,10 +189,18 @@ fun MyPageScreenContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
+            val formatter = DateTimeFormatterBuilder()
+                .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
+                .appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true)
+                .toFormatter()
+            val sinceDays = ChronoUnit.DAYS.between(
+                LocalDate.parse(user?.joinedAt, formatter),
+                LocalDate.now()
+            )
             Profile(
                 profileImageUrl = user?.profileImageUrl,
                 nickname = user?.nickname?: "",
-                sinceDays = user?.sinceDays?: 0,
+                sinceDays = sinceDays.toInt(),
                 onNextClick = onMyInfoUpdateMove
             )
 

@@ -44,6 +44,8 @@ import com.dangdang.common.utils.regular
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -119,12 +121,12 @@ fun <T> Selector(
                 modifier = Modifier
                     .background(
                         color = White,
-                        shape = RoundedCornerShape(12.dp)
+                        shape = MediumRoundShape
                     )
                     .border(
-                        1.dp,
+                        ThinLineDp,
                         Gray,
-                        RoundedCornerShape(12.dp)
+                        MediumRoundShape
                     )
                     .clickable {
                         expanded = !expanded

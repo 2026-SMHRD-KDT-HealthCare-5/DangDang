@@ -2,7 +2,6 @@ package com.dangdang.component.page.community.teamchallenge
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,6 +26,7 @@ import com.dangdang.common.utils.medium
 import com.dangdang.component.divider.Divider
 import com.dangdang.data.enums.DividerPosition
 import com.dangdang.data.model.community.TeamInfoModel
+import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.ui.theme.AppTypography
 import com.dangdang.ui.theme.Black
 import com.dangdang.ui.theme.Navy
@@ -37,15 +37,37 @@ import com.dangdang.ui.theme.White
 fun TeamChallengeInfoBoxPreview(){
     TeamChallengeInfoBox(
         teamInfo = TeamInfoModel(
-            isLeader = false,
-            currentMemberCount = 4,
-            maxMemberCount = 5,
-            name = "우리팀 5월 걷기 챌린지",
+            teamNo = 1,
+            isCreator = false,
+            memberCount = 4,
+            capacity = 5,
+            teamName = "우리팀 5월 걷기 챌린지",
             targetDistance = 150f,
-            currentDistance = 20f,
-            currentTeamDistance = 30f,
+            currentDistance = 30f,
             profileImageUrl = ExamplePictureUrl,
-            introduction = "하루 7천보 이상 함께 걸어요!"
+            teamIntro = "하루 7천보 이상 함께 걸어요!",
+            members = listOf(
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임",
+                    totalDistance = 32.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임2",
+                    totalDistance = 20.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임3",
+                    totalDistance = 10.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임4",
+                    totalDistance = 5.56f,
+                ),
+                TeamMemberChallengeStatusModel(
+                    nickname = "닉네임5",
+                    totalDistance = 3.56f,
+                )
+            )
         )
     )
 }
@@ -92,7 +114,7 @@ fun TeamChallengeInfoBox(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = teamInfo.name,
+                text = teamInfo.teamName,
                 style = AppTypography.bodyLarge.medium,
                 color = Black,
             )
@@ -111,8 +133,8 @@ fun TeamChallengeInfoBox(
                 )
 
                 Text(
-                    text = "${teamInfo.currentMemberCount}" +
-                            "/${teamInfo.maxMemberCount}명",
+                    text = "${teamInfo.memberCount}" +
+                            "/${teamInfo.capacity}명",
                     style = AppTypography.labelSmall.medium,
                     color = Black,
                 )
@@ -130,7 +152,7 @@ fun TeamChallengeInfoBox(
             }
 
             Text(
-                text = teamInfo.introduction,
+                text = teamInfo.teamIntro,
                 style = AppTypography.labelSmall.medium,
                 color = Black,
                 modifier = Modifier

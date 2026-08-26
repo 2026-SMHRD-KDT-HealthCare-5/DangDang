@@ -58,10 +58,11 @@ fun MainNavHost(
                     navArgument("isWalkComplete") {
                         type = NavType.BoolType
                         defaultValue = false
-                    }
+                    },
                 )
             ) { backStackEntry ->
                 val isWalkComplete = backStackEntry.arguments?.getBoolean("isWalkComplete") ?: false
+
                 DangDangScreen(
                     onWalkChallengeMove = {
                         navigateBottomTab(
@@ -104,6 +105,12 @@ fun MainNavHost(
                         )
                         // 탭 복원(restoreState) 시 인자가 유실되는 경우를 대비해 savedStateHandle에도 저장
                         navController.currentBackStackEntry?.savedStateHandle?.set("isWalkComplete", true)
+                    },
+                    onNoMissionClick = {
+                        navigateBottomTab(
+                            navController = navController,
+                            route = MainRoute.DangDang.route
+                        )
                     }
                 )
             }
@@ -121,7 +128,6 @@ fun MainNavHost(
             //내 정보
             composable(MainRoute.MyPage.route) {
                 MyPageScreen(
-                    appPrefs = appPrefs,
                     onMyInfoUpdateMove = {
                         navController.navigate(MyPageRoute.MyInfoUpdate.route)
                     },

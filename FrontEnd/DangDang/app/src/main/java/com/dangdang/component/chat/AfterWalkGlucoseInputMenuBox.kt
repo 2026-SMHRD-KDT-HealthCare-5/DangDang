@@ -10,6 +10,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.dangdang.common.utils.GlucoseMaxValue
+import com.dangdang.common.utils.GlucoseMinValue
 import com.dangdang.common.utils.bold
 import com.dangdang.common.utils.isValidPostPrandialGlucose
 import com.dangdang.common.utils.regular
@@ -60,8 +62,8 @@ fun AfterWalkGlucoseInputMenuBox(
             value = afterWalkGlucoseValue,
             onValueChange = onAfterWalkGlucoseValueChange,
             isError = !isValidPostPrandialGlucose(afterWalkGlucoseValue),
-            errorText = "80~300 범위여야 합니다.",
-            placeholderText = "예) 165(범위 : 80~300)",
+            errorText = "${GlucoseMinValue}~${GlucoseMaxValue} 범위여야 합니다.",
+            placeholderText = "예) 165(범위 : ${GlucoseMinValue}~${GlucoseMaxValue})",
             maxLength = 5,
             sizeType = LayoutSize.FillMaxSize
         )

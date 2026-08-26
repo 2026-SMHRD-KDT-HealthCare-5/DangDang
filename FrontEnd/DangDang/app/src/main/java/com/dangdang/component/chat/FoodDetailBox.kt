@@ -1,5 +1,6 @@
 package com.dangdang.component.chat
 
+import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -17,6 +18,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -38,47 +40,50 @@ import com.dangdang.ui.theme.Gray
 import com.dangdang.ui.theme.LavenderPurple
 import com.dangdang.ui.theme.LightPurple
 import com.dangdang.ui.theme.LightSlateGray
+import com.dangdang.ui.theme.MediumRoundShape
 import com.dangdang.ui.theme.PrimaryBlue
 import com.dangdang.ui.theme.PrimaryBlueOpacity13
 import com.dangdang.ui.theme.SlateGray
 import com.dangdang.ui.theme.SlateGrayOpacity13
 import com.dangdang.ui.theme.StoneGray
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
 @Composable
 fun FoodDetailBoxPreview() {
     FoodDetailBox(
-        predictedGlucoseRise = 35,
-        beginGlucose = 140,
+        predictedGlucoseRise = 35.0f,
+        beginGlucose = 140.0f,
         foodInfo = FoodInfoModel(
+            isMatched = true,
             name = "비빔밥",
             nutritionInfo = "총 내용량 550g 1인분(1개)  / 650kcal",
             nutritionList = listOf(
                 FoodNutritionModel(
                     name = "탄수화물",
                     unit = "g",
-                    value = 15
+                    value = 15.0f
                 ),
                 FoodNutritionModel(
                     name = "식이섬유",
                     unit = "g",
-                    value = 2
+                    value = 2.0f
                 ),
                 FoodNutritionModel(
                     name = "단백질",
                     unit = "g",
-                    value = 20
+                    value = 20.0f
                 ),
                 FoodNutritionModel(
                     name = "지방",
                     unit = "g",
-                    value = 10
+                    value = 10.0f
                 ),
                 FoodNutritionModel(
                     name = "칼로리",
                     unit = "kcal",
-                    value = 250
+                    value = 250.0f
                 )
             )
         ),
@@ -91,8 +96,8 @@ fun FoodDetailBoxPreview() {
 
 @Composable
 fun FoodDetailBox(
-    predictedGlucoseRise: Int, //예상 혈당 상승량
-    beginGlucose: Int, //식전 혈당
+    predictedGlucoseRise: Float, //예상 혈당 상승량
+    beginGlucose: Float, //식전 혈당
     foodInfo: FoodInfoModel,
     isMenuShow: Boolean = true,
     onCheckClick: () -> Unit = {},
@@ -100,17 +105,21 @@ fun FoodDetailBox(
     onKeywordInputClick: () -> Unit = {},
     onInputDirectlyClick: () -> Unit = {}
 ) {
+    val isNotSearch = !foodInfo.isMatched
+
+    val context = LocalContext.current
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = SlateGray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -153,81 +162,88 @@ fun FoodDetailBox(
             }
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    color = White,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .border(
-                    width = 1.dp,
-                    color = Gray,
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(
-                    horizontal = 12.dp,
-                    vertical = 8.dp
-                ),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            Row(
+        if(isNotSearch){
+            FoodNotRecognizeBox()
+        }else{
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth(),
-                verticalAlignment = Alignment.Bottom,
-                horizontalArrangement = Arrangement.SpaceBetween
+                    .fillMaxWidth()
+                    .background(
+                        color = White,
+                        shape = MediumRoundShape
+                    )
+                    .border(
+                        width = ThinLineDp,
+                        color = Gray,
+                        shape = MediumRoundShape
+                    )
+                    .padding(
+                        horizontal = 12.dp,
+                        vertical = 8.dp
+                    ),
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                Text(
-                    text = "영양정보",
-                    style = AppTypography.bodyLarge.regular,
-                    color = Black,
-                )
-
-                Text(
-                    text = foodInfo.nutritionInfo,
-                    style = AppTypography.labelSmall.regular,
-                    color = DarkGray,
-                )
-            }
-
-            Divider(
-                position = DividerPosition.Horizontal,
-                color = Gray
-            )
-
-            foodInfo.nutritionList.forEachIndexed { index, nutrition ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth(),
+                    verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = nutrition.name,
-                        style = AppTypography.labelSmall.regular,
+                        text = "영양정보",
+                        style = AppTypography.bodyLarge.regular,
                         color = Black,
                     )
 
                     Text(
-                        text = "${nutrition.value} ${nutrition.unit}",
+                        text = foodInfo.nutritionInfo,
                         style = AppTypography.labelSmall.regular,
                         color = DarkGray,
                     )
                 }
 
-                //마지막 아이템이 아닐 경우 구분선
-                if(index != foodInfo.nutritionList.lastIndex){
-                    Divider(
-                        position = DividerPosition.Horizontal,
-                        color = Gray
-                    )
+                Divider(
+                    position = DividerPosition.Horizontal,
+                    color = Gray
+                )
+
+                foodInfo.nutritionList.forEachIndexed { index, nutrition ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = nutrition.name,
+                            style = AppTypography.labelSmall.regular,
+                            color = Black,
+                        )
+
+                        Text(
+                            text = "${nutrition.value} ${nutrition.unit}",
+                            style = AppTypography.labelSmall.regular,
+                            color = DarkGray,
+                        )
+                    }
+
+                    //마지막 아이템이 아닐 경우 구분선
+                    if(index != foodInfo.nutritionList.lastIndex){
+                        Divider(
+                            position = DividerPosition.Horizontal,
+                            color = Gray
+                        )
+                    }
                 }
             }
-        }
 
-        PredictedGlucoseRiseBox(
-            predictedGlucoseRise = predictedGlucoseRise,
-            beginGlucose = beginGlucose
-        )
+            if(predictedGlucoseRise > 0f ||
+                beginGlucose > 0f){
+                PredictedGlucoseRiseBox(
+                    predictedGlucoseRise = predictedGlucoseRise,
+                    beginGlucose = beginGlucose
+                )
+            }
+        }
 
         if(isMenuShow){
             PrimaryOutlinedButton(
@@ -244,7 +260,17 @@ fun FoodDetailBox(
                     )
                 },
                 sizeType = LayoutSize.FillMaxSize,
-                onClick = onCheckClick
+                onClick = if(isNotSearch){
+                    {
+                        Toast.makeText(
+                            context,
+                            "검색 결과가 없습니다.",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }else{
+                    onCheckClick
+                }
             )
 
             PrimaryOutlinedButton(

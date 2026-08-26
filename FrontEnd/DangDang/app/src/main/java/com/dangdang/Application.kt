@@ -9,7 +9,7 @@ import dagger.hilt.android.HiltAndroidApp
 class Application : Application(){
     companion object {
         //여기에 자주 쓰는 상수 기재
-        const val REFRESH_PATH = "/auth/refresh"
+        const val REFRESH_PATH = "/api/auth/refresh"
 
         const val API_BASE_URL = BuildConfig.API_BASE_URL
 
@@ -20,6 +20,15 @@ class Application : Application(){
         const val GoogleLoginKey = BuildConfig.GoogleLoginKey
 
         const val InquiryEmail = BuildConfig.InquiryEmail
+
+        const val AuthPath = "/api/auth"
+        const val AnalyzePath = "/api/intake-logs"
+        const val ChatPath = "/api/chat"
+        const val WalkMissionPath = "/api/walk-missions"
+        const val TeamPath = "/api/teams"
+        const val RankingPath = "/api/rankings"
+        const val UserPath = "/api/users"
+        const val HomePath = "/api/home"
     }
 
     override fun onCreate() {

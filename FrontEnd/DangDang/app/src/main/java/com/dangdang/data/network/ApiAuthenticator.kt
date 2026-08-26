@@ -2,6 +2,7 @@ package com.dangdang.data.network
 
 import com.dangdang.data.api.RefreshApiService
 import com.dangdang.data.manager.SessionManager
+import com.dangdang.data.model.user.RefreshForm
 import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
 import okhttp3.Request
@@ -71,10 +72,9 @@ class ApiAuthenticator @Inject constructor(
                 try {
 
                     refreshApiService
-                        .refreshToken(
-                            authorization =
-                                "Bearer $refreshToken"
-                        )
+                        .refreshToken(RefreshForm(
+                            refreshToken = refreshToken
+                        ))
                         .execute()
 
                 } catch (e: Exception) {

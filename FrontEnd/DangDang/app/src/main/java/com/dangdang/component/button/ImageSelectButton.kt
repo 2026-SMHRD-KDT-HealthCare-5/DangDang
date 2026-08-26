@@ -21,6 +21,7 @@ import com.dangdang.ui.theme.Navy
 import coil.compose.AsyncImage
 import com.dangdang.R
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -75,7 +76,7 @@ fun ImageSelectButton(
                         shape = CircleShape
                     )
                     .border(
-                        width = 1.dp,
+                        width = ThinLineDp,
                         color = Gray,
                         shape = CircleShape
                     )

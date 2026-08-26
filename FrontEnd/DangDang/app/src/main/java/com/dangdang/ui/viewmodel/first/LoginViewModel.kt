@@ -9,6 +9,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.dangdang.Application.Companion.GoogleLoginKey
 import com.dangdang.common.utils.AppPrefs
+import com.dangdang.common.utils.getResponseError
+import com.dangdang.data.manager.SessionManager
 import com.dangdang.data.repository.UserRepository
 import com.google.android.libraries.identity.googleid.GetGoogleIdOption
 import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
@@ -20,7 +22,8 @@ import javax.inject.Inject
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val appPrefs: AppPrefs,
-    private val userRepository: UserRepository
+    private val userRepository: UserRepository,
+    private val sessionManager: SessionManager
 ) : ViewModel() {
     //이메일 로그인
     fun emailLogin(context: Context, onLoginSuccess: () -> Unit, email: String, password: String){
@@ -29,16 +32,21 @@ class LoginViewModel @Inject constructor(
 
             if(response.isSuccessful){
                 val responseBody = response.body()
-                appPrefs.setAccessToken(responseBody?.accessToken?:"")
-                appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
+                sessionManager.saveTokens(
+                    responseBody?.accessToken?:"",
+                    responseBody?.refreshToken?:""
+                )
 
                 appPrefs.setAutoLogin(true)
+
+                // 로그인 성공 후 상세 정보(알림 설정 등) 동기화
+                syncUserInfo()
 
                 onLoginSuccess()
             }else{
                 Toast.makeText(
                     context,
-                    "아이디 또는 비밀번호를 확인해주세요.",
+                    getResponseError(response).message,
                     Toast.LENGTH_SHORT).show()
             }
         }
@@ -53,12 +61,17 @@ class LoginViewModel @Inject constructor(
 
             if(response.isSuccessful){
                 val responseBody = response.body()
-                appPrefs.setAccessToken(responseBody?.accessToken?:"")
-                appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
+                sessionManager.saveTokens(
+                    responseBody?.accessToken?:"",
+                    responseBody?.refreshToken?:""
+                )
 
-                val isSignUp = responseBody?.user?.isSignUp
+                val isSignUp = true
 
                 appPrefs.setAutoLogin(isSignUp != true)
+
+                // 로그인 성공 후 상세 정보(알림 설정 등) 동기화
+                syncUserInfo()
 
                 onLoginSuccess(isSignUp == true)
             }else{
@@ -114,12 +127,17 @@ class LoginViewModel @Inject constructor(
 
                     if(response.isSuccessful){
                         val responseBody = response.body()
-                        appPrefs.setAccessToken(responseBody?.accessToken?:"")
-                        appPrefs.setRefreshToken(responseBody?.refreshToken?:"")
+                        sessionManager.saveTokens(
+                            responseBody?.accessToken?:"",
+                            responseBody?.refreshToken?:""
+                        )
 
-                        val isSignUp = responseBody?.user?.isSignUp
+                        val isSignUp = true
 
                         appPrefs.setAutoLogin(isSignUp != true)
+
+                        // 로그인 성공 후 상세 정보(알림 설정 등) 동기화
+                        syncUserInfo()
 
                         onLoginSuccess(isSignUp == true)
                     }else{
@@ -152,6 +170,17 @@ class LoginViewModel @Inject constructor(
                 } else if (token != null) {
                     // 로그인 성공
                     onLoginSuccess(token.accessToken)
+                }
+            }
+        }
+    }
+
+    private fun syncUserInfo() {
+        viewModelScope.launch {
+            val response = userRepository.getUserInfoDetail()
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    appPrefs.setNotificationEnabled(it.notificationEnabled)
                 }
             }
         }

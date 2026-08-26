@@ -6,18 +6,18 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.GuageColorList
-import com.dangdang.common.utils.WalkStatusDetailItemTemplates
 import com.dangdang.component.divider.Divider
 import com.dangdang.data.enums.DividerPosition
 import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 import com.dangdang.ui.theme.White
 
 @Preview
@@ -30,74 +30,53 @@ fun TeamMemberStatusBoxPreview(){
             isGraph = true,
             teamMemberChallengeStatusList = listOf(
                 TeamMemberChallengeStatusModel(
-                    rank = 1,
-                    profileImageUrl = ExamplePictureUrl,
                     nickname = "닉네임",
-                    currentDistance = 32.56f,
-                    targetDistance = 150f
+                    totalDistance = 32.56f,
                 ),
                 TeamMemberChallengeStatusModel(
-                    rank = 2,
-                    profileImageUrl = ExamplePictureUrl,
                     nickname = "닉네임2",
-                    currentDistance = 20.56f,
-                    targetDistance = 150f
+                    totalDistance = 20.56f,
                 ),
                 TeamMemberChallengeStatusModel(
-                    rank = 3,
-                    profileImageUrl = ExamplePictureUrl,
                     nickname = "닉네임3",
-                    currentDistance = 10.56f,
-                    targetDistance = 150f
+                    totalDistance = 10.56f,
                 ),
                 TeamMemberChallengeStatusModel(
-                    rank = 4,
-                    profileImageUrl = ExamplePictureUrl,
                     nickname = "닉네임4",
-                    currentDistance = 5.56f,
-                    targetDistance = 150f
+                    totalDistance = 5.56f,
                 ),
                 TeamMemberChallengeStatusModel(
-                    rank = 5,
-                    profileImageUrl = ExamplePictureUrl,
                     nickname = "닉네임5",
-                    currentDistance = 3.56f,
-                    targetDistance = 150f
+                    totalDistance = 3.56f,
                 )
-            )
+            ),
+            targetDistance = 60f
         )
 
         TeamMemberStatusBox(
             isGraph = false,
             teamMemberChallengeStatusList = listOf(
                 TeamMemberChallengeStatusModel(
-                    rank = 1,
-                    profileImageUrl = ExamplePictureUrl,
                     nickname = "닉네임",
-                    currentDistance = 32.56f,
-                    targetDistance = 150f
+                    totalDistance = 32.56f,
                 ),
                 TeamMemberChallengeStatusModel(
-                    rank = 2,
-                    profileImageUrl = ExamplePictureUrl,
                     nickname = "닉네임2",
-                    currentDistance = 20.56f,
-                    targetDistance = 150f
+                    totalDistance = 20.56f,
                 ),
                 TeamMemberChallengeStatusModel(
-                    rank = 3,
-                    profileImageUrl = ExamplePictureUrl,
                     nickname = "닉네임3",
-                    currentDistance = 10.56f,
-                    targetDistance = 150f
+                    totalDistance = 10.56f,
                 )
-            )
+            ),
+            targetDistance = 60f
         )
     }
 }
 
 @Composable
 fun TeamMemberStatusBox(
+    targetDistance: Float,
     isGraph: Boolean,
     teamMemberChallengeStatusList: List<TeamMemberChallengeStatusModel>
 ) {
@@ -106,12 +85,12 @@ fun TeamMemberStatusBox(
             .fillMaxWidth()
             .background(
                 color = White,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
             .padding(10.dp),
         verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -119,8 +98,10 @@ fun TeamMemberStatusBox(
         teamMemberChallengeStatusList.forEachIndexed { index, teamMemberChallengeStatus ->
             TeamMemberStatusItem(
                 isGraph = isGraph,
-                guageColor = GuageColorList[index%GuageColorList.size],
-                teamMemberChallengeStatus = teamMemberChallengeStatus
+                guageColor = GuageColorList[index % GuageColorList.size],
+                teamMemberChallengeStatus = teamMemberChallengeStatus,
+                rank = index + 1,
+                targetDistance = targetDistance
             )
 
             if(index < teamMemberChallengeStatusList.size - 1){

@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -15,9 +14,11 @@ import com.dangdang.common.utils.WalkStatusDetailItemTemplates
 import com.dangdang.component.divider.Divider
 import com.dangdang.component.map.KakaoMap
 import com.dangdang.data.enums.DividerPosition
+import com.dangdang.data.enums.WalkMissionStatus
 import com.dangdang.data.model.walk.WalkStatus
-import com.dangdang.ui.theme.DarkGray
 import com.dangdang.ui.theme.Gray
+import com.dangdang.ui.theme.MediumRoundShape
+import com.dangdang.ui.theme.ThinLineDp
 
 @Preview
 @Composable
@@ -25,10 +26,14 @@ fun WalkInfoPreview(){
     WalkInfo(
         walkStatus = WalkStatus(
             missionNo = 1,
-            walkTargetDistance = 2.6f,
-            currentWalkDistance = 0.85f,
+            targetDistance = 2.6f,
+            actualDistance = 0.85f,
             currentWalkCount = 10,
-            currentWalkKcal = 20
+            currentWalkKcal = 20,
+            status = WalkMissionStatus.IN_PROGRESS.name,
+            startTime = "2026-08-20T03:01:20.467Z",
+            lastTrackedAt = "2026-08-20T03:01:20.467Z",
+            createdAt = "2026-08-20T03:01:20.467Z"
         ),
         stepTime = 100
     )
@@ -44,17 +49,17 @@ fun WalkInfo(
         modifier = Modifier
             .fillMaxWidth()
             .border(
-                width = 1.dp,
+                width = ThinLineDp,
                 color = Gray,
-                shape = RoundedCornerShape(12.dp)
+                shape = MediumRoundShape
             )
     ) {
         KakaoMap(
             routePoints = routePoints
         )
         WalkTargetBox(
-            walkTarget = walkStatus.walkTargetDistance,
-            currentWalk = walkStatus.currentWalkDistance
+            walkTarget = walkStatus.targetDistance,
+            currentWalk = walkStatus.actualDistance
         )
         Row(
             modifier = Modifier

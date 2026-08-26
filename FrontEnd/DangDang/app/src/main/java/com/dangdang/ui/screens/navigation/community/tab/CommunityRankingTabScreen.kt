@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -15,16 +14,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import com.dangdang.Application.Companion.ExamplePictureUrl
 import com.dangdang.common.utils.mainScreen
-import com.dangdang.common.utils.regular
+import com.dangdang.component.errorview.ErrorView
 import com.dangdang.component.page.community.ranking.RankingIn3Box
 import com.dangdang.component.page.community.ranking.TeamRankingStatusBox
-import com.dangdang.component.page.community.teamchallenge.TeamMemberStatusBox
-import com.dangdang.data.model.community.TeamMemberChallengeStatusModel
+import com.dangdang.data.enums.LoadingState
 import com.dangdang.data.model.community.TeamRankingStatusModel
-import com.dangdang.ui.theme.AppTypography
-import com.dangdang.ui.viewmodel.community.CommunityTeamChallengeViewModel
 import com.dangdang.ui.viewmodel.community.CommunityTeamRankingViewModel
 
 @Preview
@@ -35,32 +33,32 @@ fun CommunityRankingTabScreenPreview(){
             TeamRankingStatusModel(
                 rank = 1,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명",
-                currentDistance = 32.56f,
+                teamName = "팀명",
+                monthlyDistance = 32.56f,
             ),
             TeamRankingStatusModel(
                 rank = 2,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명2",
-                currentDistance = 20.56f,
+                teamName = "팀명2",
+                monthlyDistance = 20.56f,
             ),
             TeamRankingStatusModel(
                 rank = 3,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명3",
-                currentDistance = 10.56f,
+                teamName = "팀명3",
+                monthlyDistance = 10.56f,
             ),
             TeamRankingStatusModel(
                 rank = 4,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명4",
-                currentDistance = 5.56f,
+                teamName = "팀명4",
+                monthlyDistance = 5.56f,
             ),
             TeamRankingStatusModel(
                 rank = 5,
                 profileImageUrl = ExamplePictureUrl,
-                name = "팀명5",
-                currentDistance = 3.56f,
+                teamName = "팀명5",
+                monthlyDistance = 3.56f,
             )
         )
     )
@@ -73,9 +71,20 @@ fun CommunityRankingTabScreen(
     val teamRankingStatusList by
         communityTeamRankingViewModel.teamRankingStatusList.collectAsState()
 
-    CommunityRankingTabScreenContent(
-        teamRankingStatusList = teamRankingStatusList
-    )
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        communityTeamRankingViewModel.getTeamRankingStatusList()
+    }
+
+    if(teamRankingStatusList.loadingState == LoadingState.Success){
+        CommunityRankingTabScreenContent(
+            teamRankingStatusList = teamRankingStatusList.data?.rankings?:emptyList()
+        )
+    }else{
+        ErrorView(
+            loadingState = teamRankingStatusList.loadingState,
+            message = "팀 랭킹 정보 불러오기를 실패했습니다."
+        )
+    }
 }
 
 @Composable
