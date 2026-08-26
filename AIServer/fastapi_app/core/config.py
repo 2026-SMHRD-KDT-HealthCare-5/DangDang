@@ -45,7 +45,18 @@ DB_PASSWORD = os.environ.get("DB_PASSWORD")
 db_engine = None
 if DB_URL and DB_NAME and DB_USERNAME:
     db_engine = create_engine(
-        f"postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_URL}:{DB_PORT}/{DB_NAME}"
+        f"postgresql+psycopg2://{DB_USERNAME}:{DB_PASSWORD}@{DB_URL}:{DB_PORT}/{DB_NAME}",
+        # [각주] (추가 2026-08-25) 학원 DB 서버(또는 그 사이 네트워크)가 한동안 안 쓰는 커넥션을
+        # 조용히 끊어버리는 것으로 보입니다(Spring의 Hikari 로그에서도 같은 증상 확인). 이 옵션이
+        # 없으면 SQLAlchemy가 "이미 끊긴 커넥션"인 줄 모르고 그대로 재사용하려다가 쿼리 실행
+        # 시점에 예외가 나서, food_info 조회(예: /rag/intake-logs/recognize)가 처리되지 않은
+        # 예외로 500 에러를 내며 죽었습니다.
+        # - pool_pre_ping : 커넥션을 꺼내주기 직전에 가벼운 확인 쿼리(SELECT 1)를 날려보고,
+        #   죽어있으면 자동으로 새 커넥션으로 교체합니다.
+        # - pool_recycle : 이 초(秒)보다 오래된 커넥션은 아직 안 죽었어도 미리 새로 만듭니다
+        #   (280초 = 학원 DB가 끊는 시점보다 확실히 짧게 잡은 값 — 필요하면 더 줄여도 됩니다).
+        pool_pre_ping=True,
+        pool_recycle=280,
     )
 
 # gemini-2.5-flash-lite는 신규 사용자에게 더 이상 제공되지 않음.
