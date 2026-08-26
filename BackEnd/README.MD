@@ -1,292 +1,250 @@
-# 당당(DangDang) 백엔드 — 로그인/회원가입 (M1 단계)
+# 당당(DangDang) 백엔드 — 최종 README
 
 ## 목차
-1. 폴더 구조 한눈에 보기
-2. 실행 전 준비물
-3. 실행 방법
-4. API 테스트 (curl 예시)
-5. ⚠️ 프론트엔드와 맞춰야 할 것 — JSON 필드 이름 표기법
-6. 평소 활동량 매핑표 (주 n회 ↔ 하/중/상)
-7. refresh_token 테이블 — 무상태 인증의 한계와 해결 방법
-8. Q&A — UserRepository엔 findByEmail밖에 없는데 INSERT는 어떻게?
-9. 백엔드 초심자를 위한 용어 각주 모음
-10. 다음 단계로 넘어갈 때 참고
-
-이번 작업 범위: **이메일 회원가입 · 로그인 · 토큰 재발급(회전) · 로그아웃(서버측 무효화)** 4개 API.
-(구글/카카오 소셜 로그인은 기획서상 "확장(보류)" 항목이라 제외했습니다.)
+1. 한눈에 보기
+2. 전체 시스템 아키텍처
+3. 폴더 구조
+4. 기능별 API 목록
+5. 로컬 실행 방법
+6. 배포 방법 (Docker + Nginx + Cloudflare Tunnel / AWS EC2)
+7. 인증 구조 (JWT + refresh_token 회전 + 단일 세션 정책)
+8. 음식 인식/재분석/예측 흐름 (FastAPI 연동)
+9. DB 관리 원칙 — 마이그레이션 파일을 만들지 않는 이유
+10. 트러블슈팅 기록
+11. 백엔드 초심자를 위한 용어 각주 모음
+12. 다음 단계로 넘어갈 때 참고
 
 ---
 
-## 1. 폴더 구조 한눈에 보기
+## 1. 한눈에 보기
+
+**당당**은 먹은 음식을 사진/텍스트로 입력하면 AI가 식후 혈당 상승량을 예측하고, 그 혈당을 낮추는 데 필요한 만큼만 걷도록 맞춤 걷기 미션을 제시하는 헬스케어 서비스입니다.
+
+이 저장소(`BackEnd/`)는 그중 **Spring Boot 서버** 파트입니다. 안드로이드 앱은 이 서버만 호출하고, AI 추론(음식 인식·혈당 예측·챗봇)은 이 서버가 내부적으로 FastAPI 서버(`AIServer/`)를 호출해서 처리합니다.
+
+| 항목 | 값 |
+|---|---|
+| 언어/프레임워크 | Java 21, Spring Boot 3.3.4 (Gradle Kotlin DSL) |
+| DB | PostgreSQL (학원 캠퍼스 서버에서 호스팅, 팀 공용) |
+| 인증 | JWT (accessToken + refreshToken 회전) |
+| AI 연동 | FastAPI(:8000)를 내부 전용으로 호출 (Gemini API 기반) |
+| API 문서 | Swagger UI (`/swagger-ui/index.html`) |
+| 배포 | Docker Compose (Spring + FastAPI + Nginx) → Cloudflare Tunnel 또는 AWS EC2 |
+
+---
+
+## 2. 전체 시스템 아키텍처
+
+```
+Android 앱
+   │  (HTTPS, 모든 요청은 Spring만 호출)
+   ▼
+Nginx (리버스 프록시, :80 — 유일한 외부 공개 진입점)
+   │
+   ▼
+Spring Boot :8080  ←──(X-Internal-Api-Key 헤더)──→  FastAPI :8000
+  · 모든 비즈니스 로직           · 음식 인식/재분석/예측/챗봇
+  · 모든 DB 쓰기(회원/미션/식사기록)  · Gemini API 호출
+  · JWT 인증                    · food_info 조회는 읽기 전용
+   │                                   │
+   ▼ (읽기/쓰기)                       ▼ (읽기 전용, food_info만)
+        PostgreSQL (공유 DB, 학원 캠퍼스 서버)
+```
+
+**핵심 설계 원칙 (절대 깨지 않는 규칙)**
+- 안드로이드 앱은 **Spring만** 호출한다. FastAPI는 외부에 노출되지 않고, Spring이 내부망(`X-Internal-Api-Key` 헤더로 인증)에서만 호출한다.
+- **DB 쓰기는 Spring만** 한다. FastAPI는 `food_info`(식약처 영양성분 테이블) 조회만 하는 읽기 전용 접근이다.
+- 배포 시에는 이 구조 그대로 앞단에 Nginx만 추가한다 (Nginx → Spring, FastAPI는 컨테이너 내부망에만 존재).
+
+레포 루트의 `dangdang_system_architecture.pptx`에 이 구조를 슬라이드 한 장으로 정리해 두었습니다 (발표 자료용).
+
+---
+
+## 3. 폴더 구조
 
 ```
 BackEnd/
-├── build.gradle.kts
-├── settings.gradle.kts
+├── build.gradle.kts / settings.gradle.kts
+├── Dockerfile / .dockerignore
 └── src/main/
     ├── java/com/dangdang/
-    │   ├── DangdangServerApplication.java     앱 시작점(main)
-    │   ├── config/SecurityConfig.java         로그인 규칙(누가 어디에 접근 가능한지)
-    │   ├── controller/AuthController.java     URL 정의 (/api/auth/...)
-    │   ├── service/AuthService.java           실제 판단 로직 (회원가입/로그인/재발급/로그아웃)
-    │   ├── repository/
-    │   │   ├── UserRepository.java            users 테이블 접근
-    │   │   └── RefreshTokenRepository.java    refresh_token 테이블 접근 [각주7]
-    │   ├── entity/
-    │   │   ├── User.java                      users 테이블과 매핑
-    │   │   ├── RefreshToken.java              refresh_token 테이블과 매핑 [각주7]
-    │   │   └── ActivityLevel.java             "주 n회" ↔ 하/중/상 매핑 [각주6]
-    │   ├── dto/request, dto/response          요청/응답 JSON 모양
-    │   ├── security/
-    │   │   ├── JwtProvider.java               토큰 발급·검증
-    │   │   ├── JwtAuthenticationFilter.java    매 요청마다 토큰 검사
-    │   │   ├── TokenHasher.java               refreshToken을 해시로 변환 [각주7]
-    │   │   └── CustomAuthenticationEntryPoint.java
-    │   └── exception/                         에러를 공통 형식으로 변환
+    │   ├── DangdangServerApplication.java
+    │   ├── config/            SecurityConfig, OpenApiConfig(Swagger), RestClientConfig
+    │   ├── controller/        AuthController, UserController, IntakeLogController,
+    │   │                      WalkMissionController, TeamController, RankingController,
+    │   │                      ChatController, HomeController
+    │   ├── service/           위 컨트롤러 1:1 대응 + RecognizeProxyService(FastAPI 중계)
+    │   ├── client/            FastApiClient (FastAPI 내부 호출 전담)
+    │   ├── repository/        Spring Data JPA 리포지토리 (엔티티당 1개)
+    │   ├── entity/            User, RefreshToken, IntakeLog, CustomFood, FoodInfo,
+    │   │                      WalkMission, Team, TeamMember, AiChat 등
+    │   ├── dto/request, dto/response   요청/응답 JSON 모양
+    │   ├── security/          JwtProvider, JwtAuthenticationFilter, TokenHasher
+    │   ├── scheduler/         WalkMissionExpireScheduler (걷기 미션 자동 만료 배치)
+    │   └── exception/         BusinessException, ErrorCode, GlobalExceptionHandler
     └── resources/
-        ├── application.yml
-        └── db/migration/
-            ├── V1__create_users_table.sql
-            └── V2__create_refresh_token_table.sql   [각주7]
+        └── application.yml   (DB 마이그레이션 SQL 파일은 두지 않음 — 9번 항목 참고)
+
+(루트 기준)
+AIServer/fastapi_app/   AI 서버 (FastAPI, Python) — 4번 항목 참고
+FrontEnd/DangDang/      Android 앱
+nginx/nginx.conf        리버스 프록시 설정 (배포용)
+docker-compose.yml      Spring+FastAPI+Nginx 통합 실행 설정
+Document/               배포 가이드, 프론트 핸드오프 문서 등
 ```
 
-요청 처리 순서: **Controller → Service → Repository → DB**, 응답은 반대 순서로 돌아옵니다.
-(각 파일 상단에 `[각주 A]`, `[각주 B]` ... 처럼 번호를 매겨 코드 안에 직접 개념을 설명해두었습니다.)
+요청 처리 순서: **Controller → Service → Repository/FastApiClient → DB/FastAPI**, 응답은 역순으로 돌아옵니다. 각 파일 상단에 `[각주 A]`, `[각주 B]` 식으로 번호를 매겨 코드 안에 개념을 직접 설명해두었습니다.
 
 ---
 
-## 2. 실행 전 준비물
+## 4. 기능별 API 목록
 
-1. **Java 21**: `java -version`
-2. **PostgreSQL** 실행 중, `dangdang` 빈 데이터베이스 존재
-   ```sql
-   CREATE DATABASE dangdang;
-   ```
-3. **`.env` 파일 만들기** [각주8]
-
-   `spring-dotenv` 라이브러리가 `BackEnd/.env` 파일을 자동으로 읽어 환경변수로 등록해줍니다.
-   터미널이나 IntelliJ Run Configuration마다 따로 값을 입력할 필요가 없습니다.
-
-   1. `BackEnd/.env.example`을 복사해서 같은 폴더에 `.env`라는 이름으로 저장
-   2. 자기 PostgreSQL 설정에 맞게 값 채우기
-
-   | 변수명 | 설명 | 예시 |
-   |---|---|---|
-   | DB_USERNAME | PostgreSQL 접속 계정 | postgres |
-   | DB_PASSWORD | PostgreSQL 비밀번호 | (자기가 설치할 때 정한 값) |
-   | DB_PORT | PostgreSQL 포트 | 5432 |
-   | JWT_SECRET | 토큰 서명용 비밀키 | `openssl rand -base64 64`로 생성 |
-
-   `.env`는 `.gitignore`에 등록되어 있어 git에 올라가지 않습니다 — 각자 자기 PC 값만 로컬에 두는 용도입니다.
-   (`.env.example`은 값이 없는 템플릿이라 git에 커밋해도 안전하고, 팀원들이 그대로 복사해서 씁니다.)
-
----
-
-## 3. 실행 방법
-
-- **IntelliJ(추천)**: `BackEnd` 폴더를 열면 Gradle 자동 임포트 → `DangdangServerApplication` 실행(▶).
-- **터미널**: `gradle wrapper` 한 번 실행 후 `./gradlew bootRun`.
-
-서버가 처음 뜰 때 Flyway가 `V1`, `V2` 두 마이그레이션을 순서대로 실행해 `users`, `refresh_token`
-테이블을 자동 생성합니다. (`Successfully applied 2 migrations` 로그 확인)
-
-**Swagger UI로 테스트하기**: 서버가 뜬 뒤 브라우저에서 http://localhost:8080/swagger-ui.html 접속.
-`/api/auth/logout`처럼 로그인이 필요한 API는 먼저 `/api/auth/login`을 Swagger에서 실행해
-`accessToken`을 받은 다음, 화면 오른쪽 위 **Authorize** 버튼을 눌러 그 값을 넣어두면
-(`Bearer` 접두어 없이 토큰 값만) 이후 요청에 자동으로 인증 헤더가 붙습니다.
-
----
-
-## 4. API 테스트 (curl 예시)
-
-**회원가입** — activityLevel은 "주 1~3회" / "주 3~5회" / "주 5~7회" 중 하나 (6번 항목 참고)
-```bash
-curl -X POST http://localhost:8080/api/auth/signup \
-  -H "Content-Type: application/json" \
-  -d '{
-    "nickname": "당당이",
-    "email": "test@dangdang.com",
-    "password": "password123",
-    "gender": "Male",
-    "birthDate": "1997-05-16",
-    "height": 170,
-    "weight": 70,
-    "hba1c": 6.5,
-    "activityLevel": "주 3~5회",
-    "targetGlucose": 180
-  }'
-# -> 201 Created  { "userNo": 1 }
-```
-
-**로그인**
-```bash
-curl -X POST http://localhost:8080/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{ "email": "test@dangdang.com", "password": "password123" }'
-# -> 200 OK  { "accessToken": "...", "refreshToken": "..." }
-```
-
-**토큰 재발급 (회전)** — 응답으로 받은 refreshToken이 새 값이므로 반드시 로컬 저장값을 덮어써야 합니다.
-```bash
-curl -X POST http://localhost:8080/api/auth/refresh \
-  -H "Content-Type: application/json" \
-  -d '{ "refreshToken": "<로그인 응답의 refreshToken>" }'
-# -> 200 OK  { "accessToken": "...", "refreshToken": "..." }   (둘 다 새 토큰, 기존 refreshToken은 폐기됨)
-```
-
-**로그아웃** — 이 사용자의 refresh_token을 DB에서 전부 폐기합니다.
-```bash
-curl -X POST http://localhost:8080/api/auth/logout \
-  -H "Authorization: Bearer <로그인 응답의 accessToken>"
-# -> 204 No Content
-```
-
-**에러 예시** (이미 폐기/재사용된 refreshToken으로 재발급 시도)
-```json
-{
-  "code": "AUTH_401_INVALID_TOKEN",
-  "message": "유효하지 않거나 만료된 토큰입니다.",
-  "timestamp": "2026-08-12T10:00:00"
-}
-```
-
----
-
-## 5. ⚠️ 프론트엔드와 맞춰야 할 것 — JSON 필드 이름 표기법
-
-Notion API 명세서의 body 설명(`nickname,email,password,...`)은 DB 컬럼명을 그대로 옮긴 **snake_case**
-표기로 보이지만, 안드로이드에 이미 작성된 `TokenResponse.kt`(accessToken, refreshToken)는
-**camelCase**입니다. 이번 구현은 **camelCase**(자바/스프링 기본값)로 통일했습니다.
-
-바꾸고 싶다면 `application.yml`에 `spring.jackson.property-naming-strategy: SNAKE_CASE` 한 줄이면
-전체 API가 일괄 변경됩니다. **반찬영(안드로이드 담당)님과 확인해주세요.**
-
----
-
-## 6. 평소 활동량 매핑표 (주 n회 ↔ 하/중/상)
-
-`users.activity_level` 컬럼은 스키마상 정수(INTEGER)로 확정되어 있어서, 화면 문구를 그대로 저장할 수
-없습니다. `ActivityLevel` enum(`entity/ActivityLevel.java`)이 아래 표로 변환·검증합니다.
-
-| 프론트 화면 문구 (요청 JSON `activityLevel` 값) | 서버 내부 등급 | DB 저장값(`activity_level`) |
+| 기능 | 컨트롤러 | 엔드포인트 |
 |---|---|---|
-| `"주 1~3회"` | 하 | `1` |
-| `"주 3~5회"` | 중 | `2` |
-| `"주 5~7회"` | 상 | `3` |
+| 회원가입/로그인 | `AuthController` | `POST /api/auth/signup`, `/login`, `/refresh`, `/logout` |
+| 내 정보 | `UserController` | `GET /api/users/me`, `PATCH /me`, `PATCH /me/notification` |
+| 식사 기록 (음식 인식→확정) | `IntakeLogController` | `POST /api/intake-logs/preglucose`, `/recognize`, `/reanalyze`, `/predict`, `POST /api/intake-logs`(확정) |
+| 걷기 미션 | `WalkMissionController` | `GET /active`, `POST /{no}/start`, `/track`, `/end`, `/post-glucose`, `/{no}/expire` |
+| 팀 챌린지 | `TeamController` | `POST /api/teams`, `GET /`, `/me`, `/{teamNo}`, `POST /{teamNo}/join`, `DELETE /{teamNo}/members/me` |
+| 랭킹 | `RankingController` | `GET /api/rankings/teams` |
+| 챗봇 '당당이' | `ChatController` | `POST /api/chat`, `GET /api/chat/history` |
+| 홈 대시보드 | `HomeController` | `GET /api/home` |
 
-세 문자열 중 하나가 아니면(오타 등) `400 AUTH_400_INVALID_ACTIVITY_LEVEL`로 응답합니다.
-활동량은 선택 입력이라 아예 안 보내도(`null`) 회원가입은 됩니다.
+전체 요청/응답 스키마는 Swagger UI(`/swagger-ui/index.html`)에서 실시간으로 확인하는 것이 가장 정확합니다 (코드가 바뀌면 자동으로 갱신되므로, 문서보다 우선순위가 높습니다).
+
+**식사 기록의 정확한 호출 순서** (자주 헷갈리는 부분이라 명시):
+1. `POST /preglucose` — 식전 혈당 입력
+2. `POST /recognize` — 사진/이름으로 음식 인식 시도
+   - 식약처 DB에서 매칭됨 → `POST /predict`(섭취량 반영 예측) → `POST /`(확정)
+   - 매칭 안 됨(`foodName: null`로 응답) → 아래 3번으로
+3. `POST /reanalyze` — "AI로 분석하기" 선택 시. Gemini 추정치를 `custom_food`에 저장하고 `customFoodNo` 반환
+4. `POST /predict` (reanalyze 결과 기반) → `POST /`(확정)
+5. 사용자가 직접 입력하는 경우는 recognize 실패 후 바로 `POST /`(확정)만 호출 (portion은 이미 1로 간주)
 
 ---
 
-## 7. refresh_token 테이블 — 무상태 인증의 한계와 해결 방법
+## 5. 로컬 실행 방법
 
-**문제**: JWT를 순수 무상태(stateless)로만 쓰면, 서버는 발급한 토큰을 "기억"하지 않으므로
-1) 로그아웃해도 그 토큰을 강제로 못 끊고(만료 전까지 계속 유효), 2) 토큰이 탈취돼도 대응할 수 없고,
-3) 같은 토큰이 두 군데서 동시에 쓰여도(도난 정황) 알아챌 방법이 없습니다.
+1. **Java 21** 설치 확인: `java -version`
+2. **PostgreSQL** 접속 정보 확보 (학원 캠퍼스 DB 서버 또는 로컬 DB)
+3. `BackEnd/.env` 파일 생성 (git에 올라가지 않음, 각자 로컬 값만):
 
-**해결(하이브리드 방식)**: accessToken(수명 1시간, 실사용)은 그대로 무상태로 두고, refreshToken
-(수명 14일, 재발급 전용)만 DB(`refresh_token` 테이블)에 기록을 남겨 서버가 통제권을 갖습니다.
+   | 변수명 | 설명 |
+   |---|---|
+   | `DB_URL` | DB 호스트 주소 (예: `project-db-campus.smhrd.com`) |
+   | `DB_PORT`, `DB_NAME`, `DB_USERNAME`, `DB_PASSWORD` | DB 접속 정보 |
+   | `JWT_SECRET` | `openssl rand -base64 64`로 생성 |
+   | `FASTAPI_BASE_URL` | 로컬 개발 시 `http://localhost:8000` |
+   | `INTERNAL_API_KEY` | FastAPI `.env`의 같은 이름 변수와 **반드시 동일한 값** |
 
-```sql
-CREATE TABLE refresh_token (
-    token_no    BIGSERIAL      PRIMARY KEY,
-    user_no     INTEGER        NOT NULL REFERENCES users(user_no),
-    token_hash  VARCHAR(64)    NOT NULL UNIQUE,  -- 원본 토큰이 아니라 SHA-256 해시만 저장
-    issued_at   TIMESTAMP      NOT NULL DEFAULT now(),
-    expires_at  TIMESTAMP      NOT NULL,
-    revoked     BOOLEAN        NOT NULL DEFAULT false,
-    revoked_at  TIMESTAMP
-);
+4. **IntelliJ(추천)**: `BackEnd` 폴더 열기 → Gradle 자동 임포트 → `DangdangServerApplication` 실행(▶)
+   **터미널**: `./gradlew bootRun`
+5. FastAPI 서버(`AIServer/fastapi_app`)도 같이 띄워야 음식 인식/챗봇 기능이 동작합니다: `uvicorn main:app --reload --port 8000`
+6. Swagger로 테스트: `http://localhost:8080/swagger-ui/index.html`
+   - 로그인이 필요한 API는 `/api/auth/login`으로 먼저 `accessToken`을 받고, 우측 상단 **Authorize** 버튼에 `Bearer` 접두어 없이 값만 입력
+
+---
+
+## 6. 배포 방법 (Docker + Nginx + Cloudflare Tunnel / AWS EC2)
+
+배포 구성은 `docker-compose.yml`(레포 루트) 하나로 관리합니다.
+
 ```
-(전체 파일: `db/migration/V2__create_refresh_token_table.sql`)
+services: backend(Spring, 내부 8080) → fastapi(내부 8000) → nginx(외부 공개 80)
+```
+
+- **DB는 컨테이너에 포함하지 않음** — 기존 학원(SMHRD) PostgreSQL 서버를 그대로 사용합니다.
+- FastAPI는 `expose`만 하고 `ports`는 열지 않아 EC2/호스트 바깥에서 절대 직접 접근할 수 없습니다.
+- 외부에서 접속 가능한 문은 **Nginx의 80번 포트 하나뿐**입니다.
+
+**실행 순서**
+```bash
+docker compose up -d --build
+```
+
+**외부 공개 방법 2가지**
+1. **AWS EC2** (영구 배포): `Document/aws-ec2-deployment-guide.md` 참고 — 인스턴스 생성, Docker 설치, `.env` 세팅, `docker compose up -d --build`, 보안그룹 80번 포트 오픈까지 정리되어 있습니다.
+2. **Cloudflare Tunnel** (임시/간이 공개, AWS 없이 팀원 원격 테스트용):
+   ```bash
+   cloudflared tunnel --url http://localhost:80
+   ```
+   발급된 `https://xxxx.trycloudflare.com` 주소를 안드로이드 앱의 `BASE_URL`로 교체하면 팀원이 원격에서도 접속 가능합니다. (PowerShell에서 `cloudflared`가 PATH에 없으면 설치 경로에서 `.\cloudflared.exe`로 실행)
+
+**Cloudflare Tunnel 사용 시 주의 (이미 겪은 문제)**: 터널이 외부에서는 https로 받은 요청을 nginx에는 http로 넘겨주기 때문에, `nginx.conf`의 `X-Forwarded-Proto`를 `https`로 고정하고 `application.yml`에 `server.forward-headers-strategy: framework`를 설정해야 Swagger 로그인 테스트가 정상 동작합니다 (혼합 콘텐츠 차단 문제, 상세는 10번 트러블슈팅 참고).
+
+---
+
+## 7. 인증 구조 (JWT + refresh_token 회전 + 단일 세션 정책)
+
+- **accessToken**(3시간): 매 API 요청마다 사용, 무상태(서버가 DB를 조회하지 않고 서명·만료만 검사)
+- **refreshToken**(14일): accessToken 재발급 전용. DB(`refresh_token` 테이블)에 해시로 기록해 서버가 통제권을 가짐
 
 **동작 방식**
-- **로그인 시**: refreshToken을 발급하면서 그 해시값을 이 테이블에 한 줄 저장합니다(`revoked=false`).
-- **재발급(`/refresh`) 시**: 들어온 refreshToken의 해시로 이 테이블을 조회해서 —
-  - 아예 없으면 → 401 (위조된 토큰)
-  - `revoked=true`(이미 로그아웃했거나 이미 한 번 재발급에 쓰인 토큰)면 → **탈취 의심**으로 간주해
-    그 사용자의 살아있는 토큰을 전부 폐기하고 401 (아래 "재사용 탐지" 참고)
-  - 정상이면 → 그 토큰을 즉시 `revoked=true`로 바꾸고(1회용), accessToken·refreshToken을
-    **둘 다 새로 발급**(=토큰 회전/rotation)해 다시 저장합니다.
-- **로그아웃 시**: 이 사용자의 `revoked=false`인 행을 전부 `revoked=true`로 바꿉니다. 그 순간부터
-  이 사용자의 모든 refreshToken은 재발급에 쓸 수 없게 됩니다. (accessToken 자체는 자기 만료시간인
-  최대 1시간까지는 여전히 유효하지만, 그 시간 안에 재발급이 막히므로 로그인 상태가 끊깁니다.)
+- 로그인 성공 시 refreshToken 해시를 `refresh_token` 테이블에 저장
+- `/refresh` 호출 시: 이미 폐기된 토큰이 재사용되면(탈취 의심) 해당 유저의 모든 토큰을 강제 폐기, 정상이면 기존 토큰을 폐기하고 accessToken·refreshToken을 **둘 다 새로 발급**(토큰 회전)
+- 로그아웃 시: 해당 유저의 살아있는 refreshToken을 전부 폐기
 
-**"재사용 탐지"가 중요한 이유**: 정상적인 사용자는 하나의 refreshToken을 재발급에 딱 한 번만 씁니다
-(쓰자마자 서버가 폐기하고 새 걸 주니까요). 그런데 폐기된(`revoked=true`) 토큰으로 또 재발급 요청이
-들어온다는 건, 공격자가 과거에 훔친 토큰을 정상 사용자와 동시에 쓰고 있다는 뜻일 가능성이 높습니다.
-그래서 이 경우 그 사용자의 토큰을 전부 강제로 끊어 피해를 막습니다.
+**단일 세션 정책** (2026-08-25 추가): 같은 계정으로 새로 로그인하면 그 즉시 기존에 로그인되어 있던 다른 기기의 refreshToken을 전부 폐기합니다. 다만 accessToken은 무상태라 자신의 만료시간(최대 3시간)까지는 계속 유효하며, 그 accessToken으로 재발급을 시도하는 시점에야 비로소 차단됩니다. 즉시 강제 로그아웃이 필요해지면 accessToken도 매 요청 DB 조회 방식으로 바꿔야 하는데, 그러면 무상태 인증의 이점(요청마다 DB 조회 불필요)을 포기해야 합니다.
 
-원본 팀 확정 스키마(10개 테이블)에는 없던 **신규 테이블**이니, `DangDang_schema.md`나 Notion DB
-개요 문서에도 반영해서 팀원들과 공유해주세요.
+**jti(JWT ID) 클레임**: `JwtProvider.createToken()`이 매 토큰마다 `UUID.randomUUID()`를 `jti`로 심습니다. 같은 유저에게 같은 초(second)에 토큰이 두 번 발급돼도(네트워크 재시도 등) 토큰 문자열이 겹치지 않게 하기 위함입니다(과거 `refresh_token.token_hash` 유니크 제약 위반 버그의 원인이었습니다).
 
 ---
 
-## 8. Q&A — UserRepository엔 findByEmail밖에 없는데 INSERT는 어떻게?
+## 8. 음식 인식/재분석/예측 흐름 (FastAPI 연동)
 
-`UserRepository`는 `JpaRepository<User, Integer>`를 **상속**만 하고 있습니다.
-
-```java
-public interface UserRepository extends JpaRepository<User, Integer> {
-    Optional<User> findByEmail(String email);
-    boolean existsByEmail(String email);
-}
-```
-
-`JpaRepository`(스프링이 미리 만들어둔 부모 인터페이스)에 이미 `save()`, `findById()`,
-`existsById()`, `deleteById()` 같은 기본 기능이 다 구현되어 있어서, **상속받는 순간 자동으로
-다 쓸 수 있습니다.** 우리가 직접 코드를 작성한 `findByEmail`/`existsByEmail`은 "이메일로 찾기"처럼
-JpaRepository에는 없는, 우리 서비스에만 필요한 조회 기능이라 추가로 선언한 것뿐입니다.
-
-실제 INSERT가 일어나는 지점은 `AuthService.signup()` 안의 이 한 줄입니다.
-```java
-User savedUser = userRepository.save(user);   // ← 여기서 실제 INSERT INTO users ... 실행
-```
-`save()`는 `UserRepository.java` 파일 어디에도 안 적혀 있지만, `JpaRepository`를 상속했기 때문에
-호출할 수 있는 것입니다. (같은 원리로 `RefreshTokenRepository`도 `findByTokenHash`/
-`revokeAllByUserNo`만 직접 선언하고, `save()`는 상속받아 그대로 씁니다.)
+- **recognize**: 사진 또는 텍스트로 음식을 인식. 식약처 `food_info` 테이블에서 유사 음식을 찾으면 `foodNo`와 영양정보를 반환. 못 찾으면 `foodName: null`로 응답(UI가 "검색 결과가 없어요"를 표시하도록).
+- **reanalyze**: "AI로 분석하기" 선택 시 Gemini가 사진을 보고 영양정보를 추정. 이 결과는 **즉시 `custom_food`에 저장**되고 `customFoodNo`를 함께 반환합니다(프론트가 이후 확정 단계에서 이 번호를 참조하기 위함). Gemini가 숫자 대신 "없음" 같은 문자열을 줄 수 있어, FastAPI 쪽에서 숫자로 변환 안 되는 값은 전부 `null`로 정제한 뒤 내려보냅니다.
+- **predict**: 확정 전 마지막 단계로, 실제 섭취량(`portion`)을 반영해 최종 예상 혈당 상승량을 계산합니다. `portion`이 의미를 갖는 건 이 단계뿐이며, 확정(`POST /api/intake-logs`) 시점에는 이미 반영된 값으로 취급합니다.
+- FastAPI는 이 모든 처리에서 **DB에 쓰지 않고 읽기만** 합니다. 실제 `custom_food`/`intake_log` 저장은 전부 Spring(`RecognizeProxyService`, `IntakeLogService`)이 수행합니다.
 
 ---
 
-## 9. 백엔드 초심자를 위한 용어 각주 모음
+## 9. DB 관리 원칙 — 마이그레이션 파일을 만들지 않는 이유
 
-1. **Gradle**: 프로젝트를 빌드하고 라이브러리를 자동으로 내려받아주는 도구.
-2. **Spring Boot**: 자바로 웹 서버(API 서버)를 빠르게 만들 수 있게 해주는 프레임워크.
+이 프로젝트는 **DB를 PM(백엔드 담당)이 직접 관리**하기로 했습니다. 그래서:
+- `src/main/resources/db/migration/`에 Flyway SQL 파일을 새로 만들지 않습니다.
+- 엔티티(Java 코드)를 추가/수정할 때 필요한 테이블/컬럼 변경 사항은 **코드가 아니라 이 문서(또는 PR 설명)로 텍스트 안내만** 합니다 — 실제 `ALTER TABLE` 등은 DB 담당이 직접 실행합니다.
+- `application.yml`의 `jpa.hibernate.ddl-auto: validate`는 "엔티티와 실제 테이블이 일치하는지 검사만" 하고 스프링이 마음대로 테이블을 바꾸지 않도록 막아줍니다. 즉, DB 스키마가 먼저 맞춰져 있어야 서버가 정상 기동합니다.
+
+---
+
+## 10. 트러블슈팅 기록
+
+이 프로젝트 진행 중 실제로 겪고 해결한 백엔드 이슈들입니다. (발표/보고서용으로 재사용 가능)
+
+1. **`refresh_token` 유니크 제약 위반**: JWT가 userNo+발급시각(초 단위)만으로 만들어져 같은 초에 두 번 발급되면 토큰 문자열이 완전히 동일해져 해시 충돌 → `jti`(UUID) 클레임 추가로 해결.
+2. **Swagger 로그인(Execute)이 Cloudflare Tunnel 환경에서 실패**: 터널이 nginx에는 항상 http로 요청을 넘겨서 Spring이 "이 서버는 http 전용"이라고 오판 → HTTPS 페이지에서 http로 요청을 보내려다 브라우저가 혼합 콘텐츠로 차단. `nginx.conf`의 `X-Forwarded-Proto: https` 고정 + `application.yml`의 `forward-headers-strategy: framework`로 해결.
+3. **`/api/intake-logs/reanalyze` 500 에러 (2건)**: (1) `custom_food.sugar`/`calorie`가 NOT NULL인데 Gemini가 값을 빼먹어도 통과되던 검증 로직 → 저장 시 0으로 대체. (2) Gemini가 숫자 필드에 "없음" 같은 문자열을 반환해 Spring 역직렬화가 깨짐 → FastAPI에서 숫자 변환 실패 값을 전부 `null`로 정제.
+4. **DB 커넥션이 조용히 끊기는 문제**: 학원 DB 서버가 유휴 커넥션을 임의로 끊어 간헐적 500 발생 → Hikari(`max-lifetime`/`idle-timeout`/`keepalive-time`) + FastAPI SQLAlchemy(`pool_pre_ping`/`pool_recycle`) 설정으로 해결.
+5. **동시 로그인 보안 이슈**: 같은 계정이 여러 기기에서 동시 로그인 가능하던 것을 "새 로그인 시 기존 세션 강제 로그아웃" 정책으로 변경 (`refreshTokenRepository.revokeAllByUserNo()`를 로그인 시점에도 호출).
+6. **홈 화면 주간 걷기 출석 표시 오류**: 오늘 미션에 실패해도 즉시 X로 표시되던 것을 "오늘은 성공 시에만 O, 실패 표시는 다음날부터"로 수정.
+7. **챗봇이 대화 맥락을 기억하지 못함**: FastAPI가 매 요청을 독립적으로 처리하던 구조 → Spring이 최근 대화 기록(`ai_chat` 테이블, 텍스트 타입만 최대 3턴)을 조회해 FastAPI 요청에 함께 실어보내도록 수정.
+8. **음식 사진 인식 실패 시 UI 처리**: 식약처 DB에 없는 음식(예: 특정 프랜차이즈 메뉴)은 Gemini가 이름을 추정해도 그대로 노출하지 않고 `foodName: null`로 응답해, "검색 결과가 없어요" 화면이 뜨도록 통일.
+
+---
+
+## 11. 백엔드 초심자를 위한 용어 각주 모음
+
+1. **Gradle**: 프로젝트를 빌드하고 라이브러리를 자동으로 내려받는 도구.
+2. **Spring Boot**: 자바로 웹 API 서버를 빠르게 만들 수 있게 해주는 프레임워크.
 3. **JPA/Hibernate (ORM)**: SQL문을 직접 안 쓰고 자바 객체(엔티티)로 DB를 다루는 기술.
 4. **DTO**: 클라이언트-서버가 주고받는 JSON의 모양을 정의한 클래스.
-5. **Controller / Service / Repository**: 입출력(Controller) → 판단·로직(Service) →
-   DB 접근(Repository) 순으로 책임을 나누는 계층형 구조.
-6. **JpaRepository 상속**: 인터페이스를 상속만 해도 save/findById 같은 기본 DB 기능이 자동으로
-   생기는 Spring Data JPA의 핵심 기능. (8번 Q&A 참고)
-7. **Bean Validation** (`@NotBlank`, `@Email` 등): 요청 JSON 형식을 자동으로 검사해주는 기능.
-8. **BCrypt**: 비밀번호를 복호화 불가능하게 암호화(해싱)하는 표준 방식.
-9. **SHA-256 해시**: 어떤 문자열이든 같은 입력이면 항상 같은 64자 결과를 내는 단방향 변환.
-   refreshToken을 DB에 저장할 때 원문 대신 이 해시값만 저장합니다(7번 항목 참고).
-10. **JWT(JSON Web Token)**: 로그인 성공 시 발급하는 토큰. 무상태 인증에 사용.
-11. **무상태(stateless) 인증**: 서버가 세션을 따로 저장하지 않고 토큰만으로 로그인 여부를 판단하는
-    방식. 장점(확장 쉬움)과 단점(강제 로그아웃 어려움, 7번 항목에서 보완)이 둘 다 있습니다.
-12. **토큰 회전(rotation)**: refreshToken을 재발급할 때마다 기존 토큰은 폐기하고 새 토큰을 발급하는
-    보안 기법. 탈취된 토큰의 재사용을 탐지할 수 있게 해줍니다.
-13. **accessToken / refreshToken**: accessToken은 짧게(1시간) 사는 실사용 토큰, refreshToken은
-    길게(14일) 사는 재발급 전용 토큰(이제는 회전되어 재사용 1회로 제한됨).
-14. **Spring Security / Filter**: 컨트롤러 도달 전 "로그인 상태인지"를 검사하는 보안 프레임워크.
-15. **Authentication (스프링 시큐리티)**: 로그인된 사용자 정보를 담는 객체. 컨트롤러 메서드
-    파라미터에 그냥 선언하면 스프링이 자동으로 채워줍니다(`AuthController.logout()` 참고).
-16. **Flyway (DB 마이그레이션)**: 테이블 생성/변경 SQL을 버전별 파일로 관리하는 도구.
-17. **환경변수**: 비밀번호·비밀키처럼 코드에 직접 적으면 안 되는 값을 실행 시점에 주입하는 방식.
-18. **HTTP 상태코드**: 200/201/204 성공 계열, 400 형식오류, 401 인증실패, 409 충돌(중복 등).
-19. **`.env` 파일 / dotenv**: 비밀번호·API 키처럼 사람마다 다르고 git에 올리면 안 되는 값을,
-    코드와 분리된 파일 하나에 모아두는 관례. `spring-dotenv` 라이브러리가 이 파일을 읽어 자동으로
-    환경변수처럼 등록해줘서, 실행 방법(터미널/IntelliJ)이 달라져도 항상 같은 값을 씁니다.
+5. **Controller / Service / Repository**: 입출력(Controller) → 판단·로직(Service) → DB 접근(Repository) 순으로 책임을 나누는 계층형 구조.
+6. **JWT(JSON Web Token)**: 로그인 성공 시 발급하는 디지털 출입증. 서버가 세션을 따로 저장하지 않고 토큰 자체의 서명·만료만 검사하는 "무상태 인증"에 사용.
+7. **토큰 회전(rotation)**: refreshToken을 재발급할 때마다 기존 토큰은 폐기하고 새 토큰을 발급하는 보안 기법. 탈취된 토큰의 재사용을 탐지할 수 있게 해줌.
+8. **리버스 프록시(Nginx)**: 외부 요청을 맨 앞에서 받아 내부 서버로 전달해주는 "문지기" 프로그램.
+9. **X-Internal-Api-Key**: Spring이 FastAPI를 호출할 때만 붙이는 내부 전용 인증 헤더. 이 키를 모르면 FastAPI를 호출할 수 없음(외부에서 FastAPI에 직접 접근해도 이 헤더가 없어 거부됨).
+10. **HikariCP**: Spring Boot의 기본 DB 커넥션 풀(연결을 미리 만들어두고 재사용하는 관리자).
+11. **Docker / Docker Compose**: 애플리케이션을 어떤 컴퓨터에서든 동일하게 실행되도록 "컨테이너"로 포장하는 기술과, 여러 컨테이너를 한 번에 관리하는 도구.
+12. **Cloudflare Tunnel**: 공유기 포트포워딩이나 고정 IP 없이도 로컬에서 띄운 서버를 외부에 공개할 수 있게 해주는 무료 터널링 서비스.
+13. **Flyway**: 테이블 생성/변경 SQL을 버전별 파일로 관리하는 DB 마이그레이션 도구 (이 프로젝트는 9번 원칙에 따라 새 파일을 추가하지 않음).
+14. **환경변수 / `.env`**: 비밀번호·API 키처럼 코드에 직접 적으면 안 되는 값을, 코드와 분리된 파일에 모아두고 실행 시점에 주입하는 방식.
 
 ---
 
-## 10. 다음 단계로 넘어갈 때 참고
+## 12. 다음 단계로 넘어갈 때 참고
 
-- `/api/users/me` (내 정보 조회/수정)를 만들 때는 `@LoginUser` 커스텀 어노테이션 + 리졸버를 추가하면
-  편합니다. (이번 로그아웃 구현에 쓴 `Authentication authentication` 방식을 그대로 재사용해도 됩니다.)
-- 소셜 로그인(구글/카카오)을 붙일 때도 로그인 성공 후 `saveRefreshTokenRecord()`를 그대로 재사용할
-  수 있습니다 — `AuthService`에 플랫폼별 토큰 검증 로직만 추가하면 됩니다.
-- 만료된 `refresh_token` 행을 주기적으로 지우는 배치(@Scheduled)를 추가하면 테이블이 무한정
-  커지는 걸 막을 수 있습니다(지금은 남겨둬도 동작에는 문제 없음 — 정리는 선택 사항).
+- 만료된 `refresh_token` 행을 주기적으로 삭제하는 배치(`@Scheduled`)를 추가하면 테이블이 무한정 커지는 것을 막을 수 있습니다 (지금은 없어도 동작에는 문제없음 — 정리는 선택 사항).
+- 소셜 로그인(구글/카카오)을 붙일 때도 `AuthService.saveRefreshTokenRecord()`를 그대로 재사용할 수 있습니다. 플랫폼별 토큰 검증 로직만 추가하면 됩니다.
+- `AIServer/fastapi_app/prompts/reanalyze.py`의 Gemini 프롬프트가 "100g당" 기준으로 되어 있는데, 나머지 시스템은 "1인분(serving_size) 기준"으로 통일되어 있어 실제로 오차가 생기는지 추가 확인이 필요합니다 (아직 미해결로 남겨둔 항목).
+- 즉시 강제 로그아웃이 필요해지면(현재는 최대 3시간 지연), accessToken 만료시간을 줄이거나 매 요청마다 DB로 검사하는 구조로 전환을 검토해야 합니다.
