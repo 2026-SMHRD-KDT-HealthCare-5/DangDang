@@ -84,6 +84,18 @@ public class AuthService {
      * 이메일 로그인. 성공 시 access/refresh 토큰을 발급하고,
      * refreshToken은 해시로 변환해 refresh_token 테이블에도 기록합니다(아래 [각주 O] 참고).
      * 저장까지 하므로 더 이상 읽기 전용(readOnly)이 아닙니다.
+     *
+     * [각주] (추가 2026-08-25, 사용자 결정) "한 계정 = 한 기기만 로그인" 정책 — 새로 로그인에
+     * 성공하면, 이 사용자의 기존 refreshToken을 전부 revoke(폐기)합니다. 그래서 다른 기기에서
+     * 로그인해있던 세션은 refresh를 더 이상 못 받고(다음 refresh 시도 시 INVALID_TOKEN), 결국
+     * 로그아웃 상태가 됩니다.
+     *
+     * ⚠️ 정확한 타이밍: accessToken 자체는 무상태(JWT 서명·만료만 검사, DB 조회 없음)라서, 방금
+     * revoke한 게 즉시 API 호출을 막지는 못합니다. 기존 기기는 자기 accessToken이 살아있는 동안
+     * (최대 jwt.access-token-expiration-ms, 기본 3시간)은 API를 계속 쓸 수 있다가, 그 토큰이
+     * 만료돼서 refresh를 시도하는 시점에야 비로소 막힙니다. "누르자마자 0.1초 안에 강제 로그아웃"은
+     * 아니라는 뜻입니다 — 즉시 차단이 꼭 필요해지면 accessToken도 매 요청마다 DB로 검사하는
+     * 구조로 바꿔야 하는데, 그러면 무상태 인증의 장점(매 요청마다 DB 안 봐도 됨)이 없어집니다.
      */
     @Transactional
     public TokenResponse login(LoginRequest request) {
@@ -96,6 +108,9 @@ public class AuthService {
         if (!passwordEncoder.matches(request.password(), user.getPassword())) {
             throw new BusinessException(ErrorCode.INVALID_CREDENTIALS);
         }
+
+        // 새 로그인 성공 = 기존에 어디선가 로그인되어 있던 세션은 전부 폐기 (한 계정 = 한 기기 정책)
+        refreshTokenRepository.revokeAllByUserNo(user.getUserNo());
 
         String accessToken = jwtProvider.createAccessToken(user.getUserNo());
         String refreshToken = jwtProvider.createRefreshToken(user.getUserNo());

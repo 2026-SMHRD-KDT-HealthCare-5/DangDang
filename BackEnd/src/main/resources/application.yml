@@ -23,6 +23,15 @@ spring:
     url: jdbc:postgresql://${DB_URL:localhost}:${DB_PORT:5432}/${DB_NAME:dangdang}
     username: ${DB_USERNAME:postgres}
     password: ${DB_PASSWORD:postgres}
+    # [각주] (추가 2026-08-25) 학원 DB 서버(또는 그 사이 네트워크)가 한동안 안 쓰는 커넥션을
+    # 조용히 끊는 것으로 보입니다 — 로그에 "HikariPool-1 - Failed to validate connection ...
+    # This connection has been closed"가 반복해서 찍혔습니다. Hikari가 알아서 죽은 커넥션을
+    # 걸러내긴 하지만(경고만 남고 요청 자체가 실패하진 않음), max-lifetime을 짧게 잡아서
+    # 학원 DB가 끊기 전에 Hikari가 먼저 새 커넥션으로 교체하도록 예방합니다.
+    hikari:
+      max-lifetime: 280000    # 280초 — FastAPI(core/config.py)의 pool_recycle=280과 맞춤
+      idle-timeout: 180000    # 180초 이상 안 쓰는 유휴 커넥션은 풀에서 미리 제거
+      keepalive-time: 120000  # 120초마다 살아있는 커넥션에 핑을 보내 연결이 안 끊기게 유지
 
   jpa:
     hibernate:
