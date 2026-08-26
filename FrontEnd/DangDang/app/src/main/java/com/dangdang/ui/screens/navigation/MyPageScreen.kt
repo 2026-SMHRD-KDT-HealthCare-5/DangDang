@@ -41,6 +41,8 @@ import com.dangdang.ui.viewmodel.navigation.MyPageViewModel
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
+import java.time.format.DateTimeFormatterBuilder
+import java.time.temporal.ChronoField
 import java.time.temporal.ChronoUnit
 
 
@@ -187,7 +189,10 @@ fun MyPageScreenContent(
                 ),
             verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
-            val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSSSSS")
+            val formatter = DateTimeFormatterBuilder()
+                .appendPattern("yyyy-MM-dd'T'HH:mm:ss")
+                .appendFraction(ChronoField.NANO_OF_SECOND, 1, 9, true)
+                .toFormatter()
             val sinceDays = ChronoUnit.DAYS.between(
                 LocalDate.parse(user?.joinedAt, formatter),
                 LocalDate.now()
